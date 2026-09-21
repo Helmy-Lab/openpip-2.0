@@ -1,0 +1,7 @@
+venv/
+mediafiles/
+staticfiles/
+dev.db
+**/__pycache__/
+.pytest_cache/
+.env
