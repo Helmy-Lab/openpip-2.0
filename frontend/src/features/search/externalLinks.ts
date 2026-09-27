@@ -142,14 +142,16 @@ export function buildLinks(
   ]
 }
 
-/** White chip keeps the dark logos (GeneMANIA, DAVID) legible in dark mode. */
+/** White chip keeps the dark logos (GeneMANIA, DAVID) legible in dark mode;
+ * the ring outlines it on light surfaces. 18px of logo = the 36px assets at 2x. */
 export const LINK_ICON_STYLE = {
-  width: 16,
-  height: 16,
+  width: 20,
+  height: 20,
   flexShrink: 0,
   objectFit: 'contain' as const,
   background: '#fff',
-  borderRadius: 3,
+  borderRadius: 4,
   padding: 1,
   boxSizing: 'border-box' as const,
+  boxShadow: '0 0 0 1px var(--border)',
 }

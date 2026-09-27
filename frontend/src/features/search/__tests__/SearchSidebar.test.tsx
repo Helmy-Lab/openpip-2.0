@@ -75,6 +75,17 @@ describe('SearchSidebar ribbon variant', () => {
     expect(screen.queryByPlaceholderText(/Gene symbol or UniProt ID/i)).toBeNull()
   })
 
+  it('keeps every filter behind the one Filters heading', async () => {
+    const user = userEvent.setup()
+    render(<SearchSidebar term="BAD" visibleInteractionIds={[]} variant="ribbon" />, { wrapper })
+
+    expect(screen.queryByLabelText(/min. confidence score/i)).toBeNull()
+    await user.hover(screen.getByRole('button', { name: /^Filter$/i }))
+    expect(screen.getByText(/min. confidence score/i)).toBeInTheDocument()
+    expect(screen.getByText(/filter mode/i)).toBeInTheDocument()
+    expect(screen.getByText(/^Tissue expression/i)).toBeInTheDocument()
+  })
+
   it('folds the whole row away and back', () => {
     render(<SearchSidebar term="BAD" visibleInteractionIds={[]} variant="ribbon" />, { wrapper })
 

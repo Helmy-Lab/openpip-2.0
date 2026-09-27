@@ -227,8 +227,7 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
     </Section>
   )
 
-  const scoreSection = (
-    <Section variant={variant} label={t('search.sidebar.score')} width={216}>
+  const scoreBody = (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <input
             type="range"
@@ -243,6 +242,11 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
             {scoreFilter.toFixed(2)}
           </span>
         </div>
+  )
+
+  const scoreSection = (
+    <Section variant={variant} label={t('search.sidebar.score')} width={216}>
+      {scoreBody}
     </Section>
   )
 
@@ -292,8 +296,8 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
     </Section>
   )
 
-  const sourcesSection = hasCategories && (
-    <Section variant={variant} label={t('search.sidebar.sources')}>
+  const sourcesBody = (
+    <>
           {Object.entries(categoryFilter).map(([name, checked]) => (
             <label
               key={name}
@@ -323,12 +327,18 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
               {name}
             </label>
           ))}
+    </>
+  )
+
+  const sourcesSection = hasCategories && (
+    <Section variant={variant} label={t('search.sidebar.sources')}>
+      {sourcesBody}
     </Section>
   )
 
   /* Tool sections - only shown once a search has been performed */
-  const filterModeSection = term && (
-    <Section variant={variant} label={t('search.sidebar.filterMode')} collapsible>
+  const filterModeBody = (
+    <>
             {FILTER_MODE_OPTIONS.map(({ textKey, value }) => (
               <label
                 key={value}
@@ -345,23 +355,24 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
                 {t(textKey)}
               </label>
             ))}
+    </>
+  )
+
+  const filterModeSection = term && (
+    <Section variant={variant} label={t('search.sidebar.filterMode')} collapsible>
+      {filterModeBody}
     </Section>
   )
 
   /* Tissue expression — several may be selected, and they AND together.
      Collapsed like the other tool sections; the count in the label keeps a
      live filter visible while the list is shut. */
-  const tissueSection = term && showTissue && (
-    <Section
-      variant={variant}
-      collapsible
-      defaultOpen={false}
-      label={
-        tissueFilter.length > 0
-          ? `${t('search.sidebar.tissue')} (${tissueFilter.length})`
-          : t('search.sidebar.tissue')
-      }
-    >
+  const tissueLabelText =
+    tissueFilter.length > 0
+      ? `${t('search.sidebar.tissue')} (${tissueFilter.length})`
+      : t('search.sidebar.tissue')
+
+  const tissueBody = (
             <div role="group" aria-label={t('search.sidebar.tissue')}>
             {tissueOptions.length === 0 ? (
               <p style={{ fontSize: 12, color: 'var(--text-soft)', margin: '4px 0 0' }}>
@@ -408,6 +419,11 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
               </>
             )}
             </div>
+  )
+
+  const tissueSection = term && showTissue && (
+    <Section variant={variant} collapsible defaultOpen={false} label={tissueLabelText}>
+      {tissueBody}
     </Section>
   )
 
@@ -444,7 +460,7 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
             {allProteins.length === 0 ? (
               <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('search.sidebar.noProteins')}</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {buildLinks(allProteins, queryProteinIds, allInteractions).map((link) =>
                   link.href ? (
                     <a
@@ -452,7 +468,7 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
                       href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ fontSize: 12, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6 }}
+                      style={{ fontSize: 12, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 8 }}
                     >
                       <img src={link.icon} alt="" style={LINK_ICON_STYLE} />
                       {link.label}
@@ -462,7 +478,7 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
                       key={link.id}
                       type="button"
                       onClick={() => link.onClick?.()}
-                      style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                      style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
                     >
                       <img src={link.icon} alt="" style={LINK_ICON_STYLE} />
                       {link.label}
@@ -558,6 +574,38 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
     )
   )
 
+  /* Ribbon: one heading for every filter, rather than four side by side.
+     Sub-headings inside keep the groups apart. */
+  const subLabel: CSSProperties = { ...sectionLabelStyle, fontSize: 11, marginBottom: 6 }
+  const filtersSection = (
+    <Section variant={variant} label={t('search.filter')} width={300}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <span style={subLabel}>{t('search.sidebar.score')}</span>
+          {scoreBody}
+        </div>
+        {hasCategories && (
+          <div>
+            <span style={subLabel}>{t('search.sidebar.sources')}</span>
+            {sourcesBody}
+          </div>
+        )}
+        {term && (
+          <div>
+            <span style={subLabel}>{t('search.sidebar.filterMode')}</span>
+            {filterModeBody}
+          </div>
+        )}
+        {term && showTissue && (
+          <div>
+            <span style={subLabel}>{tissueLabelText}</span>
+            {tissueBody}
+          </div>
+        )}
+      </div>
+    </Section>
+  )
+
   const shareDialog = shareOpen && (
     <ShareDialog
       savedViewName={term}
@@ -586,17 +634,14 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
               display: 'flex',
               flexWrap: 'wrap',
               alignItems: 'flex-start',
-              justifyContent: 'center',
+              justifyContent: 'flex-start',
               gap: 10,
               padding: '8px 12px 4px',
             }}
           >
             {querySection}
-            {scoreSection}
             {summarySection}
-            {sourcesSection}
-            {filterModeSection}
-            {tissueSection}
+            {filtersSection}
             {downloadSection}
             {linksSection}
             {saveSection}

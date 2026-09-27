@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, type KeyboardEvent } from 'react'
 import { CONTROL_BG, CONTROL_HEIGHT } from './LayoutDropdown'
 
 /**
@@ -61,6 +61,19 @@ export function CanvasDropdown({ label, width = 232, up = true, plain = false, c
 }) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  // A ribbon panel is centred under its heading, so one near the window's edge
+  // would hang off it: slide it back inside, and let it scroll rather than run
+  // past the bottom of the screen.
+  useLayoutEffect(() => {
+    const el = panelRef.current
+    if (!open || !plain || !el) return
+    const r = el.getBoundingClientRect()
+    const shift = Math.max(8 - r.left, 0) - Math.max(r.right - (window.innerWidth - 8), 0)
+    el.style.transform = `translateX(calc(-50% + ${shift}px))`
+    el.style.maxHeight = `${window.innerHeight - r.top - 8}px`
+  }, [open, plain])
 
   useEffect(() => {
     if (!open) return
@@ -116,8 +129,9 @@ export function CanvasDropdown({ label, width = 232, up = true, plain = false, c
       )}
 
       {open && (
-        <div style={{
+        <div ref={panelRef} style={{
           position: 'absolute',
+          overflowY: 'auto',
           ...(up
             ? { right: 0, bottom: '100%', marginBottom: 4 }
             : plain
