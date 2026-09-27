@@ -105,11 +105,16 @@ export function SearchResultsPage({ term: termProp, viewState, banner }: SearchR
     if (document.fullscreenElement) document.exitFullscreen()
     else networkRef.current?.requestFullscreen?.()
   }
-  const { data, isLoading, isError } = useSearch(term)
   const { data: settings } = useSettings()
   // Sidebar down the left, or a ribbon under the navbar — the deployment's
   // choice, set in Admin → Settings → Search.
   const ribbon = settings?.horizontalFilterBar === true
+  // Nothing searched under the ribbon: run the first example anyway, so the
+  // query box sits over a real (blurred) results view of what a search gives.
+  const previewTerm = ribbon && !term
+    ? (settings?.example1 ?? '').split('\n').map((g) => g.trim()).filter(Boolean).join(',')
+    : ''
+  const { data, isLoading, isError } = useSearch(term || previewTerm)
 
   const {
     setSearchData,
@@ -147,10 +152,9 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
   const visibleInteractionIds = interactions.map((ix) => ix.interaction_id)
 
   const renderMain = () => {
-    // Nothing searched yet: the canvas has nothing to draw, so it carries the
-    // query box itself rather than pointing at one somewhere else on the page.
-    if (!term) {
-      return (
+    // Nothing searched yet: the canvas carries the query box itself rather
+    // than pointing at one somewhere else on the page.
+    const emptyPrompt = (
         <div style={{
           display: 'flex',
           flexDirection: 'column',
@@ -181,8 +185,9 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
             <QueryPanel term="" idPrefix="canvas-gene" />
           </div>
         </div>
-      )
-    }
+    )
+    // Until the preview example has results, the prompt stands on its own.
+    if (!term && !(data?.all_proteins?.length && allProteins.length)) return emptyPrompt
 
     if (isLoading) {
       return (
@@ -270,7 +275,7 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
       )
     }
 
-    return (
+    const results = (
       <>
         {/* Network */}
         <div ref={networkRef} style={{ position: 'relative', flexShrink: 0, background: 'var(--bg)' }}>
@@ -387,8 +392,26 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
         <ResultTablePanel selectedProtein={selectedProtein} />
 
         {/* Modals */}
-        <OverlaySystem />
+        {term && <OverlaySystem />}
       </>
+    )
+    if (term) return results
+
+    // Preview: the example's real results, blurred and out of reach, with the
+    // prompt on top of them.
+    return (
+      <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <div
+          inert
+          aria-hidden="true"
+          style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', filter: 'blur(4px)', pointerEvents: 'none', userSelect: 'none' }}
+        >
+          {results}
+        </div>
+        <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', background: 'color-mix(in srgb, var(--bg) 35%, transparent)' }}>
+          {emptyPrompt}
+        </div>
+      </div>
     )
   }
 

@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useSearch } from '../../../api/search'
+import { useSettings } from '../../../api/settings'
 import { SearchResultsPage } from '../SearchResultsPage'
 import { searchFixture } from '../../../mocks/fixtures/search'
 import { useSearchStore } from '../searchStore'
@@ -18,6 +19,7 @@ vi.mock('../enrichment/EnrichmentPanel', () => ({ EnrichmentPanel: () => <div>En
 vi.mock('../NodeInfoPanel', () => ({ NodeInfoPanel: () => null }))
 vi.mock('../modals/OverlaySystem', () => ({ OverlaySystem: () => null }))
 vi.mock('../../../api/search', () => ({ useSearch: vi.fn() }))
+vi.mock('../../../api/settings', () => ({ useSettings: vi.fn() }))
 
 // Mock cytoscape and react-cytoscapejs to avoid canvas/DOM issues in jsdom
 vi.mock('react-cytoscapejs', () => ({ default: () => null }))
@@ -44,6 +46,24 @@ describe('SearchResultsPage', () => {
     // Reset store between tests
     useSearchStore.getState().reset()
     vi.clearAllMocks()
+    ;(useSettings as ReturnType<typeof vi.fn>).mockReturnValue({ data: undefined })
+  })
+
+  it('with the ribbon and no term, puts the prompt over the first example\'s results', async () => {
+    ;(useSettings as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: { horizontalFilterBar: true, example1: 'BAD\nBCL2L1' },
+    })
+    ;(useSearch as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: searchFixture,
+      isLoading: false,
+      isError: false,
+    })
+
+    renderWithRoute() // no term
+
+    expect(useSearch).toHaveBeenCalledWith('BAD,BCL2L1')
+    expect(await screen.findByText('Network')).toBeInTheDocument()
+    expect(screen.getByText(/Search for a protein to see its interaction network/i)).toBeInTheDocument()
   })
 
   it('shows loading spinner when isLoading is true', () => {
