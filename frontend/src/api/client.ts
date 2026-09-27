@@ -16,7 +16,9 @@ export function mediaUrl(path: string | null | undefined): string | undefined {
   return import.meta.env.BASE_URL.replace(/\/$/, '') + path
 }
 
-export const apiClient = axios.create({ baseURL: BASE_URL })
+// A hung request would otherwise sit in "loading" forever; timing out turns it
+// into an error React Query can retry.
+export const apiClient = axios.create({ baseURL: BASE_URL, timeout: 30_000 })
 
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('openpip_access_token')
@@ -24,11 +26,12 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-// Queue of callbacks waiting for a token refresh to complete
+// Queue of callbacks waiting for a token refresh to complete. Called with the
+// new token on success, or null when the refresh failed.
 let isRefreshing = false
-let refreshQueue: ((token: string) => void)[] = []
+let refreshQueue: ((token: string | null) => void)[] = []
 
-function drainQueue(newToken: string) {
+function drainQueue(newToken: string | null) {
   refreshQueue.forEach((cb) => cb(newToken))
   refreshQueue = []
 }
@@ -49,8 +52,9 @@ apiClient.interceptors.response.use(
     }
 
     if (isRefreshing) {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         refreshQueue.push((token) => {
+          if (!token) return reject(error)
           original.headers.Authorization = `Bearer ${token}`
           resolve(apiClient(original))
         })
@@ -70,6 +74,7 @@ apiClient.interceptors.response.use(
       drainQueue(access)
       return apiClient(original)
     } catch {
+      drainQueue(null)
       useAuthStore.getState().logout()
       return Promise.reject(error)
     } finally {
