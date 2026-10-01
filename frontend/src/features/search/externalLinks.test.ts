@@ -21,6 +21,10 @@ describe('buildLinks', () => {
     expect(href('genelist')).toBe('https://www.gene-list.com/search/BAD,BCL2')
   })
 
+  it('spells Genelist as one word', () => {
+    expect(buildLinks(proteins, [1], interactions).find((l) => l.id === 'genelist')?.label).toBe('Genelist')
+  })
+
   it('gives every tool a logo', () => {
     const missing = buildLinks(proteins, [1], interactions)
       .filter((l) => !l.icon)

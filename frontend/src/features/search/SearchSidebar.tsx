@@ -149,13 +149,13 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
   const setFilterMode = useSearchStore((s) => s.setFilterMode)
   const setTissueFilter = useSearchStore((s) => s.setTissueFilter)
   const clearTissueFilter = useSearchStore((s) => s.clearTissueFilter)
+  const tissueNodeSize = useSearchStore((s) => s.tissueNodeSize)
+  const tissueNodeColor = useSearchStore((s) => s.tissueNodeColor)
+  const setTissueDisplay = useSearchStore((s) => s.setTissueDisplay)
   const setModal = useSearchStore((s) => s.setModal)
 
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   const { data: settings } = useSettings()
-
-  // The ribbon folds away to a strip, for when the network wants the room.
-  const [ribbonHidden, setRibbonHidden] = useState(false)
 
   const { mutateAsync: saveNetwork, isPending: isSaving } = useSaveNetwork()
   const [saveOpen, setSaveOpen] = useState(false)
@@ -274,8 +274,8 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
     <Section variant={variant} label={t('search.sidebar.summary')} collapsible>
       {/* The ribbon has no column to list the found/not-found lines down, so
           they ride with the counts: same question, same panel. */}
-      {variant === 'ribbon' && foundBlock}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
+            {variant === 'ribbon' && foundBlock}
             <div>
               <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.proteins')} </span>
               <span style={{ color: 'var(--text-muted)' }}>{allProteins.length}</span>
@@ -380,7 +380,26 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
               </p>
             ) : (
               <>
-                <div style={{ maxHeight: 168, overflowY: 'auto', paddingRight: 4 }}>
+                {/* Legacy's two node-styling switches; either one makes the
+                    tissue list pick one tissue at a time. */}
+                {([
+                  ['tissueNodeSize', 'search.sidebar.tissueNodeSize'],
+                  ['tissueNodeColor', 'search.sidebar.tissueNodeColor'],
+                ] as const).map(([which, textKey]) => (
+                  <label
+                    key={which}
+                    style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '3px 0', cursor: 'pointer', fontSize: 13, color: 'var(--text)' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={which === 'tissueNodeSize' ? tissueNodeSize : tissueNodeColor}
+                      onChange={(e) => setTissueDisplay(which, e.target.checked)}
+                      style={{ accentColor: 'var(--primary)', cursor: 'pointer', flexShrink: 0 }}
+                    />
+                    {t(textKey)}
+                  </label>
+                ))}
+                <div style={{ maxHeight: 168, overflowY: 'auto', paddingRight: 4, marginTop: 6, borderTop: '1px solid var(--border)', paddingTop: 4 }}>
                   {tissueOptions.map((key) => (
                     <label
                       key={key}
@@ -577,27 +596,31 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
   /* Ribbon: one heading for every filter, rather than four side by side.
      Sub-headings inside keep the groups apart. */
   const subLabel: CSSProperties = { ...sectionLabelStyle, fontSize: 11, marginBottom: 6 }
+  // Tissue gets its own column, and only when there is something to tick.
+  const ribbonTissue = term && showTissue && tissueOptions.length > 0
   const filtersSection = (
-    <Section variant={variant} label={t('search.filter')} width={300}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div>
-          <span style={subLabel}>{t('search.sidebar.score')}</span>
-          {scoreBody}
+    <Section variant={variant} label={t('search.filter')} width={ribbonTissue ? 520 : 300}>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {term && (
+            <div>
+              <span style={subLabel}>{t('search.sidebar.filterMode')}</span>
+              {filterModeBody}
+            </div>
+          )}
+          <div>
+            <span style={subLabel}>{t('search.sidebar.score')}</span>
+            {scoreBody}
+          </div>
+          {hasCategories && (
+            <div>
+              <span style={subLabel}>{t('search.sidebar.sources')}</span>
+              {sourcesBody}
+            </div>
+          )}
         </div>
-        {hasCategories && (
-          <div>
-            <span style={subLabel}>{t('search.sidebar.sources')}</span>
-            {sourcesBody}
-          </div>
-        )}
-        {term && (
-          <div>
-            <span style={subLabel}>{t('search.sidebar.filterMode')}</span>
-            {filterModeBody}
-          </div>
-        )}
-        {term && showTissue && (
-          <div>
+        {ribbonTissue && (
+          <div style={{ flex: 1, minWidth: 0 }}>
             <span style={subLabel}>{tissueLabelText}</span>
             {tissueBody}
           </div>
@@ -626,60 +649,27 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
         position: 'relative',
         zIndex: 30,
       }}>
-        {!ribbonHidden && (
-          <div
-            role="group"
-            aria-label={t('search.sidebar.tools')}
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'flex-start',
-              justifyContent: 'flex-start',
-              gap: 10,
-              padding: '8px 12px 4px',
-            }}
-          >
-            {querySection}
-            {summarySection}
-            {filtersSection}
-            {downloadSection}
-            {linksSection}
-            {saveSection}
-            {shareSection}
-          </div>
-        )}
-        {shareDialog}
-
-        {/* Folds the row away. Same grip the network/table divider uses, so the
-            two things that give the canvas room behave alike. */}
-        <button
-          type="button"
-          onClick={() => setRibbonHidden((v) => !v)}
-          aria-expanded={!ribbonHidden}
-          title={ribbonHidden ? t('search.ribbon.show') : t('search.ribbon.hide')}
-          aria-label={ribbonHidden ? t('search.ribbon.show') : t('search.ribbon.hide')}
+        <div
+          role="group"
+          aria-label={t('search.sidebar.tools')}
           style={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            height: 14,
-            padding: 0,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-soft)',
+            flexWrap: 'wrap',
+            alignItems: 'flex-start',
+            justifyContent: 'flex-start',
+            gap: 10,
+            padding: '6px 12px',
           }}
         >
-          <svg
-            width="12" height="12" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="3" strokeLinecap="round"
-            style={{ transform: ribbonHidden ? 'none' : 'rotate(180deg)' }}
-            aria-hidden="true"
-          >
-            <path d="m6 9 6 6 6-6" />
-          </svg>
-        </button>
+          {querySection}
+          {summarySection}
+          {filtersSection}
+          {downloadSection}
+          {linksSection}
+          {saveSection}
+          {shareSection}
+        </div>
+        {shareDialog}
       </div>
     )
   }

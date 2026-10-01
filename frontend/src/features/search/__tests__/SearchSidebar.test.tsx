@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { SearchSidebar } from '../SearchSidebar'
 import { useAuthStore } from '../../../store/authStore'
 import { resetSharingStore } from '../../../mocks/handlers/sharing'
+import { useSearchStore } from '../searchStore'
 
 const navigate = vi.fn()
 vi.mock('react-router-dom', async () => ({
@@ -75,25 +76,46 @@ describe('SearchSidebar ribbon variant', () => {
     expect(screen.queryByPlaceholderText(/Gene symbol or UniProt ID/i)).toBeNull()
   })
 
-  it('keeps every filter behind the one Filters heading', async () => {
+  it('keeps every filter behind the one Filters heading, filter mode first', async () => {
+    // A ticked tissue is always offered, so the tissue column has something in it.
+    useSearchStore.setState({ tissueFilter: ['liver'] })
     const user = userEvent.setup()
     render(<SearchSidebar term="BAD" visibleInteractionIds={[]} variant="ribbon" />, { wrapper })
 
     expect(screen.queryByLabelText(/min. confidence score/i)).toBeNull()
     await user.hover(screen.getByRole('button', { name: /^Filter$/i }))
-    expect(screen.getByText(/min. confidence score/i)).toBeInTheDocument()
-    expect(screen.getByText(/filter mode/i)).toBeInTheDocument()
-    expect(screen.getByText(/^Tissue expression/i)).toBeInTheDocument()
+    const mode = screen.getByText(/filter mode/i)
+    const score = screen.getByText(/min. confidence score/i)
+    expect(mode.compareDocumentPosition(score) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // Tissue sits in a column of its own beside the rest.
+    const tissue = screen.getByText(/^Tissue expression/i)
+    expect(tissue.parentElement).not.toContainElement(score)
+    expect(tissue.parentElement?.parentElement).toContainElement(score)
+    useSearchStore.setState({ tissueFilter: [] })
   })
 
-  it('folds the whole row away and back', () => {
+  it('drops the tissue column when no result has tissue data', async () => {
+    const user = userEvent.setup()
     render(<SearchSidebar term="BAD" visibleInteractionIds={[]} variant="ribbon" />, { wrapper })
 
-    fireEvent.click(screen.getByRole('button', { name: /hide filters/i }))
-    expect(screen.queryByRole('button', { name: /^Query$/i })).toBeNull()
+    await user.hover(screen.getByRole('button', { name: /^Filter$/i }))
+    expect(screen.getByText(/filter mode/i)).toBeInTheDocument()
+    expect(screen.queryByText(/^Tissue expression/i)).toBeNull()
+  })
 
-    fireEvent.click(screen.getByRole('button', { name: /show filters/i }))
+  it('has no toggle to hide the row', () => {
+    render(<SearchSidebar term="BAD" visibleInteractionIds={[]} variant="ribbon" />, { wrapper })
+    expect(screen.queryByRole('button', { name: /hide filters|show filters/i })).toBeNull()
     expect(screen.getByRole('button', { name: /^Query$/i })).toBeInTheDocument()
+  })
+
+  it('opens a panel with its left edge under the start of the heading', async () => {
+    const user = userEvent.setup()
+    render(<SearchSidebar term="BAD" visibleInteractionIds={[]} variant="ribbon" />, { wrapper })
+
+    await user.hover(screen.getByRole('button', { name: /^Filter$/i }))
+    const panel = screen.getByText(/filter mode/i).closest('div[style*="position: absolute"]') as HTMLElement
+    expect(panel.style.left).toBe('10px')
   })
 
   it('leaves the sidebar showing its sections without a press', () => {
@@ -116,7 +138,7 @@ describe('SearchSidebar share option', () => {
 
     // The dialog names the view after the search, and shares straight from here.
     expect(screen.getByLabelText('Name')).toHaveValue('BAD')
-    fireEvent.change(screen.getByLabelText(/name, username, lab, or email/i), {
+    fireEvent.change(screen.getByLabelText(/find someone on openpip/i), {
       target: { value: 'Helmy Lab' },
     })
     fireEvent.click(await screen.findByRole('button', { name: /Helen Leung/ }))

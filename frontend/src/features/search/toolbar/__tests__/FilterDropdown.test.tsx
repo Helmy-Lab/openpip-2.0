@@ -61,4 +61,12 @@ describe('FilterDropdown', () => {
     expect(screen.getByRole('radio', { name: /no filter/i })).toBeChecked()
     expect(screen.getByRole('radio', { name: /query-interactor/i })).toBeInTheDocument()
   })
+
+  it('puts filter mode above sources', () => {
+    render(<FilterDropdown />, { wrapper: Wrapper })
+    fireEvent.click(screen.getByRole('button', { name: /filter/i }))
+    const mode = screen.getByText(/filter mode/i)
+    const sources = screen.getByText(/sources/i)
+    expect(mode.compareDocumentPosition(sources) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
 })

@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useLayoutEffect, type KeyboardEvent } from 'react'
+import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
 import { CONTROL_BG, CONTROL_HEIGHT } from './LayoutDropdown'
+import { PANEL_LEFT, useKeepOnScreen } from './panelPosition'
 
 /**
  * The bare themed heading the ribbon uses instead of a button: no chrome, the
@@ -63,17 +64,7 @@ export function CanvasDropdown({ label, width = 232, up = true, plain = false, c
   const containerRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // A ribbon panel is centred under its heading, so one near the window's edge
-  // would hang off it: slide it back inside, and let it scroll rather than run
-  // past the bottom of the screen.
-  useLayoutEffect(() => {
-    const el = panelRef.current
-    if (!open || !plain || !el) return
-    const r = el.getBoundingClientRect()
-    const shift = Math.max(8 - r.left, 0) - Math.max(r.right - (window.innerWidth - 8), 0)
-    el.style.transform = `translateX(calc(-50% + ${shift}px))`
-    el.style.maxHeight = `${window.innerHeight - r.top - 8}px`
-  }, [open, plain])
+  useKeepOnScreen(panelRef, open, up)
 
   useEffect(() => {
     if (!open) return
@@ -132,12 +123,13 @@ export function CanvasDropdown({ label, width = 232, up = true, plain = false, c
         <div ref={panelRef} style={{
           position: 'absolute',
           overflowY: 'auto',
+          left: plain ? PANEL_LEFT.heading : PANEL_LEFT.button,
           ...(up
-            ? { right: 0, bottom: '100%', marginBottom: 4 }
+            ? { bottom: '100%', marginBottom: 4 }
             : plain
               // Flush under the heading: a gap here is a mouse-out.
-              ? { top: '100%', left: '50%', transform: 'translateX(-50%)' }
-              : { top: '100%', marginTop: 4, left: 0 }),
+              ? { top: '100%' }
+              : { top: '100%', marginTop: 4 }),
           zIndex: 50,
           background: 'var(--surface)',
           border: '1px solid var(--border)',

@@ -87,6 +87,18 @@ export const searchGroup: TextGroup = {
       default: 'All tissues',
     },
     {
+      key: 'search.sidebar.tissueNodeSize',
+      label: 'Tissue expression node-size switch',
+      section: 'Sidebar',
+      default: 'Show tissue expression',
+    },
+    {
+      key: 'search.sidebar.tissueNodeColor',
+      label: 'Tissue specificity node-color switch',
+      section: 'Sidebar',
+      default: 'Reflect tissue specificity',
+    },
+    {
       key: 'search.sidebar.noTissueData',
       label: 'Tissue section empty state',
       section: 'Sidebar',
@@ -159,6 +171,18 @@ export const searchGroup: TextGroup = {
       label: 'Grid',
       section: 'Layout options',
       default: 'Grid',
+    },
+    {
+      key: 'search.layout.background',
+      label: 'Canvas background',
+      section: 'Layout options',
+      default: 'Background',
+    },
+    {
+      key: 'search.layout.backgroundReset',
+      label: 'Reset canvas background',
+      section: 'Layout options',
+      default: 'Reset to default',
     },
 
     {
@@ -472,16 +496,6 @@ export const searchGroup: TextGroup = {
       key: 'search.sidebar.noProteins',
       label: 'Sidebar: no proteins message',
       default: 'No proteins loaded.',
-    },
-    {
-      key: 'search.ribbon.hide',
-      label: 'Ribbon: hide filters',
-      default: 'Hide filters',
-    },
-    {
-      key: 'search.ribbon.show',
-      label: 'Ribbon: show filters',
-      default: 'Show filters',
     },
     {
       key: 'search.save.placeholder',

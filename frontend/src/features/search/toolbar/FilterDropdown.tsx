@@ -28,7 +28,7 @@ const ROW: React.CSSProperties = {
 }
 
 /**
- * Sources and filter mode over the canvas — the same two controls the sidebar
+ * Filter mode and sources over the canvas — the same two controls the sidebar
  * carries, reachable in fullscreen where the sidebar is not.
  */
 export function FilterDropdown() {
@@ -40,23 +40,6 @@ export function FilterDropdown() {
 
   return (
     <CanvasDropdown label={t('search.filter')}>
-      {Object.keys(categoryFilter).length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <div style={SECTION}>{t('search.sidebar.sources')}</div>
-          {Object.entries(categoryFilter).map(([name, checked]) => (
-            <label key={name} style={ROW}>
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={(e) => setCategoryFilter(name, e.target.checked)}
-                style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
-              />
-              {name}
-            </label>
-          ))}
-        </div>
-      )}
-
       <div style={SECTION}>{t('search.sidebar.filterMode')}</div>
       {FILTER_MODE_OPTIONS.map(({ textKey, value }) => (
         <label key={value} style={ROW}>
@@ -71,6 +54,22 @@ export function FilterDropdown() {
           {t(textKey)}
         </label>
       ))}
+      {Object.keys(categoryFilter).length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div style={SECTION}>{t('search.sidebar.sources')}</div>
+          {Object.entries(categoryFilter).map(([name, checked]) => (
+            <label key={name} style={ROW}>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => setCategoryFilter(name, e.target.checked)}
+                style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+              />
+              {name}
+            </label>
+          ))}
+        </div>
+      )}
     </CanvasDropdown>
   )
 }

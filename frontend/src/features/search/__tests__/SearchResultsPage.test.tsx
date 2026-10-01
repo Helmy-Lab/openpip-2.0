@@ -10,8 +10,10 @@ import { useSearchStore } from '../searchStore'
 
 vi.mock('../SearchSidebar', () => ({ SearchSidebar: () => <div>Sidebar</div> }))
 vi.mock('../network/CytoscapeNetwork', () => ({
-  CytoscapeNetwork: ({ height }: { height: number }) => (
-    <div data-testid="network" data-height={height}>Network</div>
+  CytoscapeNetwork: ({ height, showFilters = true }: { height: number; showFilters?: boolean }) => (
+    <div data-testid="network" data-height={height}>
+      Network{showFilters && <button type="button">Filter</button>}
+    </div>
   ),
 }))
 vi.mock('../tables/ResultTablePanel', () => ({ ResultTablePanel: () => <div>Tables</div> }))
@@ -49,21 +51,52 @@ describe('SearchResultsPage', () => {
     ;(useSettings as ReturnType<typeof vi.fn>).mockReturnValue({ data: undefined })
   })
 
-  it('with the ribbon and no term, puts the prompt over the first example\'s results', async () => {
+  it.each([false, true])('with no term, the canvas is blank and holds the prompt (ribbon: %s)', (ribbon) => {
     ;(useSettings as ReturnType<typeof vi.fn>).mockReturnValue({
-      data: { horizontalFilterBar: true, example1: 'BAD\nBCL2L1' },
+      data: { horizontalFilterBar: ribbon, example1: 'BAD\nBCL2L1' },
     })
     ;(useSearch as ReturnType<typeof vi.fn>).mockReturnValue({
-      data: searchFixture,
+      data: undefined,
       isLoading: false,
       isError: false,
     })
 
     renderWithRoute() // no term
 
-    expect(useSearch).toHaveBeenCalledWith('BAD,BCL2L1')
-    expect(await screen.findByText('Network')).toBeInTheDocument()
+    // No example is run behind the prompt, and no network is drawn.
+    expect(useSearch).toHaveBeenCalledWith('')
+    expect(screen.queryByTestId('network')).not.toBeInTheDocument()
     expect(screen.getByText(/Search for a protein to see its interaction network/i)).toBeInTheDocument()
+    // The page around the canvas stays put.
+    expect(screen.getByText('Sidebar')).toBeInTheDocument()
+    expect(screen.getByText('Tables')).toBeInTheDocument()
+  })
+
+  it('under the ribbon, drops the filter controls but keeps fullscreen', () => {
+    ;(useSettings as ReturnType<typeof vi.fn>).mockReturnValue({ data: { horizontalFilterBar: true } })
+    ;(useSearch as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: searchFixture,
+      isLoading: false,
+      isError: false,
+    })
+
+    renderWithRoute('BAD')
+
+    expect(screen.queryByRole('button', { name: 'Filter' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /full ?screen/i })).toBeInTheDocument()
+  })
+
+  it('in the sidebar layout, keeps every canvas control', () => {
+    ;(useSearch as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: searchFixture,
+      isLoading: false,
+      isError: false,
+    })
+
+    renderWithRoute('BAD')
+
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /full ?screen/i })).toBeInTheDocument()
   })
 
   it('shows loading spinner when isLoading is true', () => {
@@ -100,6 +133,22 @@ describe('SearchResultsPage', () => {
     renderWithRoute() // no term
 
     expect(screen.getByText(/Search for a protein to see its interaction network/i)).toBeInTheDocument()
+  })
+
+  it('drops the last search\'s results when back on a bare /search', () => {
+    useSearchStore.getState().setSearchData(searchFixture)
+    ;(useSearch as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    })
+
+    renderWithRoute() // no term
+
+    const state = useSearchStore.getState()
+    expect(state.allProteins).toHaveLength(0)
+    expect(state.allInteractions).toHaveLength(0)
+    expect(state.searchTerm).toBe('')
   })
 
   it('calls setSearchData and renders all panels when data loads', async () => {

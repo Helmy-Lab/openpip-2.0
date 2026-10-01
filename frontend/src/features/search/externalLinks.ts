@@ -138,7 +138,7 @@ export function buildLinks(
     { id: 'kegg', label: 'KEGG', icon: keggIcon, href: keggUrl },
     { id: 'uniprot', label: 'UniProt', icon: uniprotIcon, href: uniprotUrl },
     { id: 'drugstone', label: 'Drugst.One', icon: drugstoneIcon, href: drugstOneUrl },
-    { id: 'genelist', label: 'Gene List', icon: genelistIcon, href: geneListUrl },
+    { id: 'genelist', label: 'Genelist', icon: genelistIcon, href: geneListUrl },
   ]
 }
 

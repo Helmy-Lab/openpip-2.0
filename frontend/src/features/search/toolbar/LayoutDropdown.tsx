@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
 import { useSearchStore } from '../searchStore'
 import { useText } from '../../../text'
+import { PANEL_LEFT, useKeepOnScreen } from './panelPosition'
+import { useCanvasBackground, useCanvasBackgroundStore } from '../network/canvasBackground'
 
 type LayoutName = 'cola' | 'cose' | 'concentric' | 'circle' | 'grid'
 
@@ -86,10 +88,15 @@ const LAYOUT_OPTIONS: { value: LayoutName; textKey: string }[] = [
 export function LayoutDropdown() {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const t = useText()
+  useKeepOnScreen(panelRef, open, true)
 
   const selectedLayout = useSearchStore((s) => s.selectedLayout)
   const setLayout = useSearchStore((s) => s.setLayout)
+  const background = useCanvasBackground()
+  const override = useCanvasBackgroundStore((s) => s.override)
+  const setOverride = useCanvasBackgroundStore((s) => s.setOverride)
 
   useEffect(() => {
     if (!open) return
@@ -129,9 +136,10 @@ export function LayoutDropdown() {
       </button>
 
       {open && (
-        <div style={{
+        <div ref={panelRef} style={{
           position: 'absolute',
-          right: 0,
+          overflowY: 'auto',
+          left: PANEL_LEFT.button,
           // Opens upward: the button sits at the bottom edge of the canvas.
           bottom: '100%',
           zIndex: 50,
@@ -160,6 +168,28 @@ export function LayoutDropdown() {
               {t(textKey)}
             </label>
           ))}
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '12px 0 8px' }}>
+            {t('search.layout.background')}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="color"
+              aria-label={t('search.layout.background')}
+              // With no color set the canvas follows the theme; show its --bg.
+              value={background ?? (getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff')}
+              onChange={(e) => setOverride(e.target.value)}
+              style={{ width: 32, height: 24, padding: 0, border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer' }}
+            />
+            <button
+              type="button"
+              className="op-btn"
+              disabled={!override}
+              onClick={() => setOverride(null)}
+              style={{ fontSize: 12, height: 24, padding: '0 8px' }}
+            >
+              {t('search.layout.backgroundReset')}
+            </button>
+          </div>
         </div>
       )}
     </div>
