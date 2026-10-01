@@ -77,6 +77,18 @@ def _protein_with_identifier(gene_name, uniprot_id=None):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("q", ["", "  ", " , "])
+def test_search_without_terms_returns_nothing(q):
+    """An empty query must not match every identifier and return the whole DB."""
+    p = _protein_with_identifier("BAD")
+    InteractionFactory(interactor_A=p, interactor_B=p, removed="0")
+
+    result = execute_search(q)
+    assert result["all_proteins"] == []
+    assert result["all_interactions"] == []
+
+
+@pytest.mark.django_db
 def test_search_b_side_query_edge_swapped_to_a():
     """When B is query and A is not, the edge is swapped so query protein is A."""
     query_p = _protein_with_identifier("BAD")

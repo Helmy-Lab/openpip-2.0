@@ -23,10 +23,11 @@ Each fix gets a regression test.
   as `text/html` from `/media/avatars/`, which can read the JWTs in localStorage.
   Store under a generated name with an extension derived from the allowed type.
   _Fixed in code; live only after the backend image is rebuilt._
-- [ ] **BUG-005 — Empty search returns the whole DB (verified).**
+- [x] **BUG-005 — Empty search returns the whole DB (verified).**
   `GET /api/search?q=` (or `q=" , "`) → 20k proteins / 123k interactions, ~17 s,
   anonymous. `search_service.py` `execute_search`: no terms → empty `Q()` matches
   every identifier. Return the empty result when `terms` is empty.
+  _Fixed in code; live after the backend image is rebuilt._
 
 ### High
 

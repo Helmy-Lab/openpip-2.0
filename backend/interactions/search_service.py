@@ -160,12 +160,18 @@ def execute_search(q: str, filter_parameter: str = "None") -> dict:
     for term in terms:
         q_filter |= Q(identifier__iexact=term)
 
-    matched_pairs = list(
-        ProteinIdentifier.objects.filter(
-            identifier__in=Identifier.objects.filter(q_filter)
+    # No terms leaves q_filter as an empty Q(), which matches every identifier
+    # and would return the whole database as one network.
+    matched_pairs = (
+        list(
+            ProteinIdentifier.objects.filter(
+                identifier__in=Identifier.objects.filter(q_filter)
+            )
+            .values("protein_id", "identifier__identifier")
+            .distinct()
         )
-        .values("protein_id", "identifier__identifier")
-        .distinct()
+        if terms
+        else []
     )
 
     query_protein_id_set = {row["protein_id"] for row in matched_pairs}
