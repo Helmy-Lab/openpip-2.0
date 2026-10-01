@@ -35,7 +35,11 @@ def _serve_public_media(request, path):
     return serve(request, path, document_root=settings.MEDIA_ROOT)
 
 
-urlpatterns += [re_path(r"^media/(?P<path>(avatars|logos)/.*)$", _serve_public_media)]
+# One filename, no further "/": serve() resolves "..", so ".*" let
+# avatars/../uploads/x reach the private uploads.
+urlpatterns += [
+    re_path(r"^media/(?P<path>(avatars|logos)/[^/]+)$", _serve_public_media)
+]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -40,7 +40,7 @@ Each fix gets a regression test.
   `interactions/serializers.py` caps `query`, `name` and `category_array` at
   100 chars; the dialog pre-fills name with the query. Use the existing
   3000-char `interactor_query_string` column for the query (no schema change).
-- [ ] **BUG-008 — Media path traversal (verified in Django).**
+- [x] **BUG-008 — Media path traversal (verified in Django).**
   `/media/avatars/../uploads/private.csv` serves a private upload; the
   `openpip/urls.py` regex is checked before `serve()` normalises `..`. nginx
   likely blocks it today. Reject paths containing `..` / pin to the subdirectory.

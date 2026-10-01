@@ -24,3 +24,10 @@ def test_uploads_are_not_served(api_client, media, settings):
     settings.DEBUG = False
     response = api_client.get("/media/uploads/f.png")
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize("directory", ["avatars", "logos"])
+def test_public_media_cannot_climb_into_uploads(api_client, media, settings, directory):
+    settings.DEBUG = False
+    response = api_client.get(f"/media/{directory}/../uploads/f.png")
+    assert response.status_code == 404
