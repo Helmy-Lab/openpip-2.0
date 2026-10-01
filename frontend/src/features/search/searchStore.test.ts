@@ -51,3 +51,24 @@ describe('view state', () => {
     expect(useSearchStore.getState().selectedLayout).toBe('circle')
   })
 })
+
+describe('tissue display switches', () => {
+  beforeEach(() => useSearchStore.getState().reset())
+
+  it('clears a multi-tissue selection when one is switched on, then picks one tissue at a time', () => {
+    const s = useSearchStore.getState()
+    s.setTissueFilter('liver', true)
+    s.setTissueFilter('lung', true)
+    s.setTissueDisplay('tissueNodeColor', true)
+    expect(useSearchStore.getState().tissueFilter).toEqual([])
+    useSearchStore.getState().setTissueFilter('liver', true)
+    useSearchStore.getState().setTissueFilter('lung', true)
+    expect(useSearchStore.getState().tissueFilter).toEqual(['lung'])
+  })
+
+  it('still allows several tissues with both switches off', () => {
+    useSearchStore.getState().setTissueFilter('liver', true)
+    useSearchStore.getState().setTissueFilter('lung', true)
+    expect(useSearchStore.getState().tissueFilter).toEqual(['liver', 'lung'])
+  })
+})

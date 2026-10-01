@@ -51,6 +51,10 @@ interface SearchState {
   tissueFilter: string[]
   setTissueFilter: (tissue: string, on: boolean) => void
   clearTissueFilter: () => void
+  /** Legacy "Show tissue expression" (node size) and "Reflect tissue specificity" (node color). */
+  tissueNodeSize: boolean
+  tissueNodeColor: boolean
+  setTissueDisplay: (which: 'tissueNodeSize' | 'tissueNodeColor', on: boolean) => void
   selectedLayout: LayoutName
   /**
    * The enrichment term whose proteins are lit up in the network, with the
@@ -62,6 +66,8 @@ interface SearchState {
   activeModal: ModalName | null
   activeTableTab: string
   setSearchData: (result: SearchResult) => void
+  /** Drops the last search's results, keeping filters and layout. */
+  clearSearchData: () => void
   setScoreFilter: (n: number) => void
   setCategoryFilter: (name: string, val: boolean) => void
   setAnnotationFilter: (name: string, val: boolean) => void
@@ -91,6 +97,8 @@ const initialState = {
   annotationFilter: {} as Record<string, boolean>,
   filterMode: 'None' as const,
   tissueFilter: [] as string[],
+  tissueNodeSize: false,
+  tissueNodeColor: false,
   selectedLayout: 'cola' as LayoutName,
   highlight: null as { term: string; genes: string[] } | null,
   activeModal: null as ModalName | null,
@@ -119,17 +127,36 @@ export const useSearchStore = create<SearchState>()((set) => ({
         highlight: null,
       }
     }),
+  clearSearchData: () =>
+    set({
+      allProteins: [],
+      allInteractions: [],
+      queryProteinIds: [],
+      searchTerm: '',
+      foundSummary: '',
+      unfoundSummary: '',
+      highlight: null,
+    }),
   setScoreFilter: (n) => set({ scoreFilter: n }),
   setCategoryFilter: (name, val) =>
     set((s) => ({ categoryFilter: { ...s.categoryFilter, [name]: val } })),
   setAnnotationFilter: (name, val) =>
     set((s) => ({ annotationFilter: { ...s.annotationFilter, [name]: val } })),
   setFilterMode: (mode) => set({ filterMode: mode }),
+  // While either tissue display is on, tissues pick one at a time, as in legacy.
   setTissueFilter: (tissue, on) =>
     set((s) => ({
       tissueFilter: on
-        ? [...s.tissueFilter, tissue]
+        ? s.tissueNodeSize || s.tissueNodeColor
+          ? [tissue]
+          : [...s.tissueFilter, tissue]
         : s.tissueFilter.filter((t) => t !== tissue),
+    })),
+  // Legacy clears a multi-tissue selection when a display is switched on.
+  setTissueDisplay: (which, on) =>
+    set((s) => ({
+      [which]: on,
+      ...(on && s.tissueFilter.length > 1 && { tissueFilter: [] }),
     })),
   clearTissueFilter: () => set({ tissueFilter: [] }),
   setLayout: (name) => set({ selectedLayout: name }),

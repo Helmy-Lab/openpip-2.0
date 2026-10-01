@@ -4,8 +4,10 @@ import cytoscape from 'cytoscape'
 import type { LayoutOptions } from 'cytoscape'
 import cola from 'cytoscape-cola'
 import type { Protein, Interaction } from '../../../types/api'
-import { buildElements, getEdgeColorByOrder } from './cytoscapeElements'
+import { buildElements, getEdgeColorByOrder, SPECIFICITY_INTERACTOR_COLORS } from './cytoscapeElements'
+import { tissueLabel } from '../../../lib/tissues'
 import { buildStylesheet } from './cytoscapeStyles'
+import { useCanvasBackground } from './canvasBackground'
 import { useSettings } from '../../../api/settings'
 import { useSearchStore } from '../searchStore'
 import { LayoutDropdown } from '../toolbar/LayoutDropdown'
@@ -34,6 +36,8 @@ interface CytoscapeNetworkProps {
   height?: number
   /** Off for the homepage preview, which is a picture, not a workspace. */
   showControls?: boolean
+  /** Filter and Confidence buttons; off under the ribbon, which carries them. */
+  showFilters?: boolean
   onNodeClick?: (protein: Protein) => void
   onEdgeClick?: (interaction: Interaction) => void
 }
@@ -56,6 +60,7 @@ export function CytoscapeNetwork({
   layout,
   height = 500,
   showControls = true,
+  showFilters = true,
   onNodeClick,
   onEdgeClick,
 }: CytoscapeNetworkProps) {
@@ -68,6 +73,10 @@ export function CytoscapeNetwork({
   const { data: settings } = useSettings()
   const setModal = useSearchStore((s) => s.setModal)
   const highlight = useSearchStore((s) => s.highlight)
+  const tissues = useSearchStore((s) => s.tissueFilter)
+  const tissueNodeSize = useSearchStore((s) => s.tissueNodeSize)
+  const tissueNodeColor = useSearchStore((s) => s.tissueNodeColor)
+  const background = useCanvasBackground() ?? 'var(--bg)'
   const t = useText()
 
   const palette = useMemo(() => ({
@@ -87,8 +96,13 @@ export function CytoscapeNetwork({
   ])
 
   const elements = useMemo(
-    () => buildElements(proteins, interactions, queryProteinIds, palette),
-    [proteins, interactions, queryProteinIds, palette]
+    () =>
+      buildElements(proteins, interactions, queryProteinIds, palette, {
+        tissues,
+        size: tissueNodeSize,
+        color: tissueNodeColor,
+      }),
+    [proteins, interactions, queryProteinIds, palette, tissues, tissueNodeSize, tissueNodeColor]
   )
 
   // Re-run layout whenever elements or layout name change.
@@ -185,16 +199,16 @@ export function CytoscapeNetwork({
   // changes, but Cytoscape doesn't always re-evaluate canvas styles for
   // data() references when data is mutated via .json() — remounting is
   // the only reliable path.
-  const graphKey = Object.values(palette).join('-')
+  const graphKey = [...Object.values(palette), ...tissues, tissueNodeSize, tissueNodeColor].join('-')
 
   return (
-    <div style={{ position: 'relative', height, background: 'var(--bg)' }}>
+    <div style={{ position: 'relative', height, background }}>
       <CytoscapeComponent
         key={graphKey}
         elements={elements}
         stylesheet={STYLESHEET}
         layout={{ name: layout } as Parameters<typeof CytoscapeComponent>[0]['layout']}
-        style={{ width: '100%', height, background: 'var(--bg)' }}
+        style={{ width: '100%', height, background }}
         cy={(cy) => {
           if (cyRef.current === cy) return
           cyRef.current = cy
@@ -241,6 +255,25 @@ export function CytoscapeNetwork({
             </span>
           </div>
         ))}
+        {tissues.length > 0 && tissueNodeSize && (
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            Node size: expression in {tissues.map(tissueLabel).join(', ')}
+          </span>
+        )}
+        {tissues.length > 0 && tissueNodeColor && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              width: 16,
+              height: 10,
+              borderRadius: 2,
+              background: `linear-gradient(to right, ${SPECIFICITY_INTERACTOR_COLORS[0]}, ${SPECIFICITY_INTERACTOR_COLORS[8]})`,
+              flexShrink: 0,
+            }} />
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              Tissue specificity in {tissues.map(tissueLabel).join(', ')} (low → high)
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Network controls, bottom right — out of the legend's way and away
@@ -255,9 +288,9 @@ export function CytoscapeNetwork({
         display: 'flex',
         gap: 6,
       }}>
-        <FilterDropdown />
+        {showFilters && <FilterDropdown />}
 
-        <ConfidenceDropdown />
+        {showFilters && <ConfidenceDropdown />}
 
         <LayoutDropdown />
 

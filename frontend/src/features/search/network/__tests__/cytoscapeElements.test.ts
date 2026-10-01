@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getEdgeColorByOrder, buildElements } from '../cytoscapeElements'
+import { getEdgeColorByOrder, buildElements, expressionNodeSize, specificityColor } from '../cytoscapeElements'
 import { buildStylesheet } from '../cytoscapeStyles'
 import type { Protein, Interaction } from '../../../../types/api'
 
@@ -194,5 +194,51 @@ describe('buildStylesheet', () => {
       (b) => (b as { selector: string }).selector === 'node'
     ) as { style: { 'background-color': string } }
     expect(nodeRule.style['background-color']).toBe('data(nodeColor)')
+  })
+})
+
+describe('legacy tissue node styling', () => {
+  const proteins = [
+    makeProtein({ protein_id: 1, protein_gene_name: 'Q', tissue_expression_array: { liver: '10', lung: '20' }, tissue_specificity_array: { liver: '11' } }),
+    makeProtein({ protein_id: 2, protein_gene_name: 'A', tissue_expression_array: { liver: '0' }, tissue_specificity_array: { liver: ' -9.5\n' } }),
+    makeProtein({ protein_id: 3, protein_gene_name: 'NONE' }),
+  ]
+
+  it('sizes nodes at expression x 3, the highest selected tissue winning', () => {
+    expect(expressionNodeSize(proteins[0], ['liver'])).toBe(30)
+    expect(expressionNodeSize(proteins[0], ['liver', 'lung'])).toBe(60)
+    // Zero or missing keeps the default size, as in legacy.
+    expect(expressionNodeSize(proteins[1], ['liver'])).toBeNull()
+    expect(expressionNodeSize(proteins[2], ['liver'])).toBeNull()
+  })
+
+  it('steps specificity into legacy blues, reds for query proteins', () => {
+    expect(specificityColor(-11, false)).toBe('#b1c9ef')
+    expect(specificityColor(0, false)).toBe('#3c78d8')
+    expect(specificityColor(11, false)).toBe('#0f274d')
+    expect(specificityColor(0, true)).toBe('#cc0000')
+    expect(specificityColor(11, true)).toBe('#5c0000')
+    // Legacy left exact thresholds uncolored; they fall into the step below.
+    expect(specificityColor(2, false)).toBe('#3c78d8')
+  })
+
+  it('applies only the switched-on display and never touches edges', () => {
+    const interactions = [makeInteraction({ interaction_id: 1, aId: 1, bId: 2, categoryStatus: 'Published' })]
+    const els = buildElements(proteins, interactions, [1], undefined, { tissues: ['liver'], size: false, color: true })
+    const byId = (id: string) => els.find((el) => el.data.id === id)!.data
+    expect(byId('p1').nodeColor).toBe('#5c0000')
+    expect(byId('p2').nodeColor).toBe('#8baee7')
+    expect(byId('p3').nodeColor).toBe('#2563eb')
+    expect(byId('p1').size).toBeUndefined()
+    expect(Object.keys(byId('i1'))).not.toContain('expr')
+
+    const sized = buildElements(proteins, [], [1], undefined, { tissues: ['liver'], size: true, color: false })
+    expect(sized.find((el) => el.data.id === 'p1')!.data).toMatchObject({ size: 30, nodeColor: '#e11d48' })
+  })
+
+  it('leaves elements untouched with both switches off', () => {
+    const els = buildElements(proteins, [], [1], undefined, { tissues: ['liver'], size: false, color: false })
+    expect(els.every((el) => el.data.size === undefined)).toBe(true)
+    expect(els.find((el) => el.data.id === 'p2')!.data.nodeColor).toBe('#2563eb')
   })
 })

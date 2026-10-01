@@ -171,7 +171,7 @@ const TAB_CONFIG: Record<TabId, TabConfig> = {
       'example1', 'example2', 'example3',
       'example1Type', 'example2Type', 'example3Type',
       'showTissueExpression', 'showSubcellularLocation',
-      'horizontalFilterBar',
+      'horizontalFilterBar', 'canvasBackgroundColor',
     ],
     // The phrase examples live beside the gene ones they sit next to on the
     // page, rather than on Home where the rest of the hero copy is edited.
@@ -1595,6 +1595,32 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             />
             <span style={{ color: 'var(--text)' }}>Show filters as a ribbon under the navbar</span>
           </label>
+        </Section>
+
+        <Section title="Network canvas">
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 14px', maxWidth: '62ch' }}>
+            The default background behind the interaction network, also used
+            for PNG and JPG exports. Unset, it follows the light or dark theme.
+            Visitors can pick their own from the canvas's Layout menu.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: 420 }}>
+            <div style={{ flex: 1 }}>
+              <ColorInput
+                label="Canvas Background"
+                value={form.canvasBackgroundColor || '#fafafa'}
+                onChange={(v) => set('canvasBackgroundColor', v)}
+              />
+            </div>
+            <button
+              type="button"
+              className="op-btn"
+              disabled={!form.canvasBackgroundColor}
+              onClick={() => set('canvasBackgroundColor', null)}
+              style={{ fontSize: 13 }}
+            >
+              Follow theme
+            </button>
+          </div>
         </Section>
 
         <PhraseHelp />

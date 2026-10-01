@@ -216,6 +216,7 @@ def test_search_protein_arrays_empty_when_no_annotation():
     protein = result["all_proteins"][0]
     assert protein["subcellular_location_expression_array"] == {}
     assert protein["tissue_expression_array"] == {}
+    assert protein["tissue_specificity_array"] == {}
 
 
 # ── build_result_from_interaction_ids ─────────────────────────────────────────
@@ -323,3 +324,18 @@ def test_search_multi_term_separated_by_space_and_newline():
         result = execute_search(query)
         assert sorted(result["query_protein_id_array"]) == sorted([a.id, b.id]), query
         assert result["unfound_protein_summary"] == ""
+
+
+@pytest.mark.django_db
+def test_search_protein_tissue_specificity_array_populated():
+    """tissue_specificity_array is parsed from the JSON annotation."""
+    p = _protein_with_identifier("BAD")
+    ann = Annotation.objects.create(
+        annotation='{"liver":"3.2", "brain_0":"-1.15"}',
+        identifier=p.ensembl_id,
+        type_name="tissue_specificity",
+    )
+    AnnotationProtein.objects.create(annotation=ann, protein=p)
+
+    protein = execute_search("BAD")["all_proteins"][0]
+    assert protein["tissue_specificity_array"] == {"liver": "3.2", "brain_0": "-1.15"}

@@ -11,6 +11,7 @@ import {
   downloadFile,
   downloadImageFile,
 } from '../../../lib/download'
+import { useCanvasBackground } from '../network/canvasBackground'
 
 type Format = 'sif' | 'interactions_csv' | 'interactors_csv' | 'fasta' | 'psimi' | 'png' | 'jpg'
 
@@ -37,10 +38,12 @@ const FORMAT_EXT: Record<Format, string> = {
 export function DownloadModal({ onClose }: { onClose: () => void }) {
   const { allProteins, allInteractions, networkCy, queryProteinIds } = useSearchStore()
   const [fmt, setFmt] = useState<Format>('sif')
+  // The canvas's own color when one is set; white when it follows the theme.
+  const background = useCanvasBackground() ?? undefined
 
   const handleDownload = () => {
     if (fmt === 'png' || fmt === 'jpg') {
-      if (networkCy) downloadImageFile(networkCy, fmt)
+      if (networkCy) downloadImageFile(networkCy, fmt, background)
       onClose()
       return
     }

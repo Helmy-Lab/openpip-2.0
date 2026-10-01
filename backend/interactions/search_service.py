@@ -70,6 +70,9 @@ def _build_protein_dict(protein: Protein, annotations_by_protein: dict) -> dict:
         "subcellular_location_expression_array": _parse_json_annotation(
             ann.get("subcellular_location", "")
         ),
+        "tissue_specificity_array": _parse_json_annotation(
+            ann.get("tissue_specificity", "")
+        ),
     }
 
 

@@ -24,6 +24,9 @@ class AdminSettings(models.Model):
     # sidebar. A deployment-wide choice: whoever installs openPIP decides
     # which shape its search page has, the same way they pick its colours.
     horizontal_filter_bar = models.BooleanField(default=False)
+    # Network canvas background. Null follows the light/dark theme; viewers
+    # can still override it for themselves in the browser.
+    canvas_background_color = models.CharField(max_length=20, null=True, blank=True)
     footer = models.TextField(null=True)
     main_color_scheme = models.CharField(max_length=10, null=True)
     header_color_scheme = models.CharField(max_length=10, null=True)

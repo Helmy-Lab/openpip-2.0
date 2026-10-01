@@ -20,6 +20,14 @@ export function buildStylesheet(): StylesheetJsonBlock[] {
         'text-halign': 'center',
       },
     },
+    // data(size) is only set while "Show tissue expression" is on.
+    {
+      selector: 'node[size]',
+      style: {
+        width: 'data(size)',
+        height: 'data(size)',
+      },
+    },
     {
       selector: 'node:selected',
       style: {

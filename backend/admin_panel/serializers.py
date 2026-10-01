@@ -106,6 +106,12 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
     horizontalFilterBar = serializers.BooleanField(
         source="horizontal_filter_bar", required=False
     )
+    canvasBackgroundColor = serializers.CharField(
+        source="canvas_background_color",
+        allow_null=True,
+        allow_blank=True,
+        required=False,
+    )
     showDownloads = serializers.BooleanField(source="show_downloads", required=False)
     showDownloadAll = serializers.BooleanField(
         source="show_download_all", required=False
@@ -164,6 +170,7 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
             "showTissueExpression",
             "showSubcellularLocation",
             "horizontalFilterBar",
+            "canvasBackgroundColor",
             "showDownloads",
             "showDownloadAll",
             "example1",

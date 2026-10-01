@@ -66,6 +66,17 @@ def test_patch_settings_stores_per_page_nav_style(auth_client):
 
 
 @pytest.mark.django_db
+def test_patch_settings_stores_canvas_background_color(auth_client):
+    AdminSettings.objects.create(pk=1)
+    response = auth_client.patch(
+        "/api/settings", {"canvasBackgroundColor": "#0f172a"}, format="json"
+    )
+    assert response.status_code == 200
+    assert response.json()["canvasBackgroundColor"] == "#0f172a"
+    assert AdminSettings.objects.get(pk=1).canvas_background_color == "#0f172a"
+
+
+@pytest.mark.django_db
 def test_get_announcements_returns_home_page_announcements(api_client):
     Announcement.objects.create(title="Shown", text="Hello", show_on_home_page=True)
     Announcement.objects.create(title="Hidden", text="World", show_on_home_page=False)
