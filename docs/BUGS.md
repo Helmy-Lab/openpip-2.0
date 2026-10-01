@@ -36,10 +36,11 @@ Each fix gets a regression test.
   an `InteractionDataset` link. Legacy reuses the interaction and links it
   (`DataController.php:629`). Affects counts, downloads, search dataset labels.
   _Confirm with Dr. Helmy before changing — changes what uploads write._
-- [ ] **BUG-007 — Saving a network fails above ~15 genes.**
+- [x] **BUG-007 — Saving a network fails above ~15 genes.**
   `interactions/serializers.py` caps `query`, `name` and `category_array` at
   100 chars; the dialog pre-fills name with the query. Use the existing
   3000-char `interactor_query_string` column for the query (no schema change).
+  _Fixed; category list left at 100 — 4 categories join to 39 chars today._
 - [x] **BUG-008 — Media path traversal (verified in Django).**
   `/media/avatars/../uploads/private.csv` serves a private upload; the
   `openpip/urls.py` regex is checked before `serve()` normalises `..`. nginx

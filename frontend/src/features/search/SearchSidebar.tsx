@@ -20,6 +20,9 @@ import {
   downloadFile,
 } from '../../lib/download'
 
+// The saved network's name column (interaction_network.name) is 100 chars.
+const NAME_MAX = 100
+
 const CATEGORY_COLORS: Record<string, string> = {
   Published: 'var(--hi-union)',
   Validated: 'var(--huri-lit)',
@@ -159,7 +162,7 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
 
   const { mutateAsync: saveNetwork, isPending: isSaving } = useSaveNetwork()
   const [saveOpen, setSaveOpen] = useState(false)
-  const [saveName, setSaveName] = useState(term)
+  const [saveName, setSaveName] = useState(term.slice(0, NAME_MAX))
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
   // Sharing is its own action: it never touches the saved networks above, and
@@ -188,7 +191,7 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
       setSaveSuccess(true)
       setTimeout(() => {
         setSaveOpen(false)
-        setSaveName(term)
+        setSaveName(term.slice(0, NAME_MAX))
         setSaveSuccess(false)
       }, 1500)
     } catch {
@@ -517,6 +520,7 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
       <input
         className="op-input"
         value={saveName}
+        maxLength={NAME_MAX}
         onChange={(e) => setSaveName(e.target.value)}
         placeholder={t('search.save.placeholder')}
         style={{ fontSize: 12 }}
@@ -562,7 +566,7 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
         {!saveOpen ? (
           <button
             type="button"
-            onClick={() => { setSaveOpen(true); setSaveName(term) }}
+            onClick={() => { setSaveOpen(true); setSaveName(term.slice(0, NAME_MAX)) }}
             className="op-btn"
             style={{ width: '100%', justifyContent: 'center', fontSize: 12, padding: '7px' }}
           >

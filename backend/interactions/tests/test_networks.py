@@ -51,6 +51,28 @@ def test_save_network_creates_db_rows(user_auth_client, regular_user):
 
 
 @pytest.mark.django_db
+def test_save_network_keeps_a_long_query(user_auth_client):
+    """~40 genes overflow the legacy 100-char query column; save must still work
+    and hand the whole query back."""
+    p1 = _make_protein("TP53")
+    p2 = _make_protein("MDM2")
+    ix = InteractionFactory(interactor_A=p1, interactor_B=p2, removed="0")
+    query = ", ".join(["TP53", "MDM2"] * 20)
+
+    resp = user_auth_client.post(
+        "/api/networks",
+        {"name": "Long", "query": query, "interaction_ids": [ix.id]},
+        format="json",
+    )
+    assert resp.status_code == 201
+
+    network_id = resp.json()["id"]
+    assert user_auth_client.get(f"/api/networks/{network_id}").json()["query"] == query
+    listed = user_auth_client.get("/api/networks").json()
+    assert listed[0]["query"] == query
+
+
+@pytest.mark.django_db
 def test_save_network_requires_auth(api_client):
     resp = api_client.post(
         "/api/networks",
