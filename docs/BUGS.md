@@ -18,10 +18,11 @@ Each fix gets a regression test.
   prod backend uses the fallback hard-coded in `backend/openpip/settings/base.py:12`,
   so anyone can sign an admin JWT. Generate a real key in `.env`; make `prod.py`
   refuse to start when it is missing or the default. Rotating it logs everyone out.
-- [ ] **BUG-004 — Avatar upload is stored XSS (verified).** `core/views.py` `MeView`
+- [x] **BUG-004 — Avatar upload is stored XSS (verified).** `core/views.py` `MeView`
   trusts the client's content type; `evil.html` sent as `image/png` is served
   as `text/html` from `/media/avatars/`, which can read the JWTs in localStorage.
   Store under a generated name with an extension derived from the allowed type.
+  _Fixed in code; live only after the backend image is rebuilt._
 - [ ] **BUG-005 — Empty search returns the whole DB (verified).**
   `GET /api/search?q=` (or `q=" , "`) → 20k proteins / 123k interactions, ~17 s,
   anonymous. `search_service.py` `execute_search`: no terms → empty `Q()` matches

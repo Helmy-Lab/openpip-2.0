@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password, make_password
@@ -123,7 +124,15 @@ class RegisterView(APIView):
         )
 
 
-AVATAR_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp"}
+# The stored extension comes from this map, never from the client's filename:
+# media is served by extension, so "x.html" sent as image/png would come back
+# as same-origin HTML able to read the JWTs in localStorage.
+AVATAR_TYPES = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+}
 AVATAR_MAX_BYTES = 2 * 1024 * 1024
 
 
@@ -176,6 +185,7 @@ class MeView(APIView):
                 )
             if user.avatar:
                 user.avatar.delete(save=False)
+            upload.name = uuid.uuid4().hex + AVATAR_TYPES[upload.content_type]
             user.avatar = upload
             user.save(update_fields=["avatar"])
         elif request.data.get("avatar") == "" and user.avatar:

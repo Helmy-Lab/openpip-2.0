@@ -151,6 +151,20 @@ def test_me_patch_stores_avatar(user_auth_client, regular_user):
 
 
 @pytest.mark.django_db
+def test_me_patch_avatar_ignores_client_filename(user_auth_client, regular_user):
+    # Media is served by extension: keeping "evil.html" would serve it as HTML.
+    upload = SimpleUploadedFile("evil.html", b"<script>", content_type="image/png")
+    response = user_auth_client.patch(
+        "/api/auth/me", {"avatar": upload}, format="multipart"
+    )
+    assert response.status_code == 200
+    assert response.json()["avatar"].endswith(".png")
+    assert "evil" not in response.json()["avatar"]
+    regular_user.refresh_from_db()
+    regular_user.avatar.delete(save=True)
+
+
+@pytest.mark.django_db
 def test_me_requires_auth(api_client):
     response = api_client.get("/api/auth/me")
     assert response.status_code == 401
