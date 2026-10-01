@@ -13,63 +13,63 @@ Each fix gets a regression test.
 
 ### Critical
 
-- [x] **BUG-002 — Default `SECRET_KEY` in production (verified).** _Fixed: new key
+- [x] **BUG-003 — Default `SECRET_KEY` in production (verified).** _Fixed: new key
   in `.env`, stack recreated 2026-10-01; old-key tokens now 401._ The running
   prod backend uses the fallback hard-coded in `backend/openpip/settings/base.py:12`,
   so anyone can sign an admin JWT. Generate a real key in `.env`; make `prod.py`
   refuse to start when it is missing or the default. Rotating it logs everyone out.
-- [ ] **BUG-003 — Avatar upload is stored XSS (verified).** `core/views.py` `MeView`
+- [ ] **BUG-004 — Avatar upload is stored XSS (verified).** `core/views.py` `MeView`
   trusts the client's content type; `evil.html` sent as `image/png` is served
   as `text/html` from `/media/avatars/`, which can read the JWTs in localStorage.
   Store under a generated name with an extension derived from the allowed type.
-- [ ] **BUG-004 — Empty search returns the whole DB (verified).**
+- [ ] **BUG-005 — Empty search returns the whole DB (verified).**
   `GET /api/search?q=` (or `q=" , "`) → 20k proteins / 123k interactions, ~17 s,
   anonymous. `search_service.py` `execute_search`: no terms → empty `Q()` matches
   every identifier. Return the empty result when `terms` is empty.
 
 ### High
 
-- [ ] **BUG-005 — Overlapping upload rows not linked to the new dataset (parity).**
+- [ ] **BUG-006 — Overlapping upload rows not linked to the new dataset (parity).**
   `upload_parser.py` skips a row when the pair already exists, without adding
   an `InteractionDataset` link. Legacy reuses the interaction and links it
   (`DataController.php:629`). Affects counts, downloads, search dataset labels.
   _Confirm with Dr. Helmy before changing — changes what uploads write._
-- [ ] **BUG-006 — Saving a network fails above ~15 genes.**
+- [ ] **BUG-007 — Saving a network fails above ~15 genes.**
   `interactions/serializers.py` caps `query`, `name` and `category_array` at
   100 chars; the dialog pre-fills name with the query. Use the existing
   3000-char `interactor_query_string` column for the query (no schema change).
-- [ ] **BUG-007 — Media path traversal (verified in Django).**
+- [ ] **BUG-008 — Media path traversal (verified in Django).**
   `/media/avatars/../uploads/private.csv` serves a private upload; the
   `openpip/urls.py` regex is checked before `serve()` normalises `..`. nginx
   likely blocks it today. Reject paths containing `..` / pin to the subdirectory.
 
 ### Medium
 
-- [ ] **BUG-008 — PSICQUIC paging unstable and unbounded.** `psicquic/miql.py`
+- [ ] **BUG-009 — PSICQUIC paging unstable and unbounded.** `psicquic/miql.py`
   returns an unordered queryset, so `firstResult` pages can skip/duplicate rows;
   `maxResults` has no cap. Add `order_by("pk")` and a max.
-- [ ] **BUG-009 — Long share/comment notification → 500.** Name (150) + view name
+- [ ] **BUG-010 — Long share/comment notification → 500.** Name (150) + view name
   (200) can exceed `Notification.text` max_length 300 in `sharing/views.py`.
   Truncate the text.
-- [ ] **BUG-010 — No server-side password rules on register; inconsistent strip.**
+- [ ] **BUG-011 — No server-side password rules on register; inconsistent strip.**
   `RegisterView` accepts 1-char passwords (reset requires 8). Register/reset
   `.strip()` the password, login does not.
-- [ ] **BUG-011 — Refresh tokens survive a password reset.** Blacklist the
+- [ ] **BUG-012 — Refresh tokens survive a password reset.** Blacklist the
   user's outstanding tokens in `PasswordResetConfirmView`.
-- [ ] **BUG-012 — Dataset archive built in memory per anonymous request.**
+- [ ] **BUG-013 — Dataset archive built in memory per anonymous request.**
   `DatasetArchiveDownloadView` rebuilds the full zip every call.
 
 ### Low
 
-- [ ] **BUG-013 —** `SummaryDropdown.tsx` shows a literal `<br>` between not-found
+- [ ] **BUG-014 —** `SummaryDropdown.tsx` shows a literal `<br>` between not-found
   terms; `foundSummary` is rendered as raw HTML (raw saved query for saved networks).
-- [ ] **BUG-014 —** Demoted admin keeps admin UI (not access) until logout:
+- [ ] **BUG-015 —** Demoted admin keeps admin UI (not access) until logout:
   token refresh carries the old `is_admin` claim forward.
-- [ ] **BUG-015 —** Dataset exports don't filter `removed != "0"` (none exist yet).
-- [ ] **BUG-016 —** Categories sort by the text `order` column ("10" before "2").
-- [ ] **BUG-017 —** Admin endpoints: non-numeric `category_id` → 500;
+- [ ] **BUG-016 —** Dataset exports don't filter `removed != "0"` (none exist yet).
+- [ ] **BUG-017 —** Categories sort by the text `order` column ("10" before "2").
+- [ ] **BUG-018 —** Admin endpoints: non-numeric `category_id` → 500;
   `bool("false")` is True for `show` / `is_last_batch` if sent as strings.
-- [x] **BUG-018 —** _Fixed: root-owned `0.4.4/` moved aside (`sudo rm` it later)._ `backend/.ruff_cache` permission error; `ruff check` only
+- [x] **BUG-019 —** _Fixed: root-owned `0.4.4/` moved aside (`sudo rm` it later)._ `backend/.ruff_cache` permission error; `ruff check` only
   works with `--no-cache`.
 
 ---
