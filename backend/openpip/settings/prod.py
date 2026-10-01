@@ -1,4 +1,11 @@
+from django.core.exceptions import ImproperlyConfigured
+
 from .base import *  # noqa: F401, F403
+
+# JWTs are signed with SECRET_KEY, so base.py's public fallback would let anyone
+# mint an admin token. Refuse to start rather than serve with it.
+if SECRET_KEY.startswith("django-insecure"):  # noqa: F405
+    raise ImproperlyConfigured("Set a real SECRET_KEY in .env for production.")
 
 # App is mounted at /v2/ in production nginx — tells Django's reverse() to
 # prepend this prefix so generated URLs (e.g. Swagger schema link) are correct.

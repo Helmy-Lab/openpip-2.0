@@ -13,7 +13,8 @@ Each fix gets a regression test.
 
 ### Critical
 
-- [ ] **BUG-002 — Default `SECRET_KEY` in production (verified).** The running
+- [x] **BUG-002 — Default `SECRET_KEY` in production (verified).** _Fixed: new key
+  in `.env`, stack recreated 2026-10-01; old-key tokens now 401._ The running
   prod backend uses the fallback hard-coded in `backend/openpip/settings/base.py:12`,
   so anyone can sign an admin JWT. Generate a real key in `.env`; make `prod.py`
   refuse to start when it is missing or the default. Rotating it logs everyone out.
@@ -68,7 +69,7 @@ Each fix gets a regression test.
 - [ ] **BUG-016 —** Categories sort by the text `order` column ("10" before "2").
 - [ ] **BUG-017 —** Admin endpoints: non-numeric `category_id` → 500;
   `bool("false")` is True for `show` / `is_last_batch` if sent as strings.
-- [ ] **BUG-018 —** `backend/.ruff_cache` permission error; `ruff check` only
+- [x] **BUG-018 —** _Fixed: root-owned `0.4.4/` moved aside (`sudo rm` it later)._ `backend/.ruff_cache` permission error; `ruff check` only
   works with `--no-cache`.
 
 ---
