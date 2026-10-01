@@ -40,7 +40,7 @@ describe('ShareDialog', () => {
       { wrapper: Wrapper },
     )
 
-    fireEvent.change(screen.getByLabelText(/name, username, lab, or email/i), {
+    fireEvent.change(screen.getByLabelText(/find someone on openpip/i), {
       target: { value: 'Helmy Lab' },
     })
     const match = await screen.findByRole('button', { name: /Helen Leung/ })
@@ -59,7 +59,7 @@ describe('ShareDialog', () => {
       <ShareDialog savedViewId={1} savedViewName="MAPK cluster" onClose={() => {}} />,
       { wrapper: Wrapper },
     )
-    fireEvent.change(screen.getByLabelText(/name, username, lab, or email/i), {
+    fireEvent.change(screen.getByLabelText(/find someone on openpip/i), {
       target: { value: 'zzzz' },
     })
     expect(await screen.findByText(/nobody found/i)).toBeInTheDocument()
@@ -91,7 +91,7 @@ describe('ShareDialog', () => {
       { wrapper: Wrapper },
     )
 
-    fireEvent.change(screen.getByLabelText(/name, username, lab, or email/i), {
+    fireEvent.change(screen.getByLabelText(/find someone on openpip/i), {
       target: { value: 'Lab' },
     })
     fireEvent.click(await screen.findByRole('button', { name: /Helen Leung/ }))
@@ -109,5 +109,16 @@ describe('ShareDialog', () => {
     // One saved view, sent to both — the mock accepts hleung and 400s jdoe,
     // so the error line should name Jamie Doe rather than claim total failure.
     expect(await screen.findByText(/did not reach jamie doe/i)).toBeInTheDocument()
+  })
+})
+
+describe('ShareDialog hint', () => {
+  it('says sharing is for openPIP users only and sends no email', () => {
+    render(<ShareDialog savedViewId={1} savedViewName="MAPK cluster" onClose={() => {}} />, {
+      wrapper: Wrapper,
+    })
+    expect(screen.getByText(/only with people who have an openPIP account/i)).toHaveTextContent(
+      /no email is sent/i,
+    )
   })
 })

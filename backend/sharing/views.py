@@ -1,8 +1,10 @@
+import secrets
+
 from django.db import transaction
 from django.db.models import Q
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -11,6 +13,7 @@ from .models import Comment, Notification, SavedView, Share
 from .serializers import (
     CommentSerializer,
     NotificationSerializer,
+    PublicViewSerializer,
     SavedViewSerializer,
     ShareSerializer,
 )
@@ -42,6 +45,34 @@ class SavedViewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=["post", "delete"], url_path="public-link")
+    def public_link(self, request, pk=None):
+        """POST mints the no-login link (or returns the one that exists);
+        DELETE revokes it. get_object() scopes this to the owner."""
+        view = self.get_object()
+        if request.method == "DELETE":
+            view.public_token = None
+        elif not view.public_token:
+            view.public_token = secrets.token_urlsafe(32)
+        view.save(update_fields=["public_token"])
+        return Response(SavedViewSerializer(view).data)
+
+
+class PublicViewView(APIView):
+    """A saved view opened by its public link, no login. Read-only."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, token):
+        view = SavedView.objects.filter(public_token=token).first()
+        if view is None:
+            return Response(
+                {"detail": "This link is no longer active."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(PublicViewSerializer(view).data)
 
 
 class ShareViewSet(

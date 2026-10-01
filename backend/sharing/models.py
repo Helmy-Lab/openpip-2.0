@@ -20,6 +20,12 @@ class SavedView(models.Model):
     # filter mode, layout, highlight, active table tab. Opaque here: the
     # frontend owns the shape, the backend just hands it back.
     state = models.JSONField(default=dict, blank=True)
+    # The owner's own notes on the view. Private: not sent with a share or a
+    # public link — a share carries its own note.
+    note = models.TextField(blank=True)
+    # Unguessable token for the no-login public link; null means no link.
+    # Revoking clears it, so an old link stops working for good.
+    public_token = models.CharField(max_length=64, unique=True, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

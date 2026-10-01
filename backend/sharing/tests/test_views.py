@@ -306,3 +306,84 @@ def test_marking_all_read_leaves_other_users_alone(
     assert mine.read is True
     assert theirs.read is False
     assert Notification.objects.count() == 2
+
+
+@pytest.mark.django_db
+def test_owner_can_keep_notes_on_a_saved_view(user_auth_client, saved_view):
+    response = user_auth_client.patch(
+        f"/api/saved-views/{saved_view.pk}/",
+        {"note": "Check the liver cluster again"},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["note"] == "Check the liver cluster again"
+    saved_view.refresh_from_db()
+    assert saved_view.note == "Check the liver cluster again"
+
+
+@pytest.mark.django_db
+def test_share_recipient_does_not_see_owner_note_or_token(
+    user_auth_client, other_user, saved_view
+):
+    saved_view.note = "private"
+    saved_view.public_token = "tok"
+    saved_view.save()
+    user_auth_client.post(
+        "/api/shares/",
+        {"saved_view": saved_view.pk, "recipient": other_user.username},
+        format="json",
+    )
+    bearer(user_auth_client, other_user)
+    nested = user_auth_client.get("/api/shares/").json()[0]["saved_view"]
+    assert "note" not in nested and "public_token" not in nested
+
+
+@pytest.mark.django_db
+def test_public_link_opens_without_login_until_revoked(user_auth_client, saved_view):
+    from rest_framework.test import APIClient
+
+    # A separate client: the api_client fixture is the same object that
+    # user_auth_client put credentials on.
+    anonymous = APIClient()
+    saved_view.note = "private"
+    saved_view.save()
+    minted = user_auth_client.post(f"/api/saved-views/{saved_view.pk}/public-link/")
+    assert minted.status_code == 200
+    token = minted.json()["public_token"]
+    assert len(token) >= 40
+    # Minting again keeps the same link rather than breaking the one sent out.
+    again = user_auth_client.post(f"/api/saved-views/{saved_view.pk}/public-link/")
+    assert again.json()["public_token"] == token
+
+    public = anonymous.get(f"/api/public-views/{token}")
+    assert public.status_code == 200
+    assert public.json() == {
+        "name": "MAPK cluster",
+        "query": "MAPK1",
+        "state": {"scoreFilter": 0.4, "selectedLayout": "cose"},
+    }
+
+    user_auth_client.delete(f"/api/saved-views/{saved_view.pk}/public-link/")
+    assert anonymous.get(f"/api/public-views/{token}").status_code == 404
+
+
+@pytest.mark.django_db
+def test_only_the_owner_can_mint_a_public_link(
+    user_auth_client, other_user, saved_view
+):
+    bearer(user_auth_client, other_user)
+    response = user_auth_client.post(f"/api/saved-views/{saved_view.pk}/public-link/")
+    assert response.status_code == 404
+    saved_view.refresh_from_db()
+    assert saved_view.public_token is None
+
+
+@pytest.mark.django_db
+def test_public_token_is_not_writable(user_auth_client, saved_view):
+    user_auth_client.patch(
+        f"/api/saved-views/{saved_view.pk}/",
+        {"public_token": "chosen"},
+        format="json",
+    )
+    saved_view.refresh_from_db()
+    assert saved_view.public_token is None

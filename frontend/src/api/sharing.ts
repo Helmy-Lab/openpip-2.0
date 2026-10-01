@@ -9,8 +9,19 @@ export interface SavedView {
   name: string
   query: string
   state: Partial<ViewState>
+  /** The owner's own notes. Only on your own views — a share leaves it out. */
+  note?: string
+  /** Set while the no-login public link is on; null once revoked. */
+  public_token?: string | null
   created_at: string
   updated_at: string
+}
+
+/** What a no-login visitor gets from a public link. */
+export interface PublicView {
+  name: string
+  query: string
+  state: Partial<ViewState>
 }
 
 export interface Share {
@@ -54,6 +65,41 @@ export function useCreateSavedView() {
       apiClient.post('/saved-views/', body).then((r) => r.data as SavedView),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['savedViews'] }),
   })
+}
+
+export function useUpdateSavedViewNote() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, note }: { id: number; note: string }) =>
+      apiClient.patch(`/saved-views/${id}/`, { note }).then((r) => r.data as SavedView),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['savedViews'] }),
+  })
+}
+
+/** Turn the no-login link on (keeps an existing one) or off. Owner only. */
+export function usePublicLink() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, on }: { id: number; on: boolean }) =>
+      apiClient[on ? 'post' : 'delete'](`/saved-views/${id}/public-link/`).then(
+        (r) => r.data as SavedView,
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['savedViews'] }),
+  })
+}
+
+export function usePublicView(token: string) {
+  return useQuery({
+    queryKey: ['publicView', token],
+    queryFn: () => apiClient.get(`/public-views/${token}`).then((r) => r.data as PublicView),
+    enabled: !!token,
+    retry: false,
+  })
+}
+
+/** The shareable address for a public token, under whatever base the app is served at. */
+export function publicViewUrl(token: string): string {
+  return new URL(`public/${token}`, window.location.origin + import.meta.env.BASE_URL).href
 }
 
 export function useDeleteSavedView() {

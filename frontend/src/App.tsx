@@ -19,6 +19,7 @@ import { ResetPasswordPage } from './features/auth/ResetPasswordPage'
 import { PublicProfilePage } from './features/sharing/PublicProfilePage'
 import { SharedViewPage } from './features/sharing/SharedViewPage'
 import { SavedViewPage } from './features/sharing/SavedViewPage'
+import { PublicViewPage } from './features/sharing/PublicViewPage'
 import { ProteinsPage } from './features/proteins/ProteinsPage'
 import { LegacyProteinRedirect } from './features/proteins/LegacyProteinRedirect'
 import { DownloadPage } from './features/static/DownloadPage'
@@ -66,6 +67,8 @@ const router = createBrowserRouter(
       },
       { path: 'shared/:id', element: <ProtectedRoute><SharedViewPage /></ProtectedRoute> },
       { path: 'views/:id', element: <ProtectedRoute><SavedViewPage /></ProtectedRoute> },
+      // A public link: no login, on purpose.
+      { path: 'public/:token', element: <PublicViewPage /> },
       {
         path: 'admin',
         element: (

@@ -72,6 +72,34 @@ export const sharingHandlers = [
     return HttpResponse.json(view, { status: 201 })
   }),
 
+  http.patch('/api/saved-views/:id', async ({ params, request }) => {
+    const view = views.find((v) => v.id === Number(params.id))
+    if (!view) return HttpResponse.json({ detail: 'Not found.' }, { status: 404 })
+    Object.assign(view, (await request.json()) as Partial<SavedView>)
+    return HttpResponse.json(view)
+  }),
+
+  http.post('/api/saved-views/:id/public-link/', ({ params }) => {
+    const view = views.find((v) => v.id === Number(params.id))
+    if (!view) return HttpResponse.json({ detail: 'Not found.' }, { status: 404 })
+    view.public_token ??= `tok${view.id}`
+    return HttpResponse.json(view)
+  }),
+
+  http.delete('/api/saved-views/:id/public-link/', ({ params }) => {
+    const view = views.find((v) => v.id === Number(params.id))
+    if (!view) return HttpResponse.json({ detail: 'Not found.' }, { status: 404 })
+    view.public_token = null
+    return HttpResponse.json(view)
+  }),
+
+  http.get('/api/public-views/:token', ({ params }) => {
+    const view = views.find((v) => v.public_token && v.public_token === params.token)
+    return view
+      ? HttpResponse.json({ name: view.name, query: view.query, state: view.state })
+      : HttpResponse.json({ detail: 'This link is no longer active.' }, { status: 404 })
+  }),
+
   http.delete('/api/saved-views/:id', ({ params }) => {
     views = views.filter((v) => v.id !== Number(params.id))
     return new HttpResponse(null, { status: 204 })

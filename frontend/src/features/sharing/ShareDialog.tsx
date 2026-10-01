@@ -147,8 +147,12 @@ export function ShareDialog({ savedViewId, savedViewName, capture, onClose }: Sh
         </ul>
       )}
 
+      <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--text-muted)' }}>
+        You can share only with people who have an openPIP account. They will find it
+        under Shared With Me and in their notifications. No email is sent.
+      </p>
       <label htmlFor="share-recipient" style={{ fontSize: 13, color: 'var(--text-soft)' }}>
-        Name, username, lab, or email
+        Find someone on openPIP
       </label>
       <input
         id="share-recipient"

@@ -8,6 +8,7 @@ import {
 import { useSavedNetworks, useDeleteNetwork } from '../../api/networks'
 import { ShareDialog } from './ShareDialog'
 import { ShareList } from './ShareList'
+import { SavedViewDetails } from './SavedViewDetails'
 
 const CARD_LABEL = {
   fontSize: 11,
@@ -56,6 +57,7 @@ export function ProfileSharingSections() {
   const deleteView = useDeleteSavedView()
   const deleteNetwork = useDeleteNetwork()
   const [sharing, setSharing] = useState<SavedView | null>(null)
+  const [openKey, setOpenKey] = useState<string | null>(null)
 
   const rows: Row[] = [
     ...views.map((view) => ({
@@ -93,65 +95,78 @@ export function ProfileSharingSections() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {rows.map((row) => (
-              <div key={row.key} style={ROW}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
-                    {row.name}
+              <div key={row.key} style={{ ...ROW, flexDirection: 'column', alignItems: 'stretch' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
+                      {row.name}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
+                      <span className="op-chip" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>
+                        {row.query}
+                      </span>
+                      <span
+                        style={{ fontSize: 11, color: 'var(--text-muted)' }}
+                        title={row.detail}
+                      >
+                        {row.live ? 'Live view' : 'Snapshot'} · {row.detail}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
-                    <span className="op-chip" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>
-                      {row.query}
-                    </span>
-                    <span
-                      style={{ fontSize: 11, color: 'var(--text-muted)' }}
-                      title={row.detail}
-                    >
-                      {row.live ? 'Live view' : 'Snapshot'} · {row.detail}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  className="op-btn"
-                  style={SMALL_BTN}
-                  onClick={() =>
-                    navigate(
-                      row.live
-                        ? `/views/${row.id}`
-                        : `/search/${encodeURIComponent(row.query)}`,
-                    )
-                  }
-                >
-                  Open
-                </button>
-                {/* Only a live view can be shared: a share points at one, and a
-                    snapshot would hand over yesterday's interactions. */}
-                {row.view && (
                   <button
                     className="op-btn"
                     style={SMALL_BTN}
-                    onClick={() => setSharing(row.view!)}
+                    onClick={() =>
+                      navigate(
+                        row.live
+                          ? `/views/${row.id}`
+                          : `/search/${encodeURIComponent(row.query)}`,
+                      )
+                    }
                   >
-                    Share
+                    Open
                   </button>
-                )}
-                <button
-                  onClick={() =>
-                    row.live ? deleteView.mutate(row.id) : deleteNetwork.mutate(row.id)
-                  }
-                  aria-label={`Delete ${row.name}`}
-                  title="Delete"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--text-muted)',
-                    fontSize: 18,
-                    lineHeight: 1,
-                    padding: 4,
-                  }}
-                >
-                  ×
-                </button>
+                  {row.view && (
+                    <button
+                      className="op-btn"
+                      style={SMALL_BTN}
+                      aria-expanded={openKey === row.key}
+                      onClick={() => setOpenKey(openKey === row.key ? null : row.key)}
+                    >
+                      {openKey === row.key ? 'Hide details' : 'Details'}
+                    </button>
+                  )}
+                  {/* Only a live view can be shared: a share points at one, and a
+                      snapshot would hand over yesterday's interactions. */}
+                  {row.view && (
+                    <button
+                      className="op-btn"
+                      style={SMALL_BTN}
+                      onClick={() => setSharing(row.view!)}
+                    >
+                      Share
+                    </button>
+                  )}
+                  <button
+                    onClick={() =>
+                      row.live ? deleteView.mutate(row.id) : deleteNetwork.mutate(row.id)
+                    }
+                    aria-label={`Delete ${row.name}`}
+                    title="Delete"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-muted)',
+                      fontSize: 18,
+                      lineHeight: 1,
+                      padding: 4,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+                {row.view && openKey === row.key && <SavedViewDetails view={row.view} />}
               </div>
             ))}
           </div>
