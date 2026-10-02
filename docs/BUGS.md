@@ -178,6 +178,11 @@ hand; the rest come from code-reading inventories and still need confirming.
   unused home-page components and three unused API hooks were never rendered
   or called, which is how the lost image export (BUG-036) went unnoticed.
   _Removed with their tests; the backend endpoints stay._
+- [x] **BUG-048 — Annotation filter has no controls (checked, not a bug).**
+  Legacy offered a filter for each annotation type with `show_in_filter`; in
+  the data only `tissue_expression` has it, and 2.0 implements that as the
+  tissue filter. The empty `annotationFilter` in the store is a leftover hook,
+  left in place because saved views already store it.
 - [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The
