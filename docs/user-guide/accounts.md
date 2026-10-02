@@ -58,7 +58,9 @@ your profile:
 | **Created by** | **Share Network**, or **Save a copy** of a view shared with you | **Save Network** beside the results |
 
 **Save Network** asks for a name and keeps the interactions currently shown,
-so filters and removed proteins apply. It also records the score threshold.
+so filters and removed proteins apply. It also records the score threshold,
+interaction categories and tissue filter, which are set again when you open
+it.
 
 On your profile, each saved view has **Details**, where you can keep private
 notes and manage its public link, and **Share**. The **×** on any row deletes

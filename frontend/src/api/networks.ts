@@ -30,6 +30,7 @@ interface SavedNetworkDetail {
   query: string
   score_parameter: string
   category_array: string
+  tissue_expression_array: string
 }
 
 export function useSaveNetwork() {

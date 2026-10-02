@@ -256,3 +256,14 @@ describe('SearchSidebar summary', () => {
     expect(summary).toHaveTextContent(/Interactions:\s*1/)
   })
 })
+
+describe('tissuesThatFit', () => {
+  it('keeps the tissue filter, dropping whole tissues past 100 characters', async () => {
+    const { tissuesThatFit } = await import('../../../lib/tissues')
+    expect(tissuesThatFit(['liver', 'lung'])).toBe('liver,lung')
+    const many = Array.from({ length: 10 }, (_, i) => `esophagus_gastro_${i}`)
+    const kept = tissuesThatFit(many)
+    expect(kept.length).toBeLessThanOrEqual(100)
+    expect(kept.split(',').every((t) => many.includes(t))).toBe(true)
+  })
+})

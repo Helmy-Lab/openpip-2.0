@@ -8,7 +8,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useSettings } from '../../api/settings'
 import { useSaveNetwork } from '../../api/networks'
 import { useText } from '../../text'
-import { tissueLabel } from '../../lib/tissues'
+import { tissueLabel, tissuesThatFit } from '../../lib/tissues'
 import { tissuesWithData } from './filterInteractions'
 import {
   formatSIF,
@@ -24,6 +24,7 @@ import { useCanvasBackground } from './network/canvasBackground'
 
 // The saved network's name column (interaction_network.name) is 100 chars.
 const NAME_MAX = 100
+
 
 const CATEGORY_COLORS: Record<string, string> = {
   Published: 'var(--hi-union)',
@@ -197,7 +198,10 @@ export function SearchSidebar({
         query: term,
         score_parameter: scoreFilter.toFixed(2),
         category_array: activeCategories,
-        tissue_expression_array: '',
+        // Legacy's 100-character column. Only the filter shown on reopening is
+        // affected if tissues are dropped to fit: the saved interactions are
+        // stored exactly either way.
+        tissue_expression_array: tissuesThatFit(tissueFilter),
         interaction_ids: visibleInteractionIds,
       })
       setSaveSuccess(true)

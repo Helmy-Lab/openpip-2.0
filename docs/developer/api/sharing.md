@@ -227,7 +227,7 @@ Save the interactions currently shown.
 | `interaction_ids` | Required, non-empty list of interaction IDs to keep. |
 | `score_parameter` | Score threshold in use, as text. Default `"0.00"`. |
 | `category_array` | Categories in use, as text, up to 100 characters. |
-| `tissue_expression_array` | Tissues in use, as text, up to 100 characters. |
+| `tissue_expression_array` | Tissue filter in use, comma-separated, up to 100 characters. |
 
 ```json
 {"id": 41, "name": "TP53 neighbourhood", "interaction_count": 238}
@@ -235,8 +235,8 @@ Save the interactions currently shown.
 
 ### GET /api/networks/{pk}
 
-The saved network: its `id`, `name`, `query`, `score_parameter` and
-`category_array`, plus the same keys as a
+The saved network: its `id`, `name`, `query`, `score_parameter`,
+`category_array` and `tissue_expression_array`, plus the same keys as a
 [search result](proteins-and-search.md#get-apisearch), built from the saved
 interactions.
 

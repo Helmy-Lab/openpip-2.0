@@ -142,7 +142,9 @@ def test_load_network_returns_result_shape(user_auth_client, regular_user):
     p2 = _make_protein("MDM2")
     ix = InteractionFactory(interactor_A=p1, interactor_B=p2, removed="0")
 
-    network = InteractionNetwork.objects.create(name="My Net", query="TP53")
+    network = InteractionNetwork.objects.create(
+        name="My Net", query="TP53", tissue_expression_array="liver,lung"
+    )
     InteractionInteractionNetworks.objects.create(
         interaction_network=network, interaction=ix
     )
@@ -154,6 +156,7 @@ def test_load_network_returns_result_shape(user_auth_client, regular_user):
     assert resp.status_code == 200
     data = resp.json()
     assert data["name"] == "My Net"
+    assert data["tissue_expression_array"] == "liver,lung"
     assert data["query"] == "TP53"
     assert "all_proteins" in data
     assert "all_interactions" in data

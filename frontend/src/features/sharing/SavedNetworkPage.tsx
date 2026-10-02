@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { SearchResultsPage } from '../search/SearchResultsPage'
 import { useSavedNetwork } from '../../api/networks'
+import { snapshotViewState } from './snapshotViewState'
 
 /**
  * A saved network opened as the snapshot it is: the interactions stored when it
@@ -25,12 +26,11 @@ export function SavedNetworkPage() {
     )
   }
 
-  const score = Number.parseFloat(network.score_parameter)
   return (
     <SearchResultsPage
       term={network.query}
       result={network}
-      viewState={Number.isFinite(score) ? { scoreFilter: score } : undefined}
+      viewState={snapshotViewState(network)}
       banner={
         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '8px 16px' }}>
           Snapshot <strong style={{ color: 'var(--text)' }}>{network.name}</strong>: the{' '}

@@ -158,6 +158,7 @@ class SavedNetworkDetailView(APIView):
                 "query": query,
                 "score_parameter": network.score_parameter,
                 "category_array": network.category_array,
+                "tissue_expression_array": network.tissue_expression_array or "",
                 **result,
             }
         )

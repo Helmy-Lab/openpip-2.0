@@ -84,3 +84,16 @@ export function searchTissues(prefix: string, limit = 6): string[] {
   )
   return [...starts, ...contains].slice(0, limit)
 }
+
+// Legacy saves the tissue filter in interaction_network.tissue_expression_array.
+const SAVED_TISSUES_MAX = 100
+
+/** As many of the selected tissues as fit legacy's 100-character column. */
+export function tissuesThatFit(tissues: string[]): string {
+  const kept: string[] = []
+  for (const tissue of tissues) {
+    if ([...kept, tissue].join(',').length > SAVED_TISSUES_MAX) break
+    kept.push(tissue)
+  }
+  return kept.join(',')
+}
