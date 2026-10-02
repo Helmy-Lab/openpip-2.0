@@ -33,6 +33,12 @@ describe('AboutPage', () => {
     expect(screen.getByText('About TestDB')).toBeInTheDocument()
   })
 
+  it('links Documentation to the documentation site, not the old in-app page', () => {
+    renderWithProviders(<AboutPage />)
+    const link = screen.getByRole('link', { name: 'Documentation' })
+    expect(link).toHaveAttribute('href', '/docs/')
+  })
+
   it('renders static about content', () => {
     renderWithProviders(<AboutPage />)
     expect(screen.getByText('CCSB Proteome-scale efforts')).toBeInTheDocument()

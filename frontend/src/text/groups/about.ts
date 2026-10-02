@@ -504,7 +504,7 @@ export const aboutGroup: TextGroup = {
       key: 'about.links.docs.desc',
       section: 'Useful links',
       label: 'Link: Documentation description',
-      default: 'How to use the web interface',
+      default: 'User, admin and API guides',
     },
     {
       key: 'about.links.developer.label',
@@ -516,7 +516,7 @@ export const aboutGroup: TextGroup = {
       key: 'about.links.developer.desc',
       section: 'Useful links',
       label: 'Link: API access description',
-      default: 'REST API, SDK, PSICQUIC, code examples',
+      default: 'REST API, PSICQUIC, code examples',
     },
     {
       key: 'about.links.swagger.label',
