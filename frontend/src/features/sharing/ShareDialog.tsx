@@ -236,7 +236,7 @@ export function ShareDialog({ savedViewId, savedViewName, capture, onClose }: Sh
         </button>
         <button
           type="button"
-          className="op-btn op-btn-primary"
+          className="op-btn primary"
           onClick={submit}
           disabled={picked.length === 0 || share.isPending || createView.isPending}
         >

@@ -78,7 +78,7 @@ export function SavedViewDetails({ view }: SavedViewDetailsProps) {
           )}
           <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
             <button
-              className="op-btn op-btn-primary"
+              className="op-btn primary"
               style={SMALL_BTN}
               onClick={saveNote}
               disabled={updateNote.isPending}

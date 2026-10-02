@@ -192,14 +192,15 @@ button, [role='button'], .op-btn {
   text-decoration: none;
 }
 .op-btn:hover { background: var(--surface-2); }
+/* --color-button is the admin's "Button color" (lib/theme.ts), defaulting to
+   the primary colour. Hover darkens whatever colour was chosen. */
 .op-btn.primary {
-  background: var(--primary);
+  background: var(--color-button, var(--primary));
   color: #fff;
-  border-color: var(--primary);
+  border-color: var(--color-button, var(--primary));
 }
 .op-btn.primary:hover {
-  background: var(--primary-deep);
-  border-color: var(--primary-deep);
+  filter: brightness(0.88);
 }
 .op-btn.ghost {
   background: transparent;

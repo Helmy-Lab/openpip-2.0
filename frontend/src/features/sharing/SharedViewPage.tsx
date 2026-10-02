@@ -152,7 +152,7 @@ function ShareBanner({ shareId, share }: { shareId: number; share: ReturnType<ty
             </button>
             <button
               type="button"
-              className="op-btn op-btn-primary"
+              className="op-btn primary"
               onClick={saveCopy}
               disabled={createView.isPending}
             >

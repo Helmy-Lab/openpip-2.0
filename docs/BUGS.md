@@ -146,6 +146,10 @@ hand; the rest come from code-reading inventories and still need confirming.
 - [x] **BUG-039 — Upload wizard's category list could show blank names
   (verified).** It and the admin category table cached two differently shaped
   endpoints under one query key. _Fixed: separate keys._
+- [x] **BUG-040 — Share, Save-copy and Save-note buttons unstyled (verified).**
+  They used `op-btn-primary`, which no stylesheet defines. _Fixed._
+- [x] **BUG-041 — "Button color" setting had no effect (verified).** Theme set
+  `--color-button` but no CSS read it. _Fixed: primary buttons use it._
 - [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The
