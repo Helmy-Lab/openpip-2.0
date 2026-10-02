@@ -73,6 +73,9 @@ SUPPORTED_FORMATS = tuple(VERSION_WIDTHS) + ("count", "json")
 # capabilities that go with it. openPIP's own release number says what is
 # actually serving.
 SERVICE_VERSION = "2.0.0"
+# The spec sets no cap for tab formats; like its 500 limit for XML, going over
+# is a 400, not a silently short page a client would read as the last one.
+MAX_RESULTS = 2500
 
 
 def _plain(content: str, status: int = 200) -> HttpResponse:
@@ -115,6 +118,8 @@ class PsicquicQueryView(PsicquicView):
             return _plain(
                 "firstResult and maxResults must not be negative\n", status=400
             )
+        if max_results > MAX_RESULTS:
+            return _plain(f"maxResults must be at most {MAX_RESULTS}\n", status=400)
 
         qs = matches[first : first + max_results]
 

@@ -51,9 +51,11 @@ Each fix gets a regression test.
 
 ### Medium
 
-- [ ] **BUG-009 — PSICQUIC paging unstable and unbounded.** `psicquic/miql.py`
+- [x] **BUG-009 — PSICQUIC paging unstable and unbounded.** `psicquic/miql.py`
   returns an unordered queryset, so `firstResult` pages can skip/duplicate rows;
   `maxResults` has no cap. Add `order_by("pk")` and a max.
+  _Fixed: ordered by pk; `maxResults` over 2500 → 400 (the spec sets no tab
+  cap; a 400 mirrors its XML limit). No legacy counterpart to parity-test._
 - [x] **BUG-010 — Long share/comment notification → 500.** Name (150) + view name
   (200) can exceed `Notification.text` max_length 300 in `sharing/views.py`.
   Truncate the text. _Fixed in `notify()`, which both callers use._

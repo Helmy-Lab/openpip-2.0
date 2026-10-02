@@ -227,7 +227,8 @@ def _clause(field: str, value: str) -> Q:
 
 def parse_miql(query: str) -> QuerySet:
     """Translate a MIQL query string into an Interaction queryset."""
-    base = Interaction.objects.filter(removed="0")
+    # Ordered, so firstResult pages neither skip nor repeat rows.
+    base = Interaction.objects.filter(removed="0").order_by("pk")
     q = query.strip()
 
     if not q or q == "*":

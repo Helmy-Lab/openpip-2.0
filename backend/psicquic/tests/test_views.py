@@ -229,3 +229,30 @@ def test_species_now_answers_instead_of_refusing(client, sample_interactions):
     )
     assert response.status_code == 200
     assert response.content.decode().strip() == "1"
+
+
+@pytest.mark.django_db
+def test_psicquic_pages_are_ordered_and_disjoint(client, sample_interactions):
+    from psicquic.miql import parse_miql
+
+    a, b = sample_interactions.interactor_A, sample_interactions.interactor_B
+    for _ in range(4):
+        Interaction.objects.create(interactor_A=a, interactor_B=b, score="0.5")
+    assert parse_miql("*").ordered and parse_miql("BRCA1").ordered
+
+    ids = []
+    for first in range(0, 5, 2):
+        page = client.get(
+            f"/psicquic/rest/query?q=*&format=json&firstResult={first}&maxResults=2"
+        )
+        ids += [row["interaction_id"] for row in page.json()]
+    assert ids == sorted(Interaction.objects.values_list("pk", flat=True))
+
+
+@pytest.mark.django_db
+def test_psicquic_refuses_max_results_over_the_cap(client, sample_interactions):
+    from psicquic.views import MAX_RESULTS
+
+    ok = client.get(f"/psicquic/rest/query?q=*&maxResults={MAX_RESULTS}")
+    too_many = client.get(f"/psicquic/rest/query?q=*&maxResults={MAX_RESULTS + 1}")
+    assert ok.status_code == 200 and too_many.status_code == 400
