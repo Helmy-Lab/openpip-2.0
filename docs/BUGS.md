@@ -193,6 +193,11 @@ hand; the rest come from code-reading inventories and still need confirming.
   legacy's fixed blue and red ramps, so a portal with teal nodes turned blue.
   Edges never changed. _Fixed: the ramp is built from the configured node
   colours; legacy's default colours keep legacy's exact steps._
+- [x] **BUG-051 — Admin settings always showed "Save 1 change" (reported
+  2026-10-02).** Quill re-serialises the HTML it loads (here the footer, on
+  the Site Identity panel that opens first) and reports that as a change, so
+  the field counted as edited before anyone touched it. _Fixed: the rich text
+  editor passes on only user edits._
 - [x] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The

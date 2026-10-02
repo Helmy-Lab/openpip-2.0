@@ -19,11 +19,11 @@ vi.mock('../../../api/settings', () => ({
 }))
 
 vi.mock('react-quill-new', () => ({
-  default: ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) => (
+  default: ({ value, onChange, placeholder }: { value: string; onChange: (v: string, d: unknown, s: string) => void; placeholder?: string }) => (
     <textarea
       data-testid="rich-text-editor"
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => onChange(e.target.value, {}, 'user')}
       placeholder={placeholder}
     />
   ),

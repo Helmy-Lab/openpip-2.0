@@ -19,11 +19,11 @@ vi.mock('../../../api/announcements', () => ({
 
 // react-quill-new renders a controlled editor; stub it to a plain textarea for tests
 vi.mock('react-quill-new', () => ({
-  default: ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) => (
+  default: ({ value, onChange, placeholder }: { value: string; onChange: (v: string, d: unknown, s: string) => void; placeholder?: string }) => (
     <textarea
       data-testid="quill-editor"
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => onChange(e.target.value, {}, 'user')}
       placeholder={placeholder}
     />
   ),

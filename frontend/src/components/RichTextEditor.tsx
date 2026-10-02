@@ -40,7 +40,12 @@ export function RichTextEditor({ value, onChange, placeholder, rows = 8 }: RichT
       <ReactQuill
         theme="snow"
         value={value ?? ''}
-        onChange={onChange}
+        // Quill re-serialises the HTML it is given and reports that as a
+        // change (source "api"), which marked a freshly loaded field as edited
+        // and left "Save 1 change" showing. Only the admin's own edits count.
+        onChange={(html, _delta, source) => {
+          if (source === 'user') onChange(html)
+        }}
         modules={MODULES}
         formats={FORMATS}
         placeholder={placeholder}
