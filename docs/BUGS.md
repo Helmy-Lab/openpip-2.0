@@ -188,13 +188,17 @@ hand; the rest come from code-reading inventories and still need confirming.
   stayed in the page's visible list: Cytoscape skipped them with console
   errors, and Save Network stored them. _Fixed: removed proteins take their
   interactions with them._
-- [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
+- [x] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The
   identifier `P04637` links only to 11911, so `GET /api/search?q=P04637` and
   `/api/proteins/P04637` show the empty stub. Entrez IDs (`7157`) match nothing.
   Likely inherited from the legacy data (~8.4k bare UniProt stubs); check
   legacy behaviour before changing anything.
+  _Root cause fixed (4c409e5): uploads now match proteins by their own
+  UniProt/Ensembl/Entrez fields. Decision 2026-10-02: **no data merge.** The
+  existing stub proteins and the HuRI interactions on them stay as they are;
+  HI-III and HuRI interactions are not combined._
 - [x] **BUG-035 — Category colours are editable but never shown (verified in
   code).** _Fixed: legacy coloured edges the same way, so behaviour stays; the
   admin table now shows the edge colour each order really gives instead of a
@@ -245,7 +249,10 @@ hand; the rest come from code-reading inventories and still need confirming.
   download endpoints keep serving either way. `showDownloadAll` is labelled
   "Show Download All Datasets" in the admin panel, yet no page links the
   all-datasets ZIP (`/api/datasets/download/`) at all.
-- [ ] **BUG-030 — Downloads lose the negative flag.** Negative interactions are
+- [x] **BUG-030 — Downloads lose the negative flag.** _Decision 2026-10-02:
+  follow legacy, which stored no negative flag and wrote `-` in its PSI-MI
+  export's Negative column. Downloads stay as they are; PSICQUIC column 36
+  carries the flag._ Negative interactions are
   exported in tab/sif/csv with nothing marking them negative.
 - [x] **BUG-031 — `/v2` hard-coded.** _Fixed: `URL_PREFIX` (default `/v2`)
   drives `FORCE_SCRIPT_NAME` and the frontend build's `VITE_BASE`;
