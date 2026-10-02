@@ -54,13 +54,50 @@ export const SPECIFICITY_QUERY_COLORS = [
   '#ffd0d0', '#ffa2a2', '#ff7373', '#fe4545', '#cc0000', '#bb0000', '#b90000', '#8b0000', '#5c0000',
 ]
 
+function mix(hex: string, target: number, t: number): string {
+  const n = parseInt(hex.slice(1), 16)
+  const channels = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  return (
+    '#' +
+    channels
+      .map((c) => Math.round(c + (target - c) * t).toString(16).padStart(2, '0'))
+      .join('')
+  )
+}
+
+/**
+ * The nine specificity steps for a node colour: four lighter shades, the colour
+ * itself, four darker. Legacy's ramps are shades of its default node colours
+ * (#3c78d8 and #cc0000 sit in the middle), so those defaults keep legacy's exact
+ * steps, and a portal with other node colours gets shades of its own instead
+ * of legacy blue and red.
+ */
+export function specificityRamp(base: string): string[] {
+  const key = base.trim().toLowerCase()
+  if (key === SPECIFICITY_INTERACTOR_COLORS[4]) return SPECIFICITY_INTERACTOR_COLORS
+  if (key === SPECIFICITY_QUERY_COLORS[4]) return SPECIFICITY_QUERY_COLORS
+  if (!/^#[0-9a-f]{6}$/.test(key)) return SPECIFICITY_INTERACTOR_COLORS
+  return [
+    ...[0.65, 0.45, 0.25, 0.08].map((t) => mix(key, 255, t)),
+    key,
+    ...[0.15, 0.35, 0.55, 0.72].map((t) => mix(key, 0, t)),
+  ]
+}
+
 /**
  * Legacy getSpecificityColor. Legacy used strict < and > on both sides, so a
  * value exactly on a threshold got no color; here it falls into the step below.
  */
-export function specificityColor(value: number, isQuery: boolean): string {
+export function specificityColor(
+  value: number,
+  isQuery: boolean,
+  palette: Pick<NodeEdgePalette, 'queryNode' | 'interactorNode'> = {
+    queryNode: SPECIFICITY_QUERY_COLORS[4],
+    interactorNode: SPECIFICITY_INTERACTOR_COLORS[4],
+  }
+): string {
   const step = SPECIFICITY_THRESHOLDS.filter((t) => value > t).length
-  return (isQuery ? SPECIFICITY_QUERY_COLORS : SPECIFICITY_INTERACTOR_COLORS)[step]
+  return specificityRamp(isQuery ? palette.queryNode : palette.interactorNode)[step]
 }
 
 /** Which tissue-driven node styling is on, and for which tissues. */
@@ -107,7 +144,7 @@ export function buildElements(
         // relying on stylesheet hot-swap.
         nodeColor:
           specificity !== null
-            ? specificityColor(specificity, isQuery)
+            ? specificityColor(specificity, isQuery, palette)
             : isQuery
               ? palette.queryNode
               : palette.interactorNode,

@@ -4,7 +4,7 @@ import cytoscape from 'cytoscape'
 import type { LayoutOptions } from 'cytoscape'
 import cola from 'cytoscape-cola'
 import type { Protein, Interaction } from '../../../types/api'
-import { buildElements, getEdgeColorByOrder, SPECIFICITY_INTERACTOR_COLORS } from './cytoscapeElements'
+import { buildElements, getEdgeColorByOrder, specificityRamp } from './cytoscapeElements'
 import { tissueLabel } from '../../../lib/tissues'
 import { buildStylesheet } from './cytoscapeStyles'
 import { useCanvasBackground } from './canvasBackground'
@@ -266,7 +266,7 @@ export function CytoscapeNetwork({
               width: 16,
               height: 10,
               borderRadius: 2,
-              background: `linear-gradient(to right, ${SPECIFICITY_INTERACTOR_COLORS[0]}, ${SPECIFICITY_INTERACTOR_COLORS[8]})`,
+              background: `linear-gradient(to right, ${specificityRamp(palette.interactorNode)[0]}, ${specificityRamp(palette.interactorNode)[8]})`,
               flexShrink: 0,
             }} />
             <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>

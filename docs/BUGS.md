@@ -188,6 +188,11 @@ hand; the rest come from code-reading inventories and still need confirming.
   stayed in the page's visible list: Cytoscape skipped them with console
   errors, and Save Network stored them. _Fixed: removed proteins take their
   interactions with them._
+- [x] **BUG-050 — Tissue specificity ignored the portal's node colours
+  (reported 2026-10-02).** "Reflect tissue specificity" repainted proteins in
+  legacy's fixed blue and red ramps, so a portal with teal nodes turned blue.
+  Edges never changed. _Fixed: the ramp is built from the configured node
+  colours; legacy's default colours keep legacy's exact steps._
 - [x] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The

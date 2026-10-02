@@ -67,7 +67,9 @@ Filters change what the network, the tables and your downloads show.
 
 Two switches in the tissue panel change how proteins are drawn:
 **Show tissue expression** sizes each protein by its expression level, and
-**Reflect tissue specificity** colours it by how specific that expression is.
+**Reflect tissue specificity** shades it by how specific that expression is:
+lighter for low specificity, darker for high, in shades of the protein's usual
+colour. Interaction colours do not change.
 While either switch is on, you can select only one tissue.
 
 Filters stay set when you start a new search.
