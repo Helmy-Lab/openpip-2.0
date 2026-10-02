@@ -126,8 +126,9 @@ does.
 
 ### GET /api/announcements
 
-Announcements for the home page, newest first. No authentication. This lists
-every announcement with `showOnHomePage` set, whatever its `show` value.
+Announcements for the home page, newest first. No authentication. An
+announcement is listed only when both `show` and `showOnHomePage` are true.
+The admin panel's **Hide** turns `show` off.
 
 For example:
 

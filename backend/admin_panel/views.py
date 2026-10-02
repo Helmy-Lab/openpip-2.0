@@ -214,7 +214,12 @@ class AnnouncementListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        qs = Announcement.objects.filter(show_on_home_page=True).order_by("-date")
+        # Legacy split these: the home page read show_on_home_page and a separate
+        # announcements page read show. 2.0 has only the home page, so both must
+        # hold, or the admin panel's Hide (show=False) hid nothing.
+        qs = Announcement.objects.filter(show=True, show_on_home_page=True).order_by(
+            "-date"
+        )
         return Response(AnnouncementSerializer(qs, many=True).data)
 
 

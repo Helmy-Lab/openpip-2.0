@@ -139,6 +139,10 @@ hand; the rest come from code-reading inventories and still need confirming.
 - [x] **BUG-037 — Interactions CSV from the sidebar labels every row non-query
   (verified).** No query protein IDs were passed to `formatInteractionsCSV`.
   _Fixed._
+- [x] **BUG-038 — Hiding an announcement did not hide it (verified).** The
+  home page list ignored `show`, which is all the admin panel's Hide changes.
+  _Fixed: public list needs both flags (legacy's home page read only
+  `show_on_home_page`, but it also had an announcements page reading `show`)._
 - [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The

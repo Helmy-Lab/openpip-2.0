@@ -850,3 +850,15 @@ def test_public_register_never_grants_admin(api_client):
     user = User.objects.get(username="plain")
     assert user.is_staff is False
     assert user.is_superuser is False
+
+
+@pytest.mark.django_db
+def test_hidden_announcements_stay_off_the_home_page(api_client):
+    Announcement.objects.create(
+        title="Live", text="x", show=True, show_on_home_page=True
+    )
+    Announcement.objects.create(
+        title="Hidden", text="x", show=False, show_on_home_page=True
+    )
+    titles = [a["title"] for a in api_client.get("/api/announcements").json()]
+    assert titles == ["Live"]
