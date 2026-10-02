@@ -49,6 +49,7 @@ def import_dataset_task(
         }
         new_protein_ids = result.get("new_protein_ids", [])
         new_organism_ids = result.get("new_organism_ids", [])
+        _refresh_counts()
         _run_enrichment(self, base, new_protein_ids, new_organism_ids)
         return {**base, "stage": "done"}
 
@@ -82,8 +83,16 @@ def import_dataset_task(
         )
 
     base = {**totals, "progress": 100}
+    _refresh_counts()
     _run_enrichment(self, base, all_new_protein_ids, all_new_organism_ids)
     return {**base, "stage": "done"}
+
+
+def _refresh_counts() -> None:
+    # Imported here: views imports this module, so a top-level import is circular.
+    from .views import _refresh_dataset_counts
+
+    _refresh_dataset_counts()
 
 
 def _run_enrichment(

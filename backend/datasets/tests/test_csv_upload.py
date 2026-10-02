@@ -141,6 +141,7 @@ def test_csv_returns_new_protein_ids():
 # ── task integration — fmt parameter ─────────────────────────────────────────
 
 
+@pytest.mark.django_db
 def test_task_accepts_fmt_parameter():
     """import_dataset_task should accept a fmt kwarg without error."""
     from unittest.mock import patch

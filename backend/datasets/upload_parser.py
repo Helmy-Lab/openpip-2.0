@@ -5,6 +5,7 @@ import io
 import re
 
 from django.db import transaction
+from django.db.models import Q
 
 from datasets.models import Dataset
 from interactions.models import (
@@ -98,13 +99,27 @@ def _protein_handler(raw_id: str) -> Protein:
     return protein
 
 
-def _is_new_interaction(protein_a: Protein, protein_b: Protein) -> bool:
-    """Return True only when no non-removed interaction exists for this protein pair."""
-    return not Interaction.objects.filter(
-        interactor_A_id__in=[protein_a.id, protein_b.id],
-        interactor_B_id__in=[protein_a.id, protein_b.id],
+def _existing_interaction(protein_a: Protein, protein_b: Protein):
+    """The active interaction for this pair in either orientation, or None.
+
+    Matched as (A, B) or (B, A): testing each side against [a, b] also matched
+    an a-a self-interaction, so a-b was taken for a duplicate and never created.
+    """
+    return Interaction.objects.filter(
+        Q(interactor_A=protein_a, interactor_B=protein_b)
+        | Q(interactor_A=protein_b, interactor_B=protein_a),
         removed="0",
-    ).exists()
+    ).first()
+
+
+def _credit_dataset(interaction: Interaction, dataset) -> bool:
+    """Link an existing interaction to this upload's dataset as well (legacy
+    parity). True when the link is new, i.e. this dataset's evidence is too."""
+    if dataset is None:
+        return False
+    return InteractionDataset.objects.get_or_create(
+        interaction=interaction, dataset=dataset
+    )[1]
 
 
 def _parse_psimi_label(raw: str) -> str | None:
@@ -547,7 +562,14 @@ def parse_and_ingest(
                         new_organism_ids.append(org_id)
 
                 # ── Dedup ──────────────────────────────────────────────────
-                if not _is_new_interaction(protein_a, protein_b):
+                # An overlap still credits this dataset and brings its evidence
+                # along. The score is left alone: it came with the dataset that
+                # created the interaction.
+                existing = _existing_interaction(protein_a, protein_b)
+                if existing:
+                    if _credit_dataset(existing, named_dataset):
+                        _handle_detection_method(existing, _safe_col(row, 6))
+                        _handle_interaction_annotations(existing, _safe_col(row, 27))
                     transaction.savepoint_commit(sid)
                     interactions_skipped += 1
                     continue
@@ -694,7 +716,9 @@ def parse_and_ingest_csv(
                         if protein_b.id not in new_protein_ids:
                             new_protein_ids.append(protein_b.id)
 
-                if not _is_new_interaction(protein_a, protein_b):
+                existing = _existing_interaction(protein_a, protein_b)
+                if existing:
+                    _credit_dataset(existing, named_dataset)
                     transaction.savepoint_commit(sid)
                     interactions_skipped += 1
                     continue

@@ -5,7 +5,7 @@ Comprehensive tests for the improved PSI-MI TAB 2.7 parser and upload endpoints.
 import io
 import pytest
 
-from datasets.upload_parser import parse_and_ingest
+from datasets.upload_parser import parse_and_ingest, parse_and_ingest_csv
 from interactions.models import (
     AnnotationInteraction,
     Interaction,
@@ -378,6 +378,74 @@ def test_dedup_does_not_skip_removed_interaction():
     assert result["interactions_created"] == 1
     assert result["interactions_skipped"] == 0
     assert Interaction.objects.filter(removed="0").count() == 1
+
+
+def _links(interaction):
+    return set(
+        InteractionDataset.objects.filter(interaction=interaction).values_list(
+            "dataset__name", flat=True
+        )
+    )
+
+
+def _experiments(interaction):
+    return sorted(
+        Annotation.objects.filter(
+            identifier=str(interaction.pk), type_name="experiment"
+        ).values_list("annotation", flat=True)
+    )
+
+
+@pytest.mark.django_db
+def test_overlap_credits_both_datasets_and_keeps_new_evidence():
+    """Legacy parity: a pair already in DS1 is linked to DS2 as well, with DS2's
+    detection method attached; DS1's score is not overwritten."""
+    parse_and_ingest(_file(_build_row()), dataset_name="DS1")
+    result = parse_and_ingest(
+        _file(
+            _build_row(
+                method='psi-mi:"MI:0006"(anti bait coimmunoprecipitation)',
+                score="intact-miscore:0.99",
+            )
+        ),
+        dataset_name="DS2",
+    )
+    assert result["interactions_created"] == 0
+    (ix,) = Interaction.objects.all()
+    assert _links(ix) == {"DS1", "DS2"}
+    assert _experiments(ix) == [
+        "anti bait coimmunoprecipitation",
+        "two hybrid prey pooling approach",
+    ]
+    assert ix.score == "0.56"
+
+
+@pytest.mark.django_db
+def test_reupload_to_same_dataset_adds_no_duplicate_evidence():
+    parse_and_ingest(_file(_build_row()), dataset_name="DS1")
+    parse_and_ingest(_file(_build_row()), dataset_name="DS1")
+    (ix,) = Interaction.objects.all()
+    assert _experiments(ix) == ["two hybrid prey pooling approach"]
+
+
+@pytest.mark.django_db
+def test_self_interaction_does_not_block_a_new_pair():
+    """A-A used to match the A-B duplicate check, so A-B was never created."""
+    parse_and_ingest(
+        _file(_build_row(id_b="uniprotkb:P00001", alias_b="-")), dataset_name="DS"
+    )
+    result = parse_and_ingest(_file(_build_row()), dataset_name="DS")
+    assert result["interactions_created"] == 1
+    assert Interaction.objects.count() == 2
+
+
+@pytest.mark.django_db
+def test_csv_overlap_credits_both_datasets():
+    csv_bytes = b"protein_a,protein_b\nuniprotkb:P00001,uniprotkb:P00002\n"
+    parse_and_ingest_csv(csv_bytes, dataset_name="DS1")
+    parse_and_ingest_csv(csv_bytes, dataset_name="DS2")
+    (ix,) = Interaction.objects.all()
+    assert _links(ix) == {"DS1", "DS2"}
 
 
 # ---------------------------------------------------------------------------

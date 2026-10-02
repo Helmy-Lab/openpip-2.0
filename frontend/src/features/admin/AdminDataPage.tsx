@@ -1213,7 +1213,7 @@ function Step3({ state, onBack, onNext }: Step3Props) {
             </div>
             <div>
               <div className="op-num" style={{ fontSize: 22, fontWeight: 600, color: 'var(--text-muted)' }}>{result.interactions_skipped.toLocaleString()}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interactions skipped</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Already in database</div>
             </div>
           </div>
         </div>
@@ -1473,7 +1473,7 @@ function Step4({ state, onReset }: Step4Props) {
               </div>
               <div>
                 <div className="op-num" style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-muted)' }}>{totals.interactions_skipped.toLocaleString()}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interactions skipped</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Already in database</div>
               </div>
             </div>
           </div>

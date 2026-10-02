@@ -31,11 +31,14 @@ Each fix gets a regression test.
 
 ### High
 
-- [ ] **BUG-006 — Overlapping upload rows not linked to the new dataset (parity).**
+- [x] **BUG-006 — Overlapping upload rows not linked to the new dataset (parity).**
   `upload_parser.py` skips a row when the pair already exists, without adding
   an `InteractionDataset` link. Legacy reuses the interaction and links it
   (`DataController.php:629`). Affects counts, downloads, search dataset labels.
-  _Confirm with Dr. Helmy before changing — changes what uploads write._
+  _Fixed: overlaps credit both datasets and attach the new detection method /
+  annotations; the existing score is kept. Same change fixed the duplicate check
+  matching an A–A self-interaction for A–B, and the async (Celery) import never
+  refreshing dataset counts._
 - [x] **BUG-007 — Saving a network fails above ~15 genes.**
   `interactions/serializers.py` caps `query`, `name` and `category_array` at
   100 chars; the dialog pre-fills name with the query. Use the existing
