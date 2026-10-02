@@ -6,6 +6,7 @@ import re
 
 from django.db import transaction
 from django.db.models import Q
+from django.db.models.functions import Lower
 
 from datasets.models import Dataset
 from interactions.models import (
@@ -83,6 +84,34 @@ _PROTEIN_COLUMN = {
     "entrez": "entrez_id",
     "gene_name": "gene_name",
 }
+
+
+def known_identifiers(identifiers) -> set[str]:
+    """The given identifiers (prefixes already stripped) that an upload would
+    match to an existing protein, lower-cased.
+
+    Mirrors _protein_handler: case-insensitive, and checking the protein's own
+    columns as well as the identifier table, so an upload preview counts what
+    the import will actually find.
+    """
+    wanted = {i.strip().lower() for i in identifiers if i and i.strip()}
+    if not wanted:
+        return set()
+    found = set(
+        Identifier.objects.annotate(key=Lower("identifier"))
+        .filter(key__in=wanted)
+        .values_list("key", flat=True)
+    )
+    for column in _PROTEIN_COLUMN.values():
+        missing = wanted - found
+        if not missing:
+            break
+        found |= set(
+            Protein.objects.annotate(key=Lower(column))
+            .filter(key__in=missing)
+            .values_list("key", flat=True)
+        )
+    return found
 
 
 def _protein_handler(raw_id: str) -> tuple[Protein, bool]:
@@ -464,12 +493,7 @@ def fast_preview(file_bytes: bytes) -> dict:
 
     unique_ids = {_strip_prefix(r).lower() for r in all_raw_ids}
 
-    existing_lower = set(
-        Identifier.objects.filter(identifier__in=list(unique_ids)).values_list(
-            "identifier", flat=True
-        )
-    )
-    existing_lower = {v.lower() for v in existing_lower}
+    existing_lower = known_identifiers(unique_ids)
 
     proteins_existing = sum(1 for uid in unique_ids if uid in existing_lower)
     proteins_created = len(unique_ids) - proteins_existing

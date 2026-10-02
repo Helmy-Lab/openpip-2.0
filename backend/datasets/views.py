@@ -20,7 +20,6 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
 
 from interactions.models import Interaction, InteractionCategory, InteractionDataset
-from proteins.models import Identifier
 from .models import Dataset
 from .citation_lookup import CitationLookupError, fetch_by_doi, fetch_by_pubmed_id
 from .serializers import (
@@ -36,6 +35,7 @@ from .upload_parser import (
     fast_preview,
     process_line_batch,
     detect_format,
+    known_identifiers,
 )
 from .tasks import import_dataset_task
 
@@ -339,7 +339,7 @@ class ProteinCheckView(APIView):
             (r.split(":", 1)[1].strip() if ":" in r else r.strip()) for r in raw_ids
         ]
         t0 = time.monotonic()
-        existing = Identifier.objects.filter(identifier__in=clean_ids).count()
+        existing = len(known_identifiers(clean_ids))
         elapsed = (time.monotonic() - t0) * 1000
         logger.debug(
             "check-proteins: %d queried → %d existing, %d new  (%.1f ms)",

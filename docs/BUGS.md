@@ -154,7 +154,8 @@ hand; the rest come from code-reading inventories and still need confirming.
   the parser lower-cases and trims header names._ The wizard
   lower-cases headers before checking for `protein_a`/`protein_b`; the parser's
   `DictReader` is case-sensitive, so `Protein_A` passes the UI and loads 0 rows.
-- [ ] **BUG-024 — Upload preview counts use case-sensitive matching.**
+- [x] **BUG-024 — Upload preview counts use case-sensitive matching.** _Fixed:
+  both previews use `known_identifiers`, which matches as the import does._
   `ProteinCheckView` / `fast_preview` use exact `identifier__in`; the parser
   uses `iexact`, so the "already in database" count can be wrong.
 - [ ] **BUG-025 — `Protein.number_of_interactions_in_database` is never

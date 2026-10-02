@@ -267,9 +267,10 @@ wizard uses this for its preview.
 {"existing": 2}
 ```
 
-A `prefix:` is stripped from each identifier before matching. Matching is
-case-sensitive here, unlike during the import itself, so the count can be
-lower than what the import will find.
+A `prefix:` is stripped from each identifier before matching. Identifiers are
+matched the way the import matches them: ignoring capitalisation, against the
+identifier table and each protein's UniProt, Ensembl, Entrez and gene-name
+fields. `existing` counts distinct identifiers.
 
 ### POST /api/datasets/preview
 
