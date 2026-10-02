@@ -22,7 +22,6 @@ exclude_docs: |
   /requirements.txt
   /plans/
   /specs/
-  /superpowers/
 
 theme:
   name: material

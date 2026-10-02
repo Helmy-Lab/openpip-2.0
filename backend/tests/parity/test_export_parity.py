@@ -10,7 +10,7 @@ the DB independently.  Legacy download routes are not exposed on openpip.usask.c
 For each format we verify that the gene names / interaction pairs in the legacy
 download file match what the 2.0 search API returns for the same query.
 
-Format documentation: docs/superpowers/specs/2026-05-19-export-format-comparison.md
+Format notes: export-format-comparison spec (archived outside the repository).
 
 Run with:
     pytest -m parity --no-header -q
