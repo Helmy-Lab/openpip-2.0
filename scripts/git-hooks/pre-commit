@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+# Pre-commit lint hook for openPIP 2.0
+#
+# Runs ruff, black and the frontend lint when Python or TypeScript files are
+# staged. ruff and black come from backend/venv. A tool that is missing is
+# skipped and the summary says so, rather than claiming everything passed.
+# Tests are not run here; run them before pushing (see CONTRIBUTING.md).
+#
+# Enable once per clone:  git config core.hooksPath scripts/git-hooks
+#
+# Exit codes:
+#   0 — all checks that ran passed (or none ran)
+#   1 — at least one check that ran failed; commit is blocked
+#
+# To bypass once (use sparingly): git commit --no-verify
+
+set -uo pipefail
+
+# Color helpers
+if [[ -t 1 ]]; then
+  C_RED=$'\033[31m'; C_GREEN=$'\033[32m'; C_YELLOW=$'\033[33m'
+  C_DIM=$'\033[2m'; C_RESET=$'\033[0m'
+else
+  C_RED=''; C_GREEN=''; C_YELLOW=''; C_DIM=''; C_RESET=''
+fi
+
+PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$PROJECT_ROOT"
+
+# ruff and black are installed in the backend venv, not system-wide.
+if [[ -d backend/venv/bin ]]; then
+  PATH="$PROJECT_ROOT/backend/venv/bin:$PATH"
+fi
+
+# Track whether anything failed
+FAILED=0
+RAN_ANYTHING=0
+SKIPPED=0
+
+# ---------- helpers ----------
+
+# List staged files matching a pattern. Returns nothing if no matches.
+staged_files() {
+  local pattern="$1"
+  git diff --cached --name-only --diff-filter=ACMR | grep -E "$pattern" || true
+}
+
+# Print a section header
+section() {
+  echo ""
+  echo "${C_DIM}── $1 ──${C_RESET}"
+}
+
+# Skip a check with a friendly note (does not affect exit code)
+skip() {
+  echo "${C_YELLOW}skip${C_RESET} $1"
+  SKIPPED=1
+}
+
+# Mark a check as passed
+pass() {
+  echo "${C_GREEN}ok${C_RESET}   $1"
+}
+
+# Mark a check as failed and increment FAILED
+fail() {
+  echo "${C_RED}fail${C_RESET} $1"
+  FAILED=1
+}
+
+# ---------- backend (Python) ----------
+
+PY_FILES="$(staged_files '\.py$')"
+
+if [[ -n "$PY_FILES" ]]; then
+  section "Python"
+  RAN_ANYTHING=1
+
+  # ruff
+  if command -v ruff >/dev/null 2>&1; then
+    if echo "$PY_FILES" | xargs ruff check --quiet 2>&1; then
+      pass "ruff check"
+    else
+      fail "ruff check"
+    fi
+  else
+    skip "ruff (not installed; will run once 'pip install ruff' is done)"
+  fi
+
+  # black
+  if command -v black >/dev/null 2>&1; then
+    if echo "$PY_FILES" | xargs black --check --quiet 2>&1; then
+      pass "black --check"
+    else
+      fail "black --check (run 'black .' to fix)"
+    fi
+  else
+    skip "black (not installed; will run once 'pip install black' is done)"
+  fi
+fi
+
+# ---------- frontend (TS/JS) ----------
+
+JS_FILES="$(staged_files '\.(js|jsx|ts|tsx)$')"
+
+if [[ -n "$JS_FILES" ]]; then
+  section "JavaScript / TypeScript"
+  RAN_ANYTHING=1
+
+  # eslint via npm script — only if frontend is scaffolded
+  if [[ -f "frontend/package.json" ]]; then
+    if (cd frontend && npm run lint --silent 2>&1); then
+      pass "npm run lint (frontend)"
+    else
+      fail "npm run lint (frontend)"
+    fi
+  else
+    skip "eslint (frontend/package.json not found; will run once frontend is scaffolded)"
+  fi
+fi
+
+# ---------- safety guard: forbid any path under ~/openPIP/ ----------
+
+LEGACY_PATHS="$(git diff --cached --name-only --diff-filter=ACMRD | grep -E '^\.\./openPIP/|/openPIP/' || true)"
+if [[ -n "$LEGACY_PATHS" ]]; then
+  section "Legacy path check"
+  echo "${C_RED}fail${C_RESET} commit touches legacy production paths:"
+  echo "$LEGACY_PATHS" | sed 's/^/       /'
+  echo "       (legacy at ~/openPIP/ is read-only; copy into ~/openpip-2.0/ instead)"
+  FAILED=1
+  RAN_ANYTHING=1
+fi
+
+# ---------- summary ----------
+
+echo ""
+if [[ $RAN_ANYTHING -eq 0 ]]; then
+  echo "${C_DIM}pre-commit: nothing to check${C_RESET}"
+elif [[ $FAILED -eq 0 && $SKIPPED -eq 1 ]]; then
+  echo "${C_YELLOW}pre-commit: checks that ran passed, some were skipped${C_RESET}"
+elif [[ $FAILED -eq 0 ]]; then
+  echo "${C_GREEN}pre-commit: all checks passed${C_RESET}"
+else
+  echo "${C_RED}pre-commit: blocking commit due to failures above${C_RESET}"
+  echo "${C_DIM}(to bypass once: git commit --no-verify)${C_RESET}"
+fi
+
+exit $FAILED
