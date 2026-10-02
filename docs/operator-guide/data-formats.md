@@ -26,7 +26,11 @@ exists adds the interactions to that dataset. A new name creates a new dataset.
 
 **Proteins are matched by identifier.** Each interactor's identifier, with any
 `database:` prefix removed, is looked up in the portal's identifier table,
-ignoring capitalisation. An unknown identifier creates a new protein:
+ignoring capitalisation. If it is not there, openPIP looks for a protein that
+already carries it in the matching field: UniProt accession, Ensembl ID,
+Entrez ID or gene name, depending on the prefix. If it finds one, it records
+the identifier against that protein. Only when neither lookup finds anything
+is a new protein created:
 
 | Prefix | Recorded as | New protein gets |
 |---|---|---|
@@ -72,11 +76,10 @@ accepted. Rows can have any number of columns from 2 upwards. Missing columns
 are treated as empty, so a 15-column 2.5 file loads as well as a 46-column 2.8
 file.
 
-!!! warning "Column 1 must be `database:identifier`"
-    A line whose first cell has no colon is treated as a header and **skipped
-    without any error**. That includes data rows with a bare gene name such as
-    `TP53`. Write `uniprotkb:P04637`, or put bare gene names in a CSV file
-    instead. Lines starting with `#` are also skipped. (BUG-022)
+**Header lines** are skipped: any line starting with `#`, and a line whose
+first cell has no `:` but does contain a space or bracket, such as
+`ID(s) interactor A`. Data rows may use bare gene names (`TP53`) or prefixed
+identifiers (`uniprotkb:P04637`).
 
 ### What each column does
 
@@ -144,9 +147,8 @@ BRCA1,BARD1,0.75
 | `protein_a`, `protein_b` | **Required.** Identifiers, with or without a `database:` prefix. Bare gene names work here. |
 | `score` | Optional. Up to 10 characters are kept. |
 
-Header names are **case-sensitive** and must be lowercase. `Protein_A` passes
-the upload form's check but loads no rows (BUG-023). Any other columns are
-ignored: CSV uploads record no detection method, organism, type or negative
+Header names ignore capitalisation and surrounding spaces, so `Protein_A`
+works. Any other columns are ignored: CSV uploads record no detection method, organism, type or negative
 flag. Use PSI-MI TAB for those.
 
 ## After the upload

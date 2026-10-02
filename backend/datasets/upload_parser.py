@@ -76,8 +76,24 @@ def _strip_prefix(identifier: str) -> str:
     return identifier.strip()
 
 
-def _protein_handler(raw_id: str) -> Protein:
-    """Resolve or create a Protein from a raw PSI-MI identifier string."""
+# Which Protein column holds an identifier of each naming convention.
+_PROTEIN_COLUMN = {
+    "uniprotkb": "uniprot_id",
+    "ensembl": "ensembl_id",
+    "entrez": "entrez_id",
+    "gene_name": "gene_name",
+}
+
+
+def _protein_handler(raw_id: str) -> tuple[Protein, bool]:
+    """Resolve or create a Protein from a raw PSI-MI identifier string.
+
+    Returns (protein, created). The identifier table is tried first, then the
+    protein's own column for that kind of identifier: the original openPIP
+    kept UniProt accessions on the protein row, not in the identifier table,
+    so skipping the column made an upload in UniProt IDs create a second, empty
+    protein beside every existing one (BUG-034).
+    """
     clean_id = _strip_prefix(raw_id)
     naming_convention = _get_naming_convention(raw_id)
 
@@ -85,18 +101,25 @@ def _protein_handler(raw_id: str) -> Protein:
     if identifier_obj:
         link = ProteinIdentifier.objects.filter(identifier=identifier_obj).first()
         if link:
-            return link.protein
+            return link.protein, False
 
-    protein = Protein.objects.create(
-        uniprot_id=clean_id if naming_convention == "uniprotkb" else None,
-        gene_name=clean_id if naming_convention == "gene_name" else None,
+    column = _PROTEIN_COLUMN[naming_convention]
+    protein = (
+        Protein.objects.filter(**{f"{column}__iexact": clean_id}).order_by("id").first()
     )
-    identifier_obj = Identifier.objects.create(
-        identifier=clean_id,
-        naming_convention=naming_convention,
-    )
+    created = protein is None
+    if created:
+        protein = Protein.objects.create(
+            uniprot_id=clean_id if naming_convention == "uniprotkb" else None,
+            gene_name=clean_id if naming_convention == "gene_name" else None,
+        )
+    if identifier_obj is None:
+        identifier_obj = Identifier.objects.create(
+            identifier=clean_id,
+            naming_convention=naming_convention,
+        )
     ProteinIdentifier.objects.create(protein=protein, identifier=identifier_obj)
-    return protein
+    return protein, created
 
 
 def _existing_interaction(protein_a: Protein, protein_b: Protein):
@@ -258,11 +281,18 @@ def _is_header_row(row: list[str]) -> bool:
     first interaction. Identifier cells are "db:id"; a header cell such as
     "ID(s) interactor A" has no colon, which separates the two cases without
     assuming a position.
+
+    A missing colon alone is not enough, though: a bare gene name ("TP53") has
+    none either, and treating it as a header dropped the row without a word.
+    Header cells are column titles, so they hold a space or a bracket; neither
+    an identifier nor a gene name ever does.
     """
     if not row or not row[0]:
         return False
     first = row[0].strip()
-    return first.startswith("#") or ":" not in first
+    if first.startswith("#"):
+        return True
+    return ":" not in first and any(c in first for c in " ()")
 
 
 def _parse_negative(raw: str) -> bool:
@@ -522,30 +552,24 @@ def parse_and_ingest(
             sid = transaction.savepoint()
             try:
                 # ── Proteins ────────────────────────────────────────────────
-                existing_a = Identifier.objects.filter(
-                    identifier__iexact=_strip_prefix(raw_a)
-                ).exists()
-                protein_a = _protein_handler(raw_a)
-                if existing_a:
-                    proteins_existing += 1
-                else:
+                protein_a, created_a = _protein_handler(raw_a)
+                if created_a:
                     proteins_created += 1
                     if protein_a.id not in new_protein_ids:
                         new_protein_ids.append(protein_a.id)
+                else:
+                    proteins_existing += 1
 
                 if raw_a == raw_b:
                     protein_b = protein_a
                 else:
-                    existing_b = Identifier.objects.filter(
-                        identifier__iexact=_strip_prefix(raw_b)
-                    ).exists()
-                    protein_b = _protein_handler(raw_b)
-                    if existing_b:
-                        proteins_existing += 1
-                    else:
+                    protein_b, created_b = _protein_handler(raw_b)
+                    if created_b:
                         proteins_created += 1
                         if protein_b.id not in new_protein_ids:
                             new_protein_ids.append(protein_b.id)
+                    else:
+                        proteins_existing += 1
 
                 # ── Aliases (cols 4+5) ──────────────────────────────────────
                 _add_gene_name_aliases(protein_a, _safe_col(row, 4))
@@ -656,7 +680,9 @@ def parse_and_ingest_csv(
     Parse a simple CSV interaction file and ingest interactions.
 
     Expected format (header required):
-        protein_a,protein_b[,score][,pubmed_id]
+        protein_a,protein_b[,score]
+
+    Header names are matched case-insensitively; other columns are ignored.
 
     Protein identifiers follow the same convention as PSI-MI TAB
     (e.g. ``uniprotkb:P12345`` or a bare gene name).
@@ -671,6 +697,10 @@ def parse_and_ingest_csv(
 
     text = file_bytes.decode("utf-8", errors="replace")
     reader = csv.DictReader(io.StringIO(text))
+    # The upload wizard accepts "Protein_A"; match it here too, or the file
+    # passes that check and then loads nothing.
+    if reader.fieldnames:
+        reader.fieldnames = [name.strip().lower() for name in reader.fieldnames]
 
     def _run() -> None:
         nonlocal proteins_created, proteins_existing, interactions_created
@@ -691,30 +721,24 @@ def parse_and_ingest_csv(
 
             sid = transaction.savepoint()
             try:
-                existing_a = Identifier.objects.filter(
-                    identifier__iexact=_strip_prefix(raw_a)
-                ).exists()
-                protein_a = _protein_handler(raw_a)
-                if existing_a:
-                    proteins_existing += 1
-                else:
+                protein_a, created_a = _protein_handler(raw_a)
+                if created_a:
                     proteins_created += 1
                     if protein_a.id not in new_protein_ids:
                         new_protein_ids.append(protein_a.id)
+                else:
+                    proteins_existing += 1
 
                 if raw_a == raw_b:
                     protein_b = protein_a
                 else:
-                    existing_b = Identifier.objects.filter(
-                        identifier__iexact=_strip_prefix(raw_b)
-                    ).exists()
-                    protein_b = _protein_handler(raw_b)
-                    if existing_b:
-                        proteins_existing += 1
-                    else:
+                    protein_b, created_b = _protein_handler(raw_b)
+                    if created_b:
                         proteins_created += 1
                         if protein_b.id not in new_protein_ids:
                             new_protein_ids.append(protein_b.id)
+                    else:
+                        proteins_existing += 1
 
                 existing = _existing_interaction(protein_a, protein_b)
                 if existing:

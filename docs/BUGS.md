@@ -145,11 +145,13 @@ hand; the rest come from code-reading inventories and still need confirming.
   removed from settings, compose files and examples._ `settings/base.py`
   sets `CORS_ALLOW_ALL_ORIGINS = True`, so `CORS_ALLOWED_ORIGINS` has no effect
   in any environment.
-- [ ] **BUG-022 — TAB rows with a bare gene name are dropped silently
-  (verified).** `upload_parser._is_header_row` treats any row whose first cell
+- [x] **BUG-022 — TAB rows with a bare gene name are dropped silently
+  (verified).** _Fixed: a colon-less first cell is a header only if it holds
+  a space or bracket._ `upload_parser._is_header_row` treats any row whose first cell
   has no `:` as a header. The upload wizard's column guide says column 1 may be
   "a bare gene name". Bare names do work in CSV uploads.
-- [ ] **BUG-023 — CSV header check differs between UI and server.** The wizard
+- [x] **BUG-023 — CSV header check differs between UI and server.** _Fixed:
+  the parser lower-cases and trims header names._ The wizard
   lower-cases headers before checking for `protein_a`/`protein_b`; the parser's
   `DictReader` is case-sensitive, so `Protein_A` passes the UI and loads 0 rows.
 - [ ] **BUG-024 — Upload preview counts use case-sensitive matching.**

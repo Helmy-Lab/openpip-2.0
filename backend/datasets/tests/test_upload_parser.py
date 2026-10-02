@@ -694,3 +694,33 @@ def test_parse_and_ingest_does_not_include_existing_organism_in_new_ids():
     content = _file(_build_row(taxon_a="taxid:9606(human)"))
     result = parse_and_ingest(content, dataset_name="DS")
     assert result["new_organism_ids"] == []
+
+
+@pytest.mark.django_db
+def test_bare_gene_name_rows_are_loaded_not_taken_for_headers():
+    content = b"ID(s) interactor A\tID(s) interactor B\nTP53\tMDM2\nBRCA1\tBARD1\n"
+    result = parse_and_ingest(content, dataset_name="DS")
+    assert result["interactions_created"] == 2
+    assert set(Protein.objects.values_list("gene_name", flat=True)) == {
+        "TP53",
+        "MDM2",
+        "BRCA1",
+        "BARD1",
+    }
+
+
+@pytest.mark.django_db
+def test_upload_in_uniprot_ids_reuses_proteins_that_keep_the_accession_on_the_row():
+    # The original openPIP stored UniProt accessions on the protein, not in the
+    # identifier table; an upload must still find those proteins.
+    tp53 = Protein.objects.create(gene_name="TP53", uniprot_id="P04637")
+    content = b"uniprotkb:P04637\tuniprotkb:Q00987\n"
+
+    result = parse_and_ingest(content, dataset_name="HuRI")
+
+    assert result["proteins_existing"] == 1 and result["proteins_created"] == 1
+    assert Protein.objects.filter(uniprot_id__iexact="P04637").count() == 1
+    assert Interaction.objects.get().interactor_A == tp53
+    assert ProteinIdentifier.objects.filter(
+        protein=tp53, identifier__identifier="P04637"
+    ).exists()
