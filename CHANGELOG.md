@@ -134,5 +134,6 @@ From the documentation review (October 2026):
 
 Open issues are tracked in `docs/BUGS.md`. Uploads before this fix created
 empty duplicates of about 8,200 proteins, and the HuRI dataset is attached to
-those duplicates rather than to the original proteins (BUG-034). Repairing the
-data is pending a decision.
+those duplicates rather than to the original proteins (BUG-034). By decision,
+the data is not merged: HuRI and HI-III interactions stay separate. New
+uploads no longer create duplicates.
