@@ -159,8 +159,10 @@ hand; the rest come from code-reading inventories and still need confirming.
 - [ ] **BUG-027 — `/django-admin/` and `/static/` unreachable in production.**
   The frontend nginx does not proxy them and nothing serves `collectstatic`
   output, yet `admin_panel/views.py` names `/django-admin/` as a fallback.
-- [ ] **BUG-028 — No `frontend/.dockerignore`.** `COPY . .` after `npm ci`
+- [x] **BUG-028 — No `frontend/.dockerignore`.** `COPY . .` after `npm ci`
   copies the host's `node_modules/` and `dist/` into the image build.
+  _Fixed (624e9f4): the frontend image now builds from the repository root
+  with a root `.dockerignore` that excludes them._
 - [ ] **BUG-029 — Download toggles only hide UI, and one is mislabelled
   (verified in code).** `showDownloads` hides the Downloads page's dataset
   table and `showDownloadAll` its supplementary-files section, but the
