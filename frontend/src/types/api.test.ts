@@ -22,7 +22,7 @@ describe('Types compile', () => {
       validatedEdgeColor: '#1155cc',
       verifiedEdgeColor: '#cc0000',
       literatureEdgeColor: '#ff9900',
-      url: 'https://openpip.usask.ca/',
+      url: 'https://openpip.example.org/',
       version: '1.0',
       about: '', faq: '', contact: '', download: '',
       showTissueExpression: true,

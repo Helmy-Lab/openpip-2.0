@@ -11,8 +11,8 @@ This repository is **openPIP 2.0**, a rebuild of the
 [original platform](https://github.com/BaderLab/openPIP) on Django,
 PostgreSQL and React.
 
-**Live portal:** <https://openpip.usask.ca/v2> ·
-**Documentation:** <https://openpip.usask.ca/v2/docs/>
+**Reference portal:** <https://openpip.usask.ca/v2> (the Human Reference
+Interactome) · **Documentation:** <https://openpip.usask.ca/v2/docs/>
 
 ## Features
 
@@ -39,13 +39,15 @@ openPIP runs as a set of Docker containers. The
 covers configuration, HTTPS and the first administrator. In short:
 
 ```bash
-git clone https://github.com/hamid-ananda/openpip-2.0.git
+git clone https://github.com/Helmy-Lab/openpip-2.0.git
 cd openpip-2.0
-cp .env.example .env    # then set SECRET_KEY, DB_PASSWORD, ALLOWED_HOSTS
+cp .env.example .env    # then set SECRET_KEY, DB_PASSWORD and PUBLIC_URL
 docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod up -d --build
 docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backend python manage.py createsuperuser
 ```
 
+`PUBLIC_URL` is your portal's address, such as `https://openpip.example.org`.
+Leave it empty to try openPIP on your own computer at `http://localhost:8080`.
 Production needs both compose files. Do not run plain `docker compose up` on
 a production server.
 

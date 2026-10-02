@@ -9,7 +9,7 @@ You need Docker with Compose 2.24.4 or later, Python 3.12, and Node.js 20.19+
 (or 22.12+).
 
 ```bash
-git clone https://github.com/hamid-ananda/openpip-2.0.git
+git clone https://github.com/Helmy-Lab/openpip-2.0.git
 cd openpip-2.0
 cp .env.example .env
 echo 'DATABASE_URL=postgres://openpip:openpip_dev@localhost:5432/openpip' >> .env

@@ -36,8 +36,8 @@ name. List them with:
 docker volume ls | grep -E '_(postgres_data|media)$'
 ```
 
-The examples below use the reference deployment's names, `openpip-20_media`
-and `openpip-20_postgres_data`.
+The examples below use the names Compose gives a checkout in a folder named
+`openpip-2.0`: `openpip-20_media` and `openpip-20_postgres_data`.
 
 ### Database
 
@@ -46,7 +46,7 @@ dc exec -T db pg_dump -U openpip -Fc openpip > openpip-$(date +%F).dump
 ```
 
 This takes a consistent snapshot while the site keeps running. On the
-reference deployment (about 123,000 interactions) it takes about 8 seconds and
+reference portal (about 123,000 interactions) it takes about 8 seconds and
 writes a 33 MB file.
 
 ### Media
@@ -119,8 +119,8 @@ Changing the password signs that account out of every browser within an hour.
 
 ## The Django admin
 
-Superusers can also manage the database directly at `/django-admin/` (on the
-reference deployment, `https://openpip.usask.ca/v2/django-admin/`). Use it with
+Superusers can also manage the database directly at `/django-admin/` (on this
+portal, `{{ portal_url }}/django-admin/`). Use it with
 care: it edits tables directly, without the checks the admin panel makes.
 
 ## Changing the database password

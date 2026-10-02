@@ -59,17 +59,18 @@ The last command prints the container's address.
 
 ### 3. Point the script at it
 
-The MySQL connection is set at the top of `migration/migrate_legacy.py`:
+The script reads the MySQL connection from environment variables:
 
-```python
-MYSQL_HOST = '172.18.0.3'
-MYSQL_USER = 'root'
-MYSQL_PASS = 'secret'
-MYSQL_DB = 'huri'
-```
+| Variable | Default |
+|---|---|
+| `MYSQL_HOST` | `127.0.0.1` |
+| `MYSQL_USER` | `root` |
+| `MYSQL_PASS` | `secret` |
+| `MYSQL_DB` | `huri` |
 
 Set `MYSQL_HOST` to the address from step 2, and the other three to match your
-temporary container. The script connects on MySQL's default port, 3306.
+temporary container, for example `export MYSQL_HOST=172.18.0.3`. The script
+connects on MySQL's default port, 3306.
 
 ### 4. Run it
 

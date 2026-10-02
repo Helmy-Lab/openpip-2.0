@@ -1,7 +1,7 @@
 # License
 
 openPIP is free and open-source software released under the
-[MIT License](https://github.com/hamid-ananda/openpip-2.0/blob/main/LICENSE),
+[MIT License](https://github.com/Helmy-Lab/openpip-2.0/blob/main/LICENSE),
 the same license as the original openPIP.
 
 You may use, copy, modify and redistribute openPIP, including in commercial and

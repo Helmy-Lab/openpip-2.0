@@ -23,47 +23,49 @@ import pymysql
 import pymysql.cursors
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
-MYSQL_HOST = '172.18.0.3'
-MYSQL_USER = 'root'
-MYSQL_PASS = 'secret'
-MYSQL_DB = 'huri'
+# The temporary MySQL container holding the legacy dump (see the operator
+# guide, "Migrating from the original openPIP").
+MYSQL_HOST = os.environ.get("MYSQL_HOST", "127.0.0.1")
+MYSQL_USER = os.environ.get("MYSQL_USER", "root")
+MYSQL_PASS = os.environ.get("MYSQL_PASS", "secret")
+MYSQL_DB = os.environ.get("MYSQL_DB", "huri")
 
 BATCH_SIZE = 5000
 
 # Tables in FK dependency order — parents before children.
 # Skip: user (FOSUserBundle format), fos_group, fos_user_user_group, test_table
 TABLES = [
-    'admin_settings',
-    'announcement',
-    'annotation_type',
-    'organism',
-    'protein',
-    'identifier',
-    'protein_identifier',
-    'protein_organism',
-    'protein_isoform',
-    'interaction_category',
-    'interaction',
-    'dataset',
-    'interaction_dataset',
-    'interaction_interaction_category',
-    'domain',
-    'interaction_domain',
-    'complex',
-    'complex_protein',
-    'annotation',
-    'annotation_protein',
-    'annotation_interaction',
-    'interaction_network',
-    'interaction_interaction_networks',
-    'support_information',
-    'interaction_support_information',
-    'data_file',
-    'dataset_request',
-    'dataset_request_dataset',
-    'external_link',
+    "admin_settings",
+    "announcement",
+    "annotation_type",
+    "organism",
+    "protein",
+    "identifier",
+    "protein_identifier",
+    "protein_organism",
+    "protein_isoform",
+    "interaction_category",
+    "interaction",
+    "dataset",
+    "interaction_dataset",
+    "interaction_interaction_category",
+    "domain",
+    "interaction_domain",
+    "complex",
+    "complex_protein",
+    "annotation",
+    "annotation_protein",
+    "annotation_interaction",
+    "interaction_network",
+    "interaction_interaction_networks",
+    "support_information",
+    "interaction_support_information",
+    "data_file",
+    "dataset_request",
+    "dataset_request_dataset",
+    "external_link",
 ]
 
 
@@ -74,7 +76,7 @@ def get_mysql_columns(mysql_conn, table: str) -> list[str]:
             "WHERE TABLE_SCHEMA=%s AND TABLE_NAME=%s ORDER BY ORDINAL_POSITION",
             (MYSQL_DB, table),
         )
-        return [row['COLUMN_NAME'] for row in cur.fetchall()]
+        return [row["COLUMN_NAME"] for row in cur.fetchall()]
 
 
 def get_pg_columns(pg_conn, table: str) -> set[str]:
@@ -105,35 +107,36 @@ def migrate_table(mysql_conn, pg_conn, table: str, reset: bool) -> int:
     # Only migrate columns that exist in both schemas
     shared_cols = [c for c in mysql_cols if c in pg_cols]
     if not shared_cols:
-        print(f'  {table}: no shared columns, skipping')
+        print(f"  {table}: no shared columns, skipping")
         return 0
 
     skipped = [c for c in mysql_cols if c not in pg_cols]
     if skipped:
-        print(f'  {table}: skipping legacy-only columns: {skipped}')
+        print(f"  {table}: skipping legacy-only columns: {skipped}")
 
-    col_list = ', '.join(f'`{c}`' for c in shared_cols)
+    col_list = ", ".join(f"`{c}`" for c in shared_cols)
     with mysql_conn.cursor() as cur:
-        cur.execute(f'SELECT COUNT(*) as n FROM `{table}`')
-        total = cur.fetchone()['n']
+        cur.execute(f"SELECT COUNT(*) as n FROM `{table}`")
+        total = cur.fetchone()["n"]
 
     if total == 0:
-        print(f'  {table}: empty')
+        print(f"  {table}: empty")
         return 0
 
     with pg_conn.cursor() as cur:
         if reset:
             cur.execute(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE')
-        cur.execute('SET session_replication_role = replica')
+        cur.execute("SET session_replication_role = replica")
     pg_conn.commit()
 
     inserted = 0
-    pg_col_list = ', '.join(f'"{c}"' for c in shared_cols)
-    placeholders = ', '.join(['%s'] * len(shared_cols))
-    insert_sql = f'INSERT INTO "{table}" ({pg_col_list}) VALUES %s ON CONFLICT DO NOTHING'
+    pg_col_list = ", ".join(f'"{c}"' for c in shared_cols)
+    insert_sql = (
+        f'INSERT INTO "{table}" ({pg_col_list}) VALUES %s ON CONFLICT DO NOTHING'
+    )
 
     with mysql_conn.cursor() as cur:
-        cur.execute(f'SELECT {col_list} FROM `{table}`')
+        cur.execute(f"SELECT {col_list} FROM `{table}`")
         while True:
             rows = cur.fetchmany(BATCH_SIZE)
             if not rows:
@@ -151,11 +154,11 @@ def migrate_table(mysql_conn, pg_conn, table: str, reset: bool) -> int:
             inserted += len(rows)
 
     with pg_conn.cursor() as cur:
-        cur.execute('SET session_replication_role = DEFAULT')
-        if 'id' in shared_cols:
+        cur.execute("SET session_replication_role = DEFAULT")
+        if "id" in shared_cols:
             cur.execute(
                 f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
-                f"COALESCE(MAX(id), 1)) FROM \"{table}\""
+                f'COALESCE(MAX(id), 1)) FROM "{table}"'
             )
     pg_conn.commit()
 
@@ -163,17 +166,27 @@ def migrate_table(mysql_conn, pg_conn, table: str, reset: bool) -> int:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Migrate legacy MySQL data to Postgres')
-    parser.add_argument('--reset', action='store_true',
-                        help='Truncate tables before inserting (safe for dev re-runs)')
+    parser = argparse.ArgumentParser(
+        description="Migrate legacy MySQL data to Postgres"
+    )
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="Truncate tables before inserting (safe for dev re-runs)",
+    )
     args = parser.parse_args()
 
-    db_url = os.environ.get('DATABASE_URL', 'postgres://openpip:openpip_dev@localhost:5432/openpip')
+    db_url = os.environ.get(
+        "DATABASE_URL", "postgres://openpip:openpip_dev@localhost:5432/openpip"
+    )
     pg_conn = psycopg2.connect(db_url)
     mysql_conn = pymysql.connect(
-        host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASS,
-        database=MYSQL_DB, cursorclass=pymysql.cursors.DictCursor,
-        charset='utf8mb4',
+        host=MYSQL_HOST,
+        user=MYSQL_USER,
+        password=MYSQL_PASS,
+        database=MYSQL_DB,
+        cursorclass=pymysql.cursors.DictCursor,
+        charset="utf8mb4",
     )
 
     total_rows = 0
@@ -182,21 +195,21 @@ def main():
     for table in TABLES:
         try:
             rows = migrate_table(mysql_conn, pg_conn, table, reset=args.reset)
-            print(f'  OK {table}: {rows} rows')
+            print(f"  OK {table}: {rows} rows")
             total_rows += rows
         except Exception as exc:
-            print(f'  FAIL {table}: {exc}')
+            print(f"  FAIL {table}: {exc}")
             failed.append(table)
             pg_conn.rollback()
 
     mysql_conn.close()
     pg_conn.close()
 
-    print(f'\nDone. {total_rows} total rows migrated.')
+    print(f"\nDone. {total_rows} total rows migrated.")
     if failed:
-        print(f'Failed tables: {failed}')
+        print(f"Failed tables: {failed}")
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

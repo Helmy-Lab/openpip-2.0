@@ -14,12 +14,13 @@ below skips test DB creation entirely.
 """
 
 import json
+import os
 import re
 
 import pytest
 import requests
 
-LEGACY_BASE = "https://openpip.usask.ca"
+LEGACY_BASE = os.environ.get("LEGACY_BASE", "https://openpip.usask.ca")
 
 
 @pytest.fixture(scope="session")

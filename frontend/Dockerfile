@@ -1,9 +1,13 @@
 # Built from the repository root (see docker-compose.yml) so the documentation
 # site in docs/ can be bundled alongside the app.
 
+# PUBLIC_URL (e.g. https://openpip.example.org/openpip) sets the app's base path
+# and the address the docs' examples use. Empty: served at the domain root.
+ARG PUBLIC_URL=
+
 FROM python:3.12-slim AS docs
-ARG DOCS_SITE_URL=https://openpip.usask.ca/v2/docs/
-ENV DOCS_SITE_URL=$DOCS_SITE_URL
+ARG PUBLIC_URL
+ENV PUBLIC_URL=$PUBLIC_URL
 WORKDIR /src
 COPY docs/requirements.txt docs/requirements.txt
 RUN pip install --no-cache-dir -r docs/requirements.txt
@@ -14,9 +18,8 @@ COPY docs/ docs/
 RUN mkdocs build --no-strict --site-dir /site
 
 FROM node:20-alpine AS build
-# The path the app is served under; overrides frontend/.env.production.
-ARG VITE_BASE=/v2/
-ENV VITE_BASE=$VITE_BASE
+ARG PUBLIC_URL
+ENV PUBLIC_URL=$PUBLIC_URL
 WORKDIR /app
 COPY frontend/package*.json ./
 RUN npm ci

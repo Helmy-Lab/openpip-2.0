@@ -1,4 +1,5 @@
 from pathlib import Path
+from urllib.parse import urlsplit
 from datetime import timedelta
 import environ
 
@@ -13,7 +14,24 @@ SECRET_KEY = env("SECRET_KEY", default="django-insecure-dev-key-change-in-produc
 
 DEBUG = False
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+# The address the site is reached at, e.g. https://openpip.example.org or
+# https://openpip.example.org/openpip. Host checks, trusted origins, the URL
+# prefix and HTTPS enforcement (prod.py) all follow from it; empty means a local
+# install at http://localhost.
+PUBLIC_URL = env("PUBLIC_URL", default="").rstrip("/")
+PUBLIC_URL_PARTS = urlsplit(PUBLIC_URL) if PUBLIC_URL else None
+
+# An explicit, non-empty ALLOWED_HOSTS or CSRF_TRUSTED_ORIGINS wins; compose
+# passes them through as empty strings when unset, which also means "derive".
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[]) or [
+    "localhost",
+    "127.0.0.1",
+    *(
+        [PUBLIC_URL_PARTS.hostname]
+        if PUBLIC_URL_PARTS and PUBLIC_URL_PARTS.hostname
+        else []
+    ),
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -81,7 +99,7 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-# Relative, so Django prefixes it with FORCE_SCRIPT_NAME (/v2 in production);
+# Relative, so Django prefixes it with FORCE_SCRIPT_NAME (from PUBLIC_URL);
 # "/static/" would send the browser outside the app's path.
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -144,7 +162,6 @@ SPECTACULAR_SETTINGS = {
     ),
     "VERSION": "2.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
-    "CONTACT": {"email": "openpip@usask.ca"},
     "LICENSE": {"name": "MIT"},
 }
 
@@ -159,7 +176,11 @@ SIMPLE_JWT = {
 # header, not a cookie, so another site's page cannot act as a signed-in user.
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_URLS_REGEX = r"^/(api|psicquic)/.*$"
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[]) or (
+    [f"{PUBLIC_URL_PARTS.scheme}://{PUBLIC_URL_PARTS.netloc}"]
+    if PUBLIC_URL_PARTS
+    else []
+)
 
 # openPIP sends no mail: account recovery runs on security questions, so there
 # is no EMAIL_* configuration to get wrong. Anything added here that does need

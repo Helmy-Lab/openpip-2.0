@@ -1,8 +1,8 @@
 # Installation
 
-This page sets up an openPIP portal on a Linux server with Docker, behind a
-web server that handles HTTPS. It describes the reference deployment at
-`https://openpip.usask.ca/v2`, which serves openPIP under the `/v2` path.
+This page sets up an openPIP portal with Docker: first on your own computer
+to try it, then on a server with its own domain and HTTPS. The examples use
+`openpip.example.org`; replace it with your own address.
 
 ## What runs
 
@@ -21,7 +21,7 @@ Uploaded files (logos, avatars, published files, the cached dataset archive)
 live in the `media` volume, shared by `backend` and `celery`.
 
 ```text
-browser ──HTTPS──▶ host web server ──/v2/ stripped──▶ frontend :8080 ──▶ backend :8000
+browser ──HTTPS──▶ host web server ──prefix stripped──▶ frontend :8080 ──▶ backend :8000
                    (TLS, your domain)                  (nginx)              │
                                                                             ├── db (Postgres)
                                                        celery ◀── redis ◀──┘
@@ -29,21 +29,23 @@ browser ──HTTPS──▶ host web server ──/v2/ stripped──▶ fronte
 
 ## Requirements
 
-- A Linux server with **Docker Engine** and the **Docker Compose plugin,
+- A Linux machine (or macOS or Windows with Docker Desktop) with **Docker
+  Engine** and the **Docker Compose plugin,
   version 2.24.4 or later**. The production file uses Compose's `!override`
   tag, which older versions do not understand. Check with
   `docker compose version`.
-- At least 2 GB of memory for the containers. The reference deployment's five
-  containers use about 1.1 GB when idle. You also need disk space for your data.
-- A domain name and a web server on the host for HTTPS, such as nginx with a
-  certificate from Let's Encrypt.
+- At least 2 GB of memory for the containers. Idle, the five containers use
+  about 1.1 GB. You also need disk space for your data.
+- For a public portal: a domain name and a web server on the host for HTTPS,
+  such as nginx with a certificate from Let's Encrypt. Trying openPIP on your
+  own computer needs neither.
 - Outbound internet access from the server, used during imports to fetch
   protein details from UniProt, Ensembl and NCBI.
 
 ## 1. Get the code
 
 ```bash
-git clone https://github.com/hamid-ananda/openpip-2.0.git
+git clone https://github.com/Helmy-Lab/openpip-2.0.git
 cd openpip-2.0
 ```
 
@@ -53,14 +55,20 @@ cd openpip-2.0
 cp .env.example .env
 ```
 
-Edit `.env`. At a minimum:
+Edit `.env`:
 
 ```ini
 SECRET_KEY=<generated, see below>
 DB_PASSWORD=<a strong password>
-ALLOWED_HOSTS=openpip.example.org
-CSRF_TRUSTED_ORIGINS=https://openpip.example.org
+PUBLIC_URL=https://openpip.example.org
 ```
+
+**`PUBLIC_URL`** is the address people will use to reach the portal. It may
+include a path, such as `https://www.example.org/openpip`. The allowed host
+name, the URL prefix, HTTPS enforcement and the documentation's address all
+follow from it. **To try openPIP on your own computer, leave it empty**: the
+portal then runs at `http://localhost:8080` without HTTPS, and you can skip
+step 4.
 
 Generate the secret key with:
 
@@ -87,13 +95,13 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod u
 
 | Part | Why it is needed |
 |---|---|
-| `-f docker-compose.prod.yml` | Switches the backend to production settings (HTTPS, the `/v2` prefix, real secret key), runs the code built into the image, and mounts the `media` volume. Without it the backend runs development settings with debug pages. |
+| `-f docker-compose.prod.yml` | Switches the backend to production settings (your `PUBLIC_URL`, HTTPS, real secret key), runs the code built into the image, and mounts the `media` volume. Without it the backend runs development settings with debug pages. |
 | `--profile prod` | The `frontend` service only starts with this profile. |
 | `--build` | Builds the images from your checkout. |
 
 !!! warning "Never run plain `docker compose up -d` on a production server"
     Without the second file, Compose recreates the backend with development
-    settings, and the site stops working behind the `/v2` prefix.
+    settings, with debug pages and without your `PUBLIC_URL`.
 
 To save typing, define a shell alias:
 
@@ -113,17 +121,19 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backend pri
 ```
 
 All five services should be `running`, and the second command must print
-`openpip.settings.prod`.
+`openpip.settings.prod`. With `PUBLIC_URL` empty, open `http://localhost:8080`
+and go on to [create the first administrator](#create-the-first-administrator).
 
 ## 4. Put HTTPS in front
 
 The `frontend` container serves plain HTTP on port 8080 and expects requests
-**without** the `/v2` prefix. Your host web server terminates HTTPS, strips
-`/v2` and forwards the request. A minimal nginx `server` block for the host:
+**without** any path prefix. Your host web server terminates HTTPS, strips the
+prefix and forwards the request. For `PUBLIC_URL=https://openpip.example.org`,
+a minimal nginx `server` block for the host:
 
 ```nginx
-location /v2/ {
-    proxy_pass http://127.0.0.1:8080/;          # trailing slash strips /v2
+location / {
+    proxy_pass http://127.0.0.1:8080/;
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-Proto $scheme;  # required, see below
     proxy_set_header X-Forwarded-For $remote_addr;
@@ -141,16 +151,17 @@ location /v2/ {
 - **`client_max_body_size`** must allow your largest dataset file. The
   frontend container itself accepts up to 500 MB.
 
-!!! note "Serving at a different path"
-    The examples use `/v2`, the default. To serve openPIP under another path,
-    set `URL_PREFIX` (and `DOCS_SITE_URL`) in `.env`, rebuild with
-    `up -d --build`, and use the same path in the `location` block. For a site
-    at the root of its domain, set `URL_PREFIX=` (empty) and use `location /`.
+!!! note "Serving under a path"
+    For a portal under a path, such as
+    `PUBLIC_URL=https://www.example.org/openpip`, use the same path in the
+    `location` block, with a trailing slash on both sides so nginx strips it:
+    `location /openpip/ { proxy_pass http://127.0.0.1:8080/; ... }`. After
+    changing `PUBLIC_URL`, rebuild with `up -d --build`.
 
 Check from outside the server:
 
 ```bash
-curl -s https://openpip.example.org/v2/api/counts
+curl -s https://openpip.example.org/api/counts
 ```
 
 ```json
