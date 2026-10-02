@@ -894,7 +894,33 @@ function AdminAccessSection() {
 // ─────────────────────────────────────────────────────────
 // Interaction category table
 // ─────────────────────────────────────────────────────────
-function CategoryTable() {
+type EdgeColors = { published: string; validated: string; verified: string; literature: string }
+
+// The network colours an edge by its highest category order, through the four
+// Appearance colours (getEdgeColorByOrder) — not by the category's own stored
+// colorScheme, which nothing displays. Show the colour edges will really get.
+function edgeColorForOrder(order: string, colors: EdgeColors): string {
+  const byOrder: Record<string, string> = {
+    '1': colors.published,
+    '2': colors.validated,
+    '3': colors.verified,
+    '4': colors.literature,
+  }
+  return byOrder[order.trim()] ?? '#cccccc'
+}
+
+function EdgeSwatch({ order, colors }: { order: string; colors: EdgeColors }) {
+  const color = edgeColorForOrder(order, colors)
+  return (
+    <span
+      title={`Edges whose highest category has order ${order || '?'} are drawn ${color}`}
+      aria-label={`Edge colour ${color}`}
+      style={{ display: 'inline-block', width: 28, height: 6, borderRadius: 3, background: color }}
+    />
+  )
+}
+
+function CategoryTable({ edgeColors }: { edgeColors: EdgeColors }) {
   const { data: categories = [], isLoading } = useInteractionCategories()
   const { mutate: createCat, isPending: creating } = useCreateCategory()
   const { mutate: updateCat } = useUpdateCategory()
@@ -924,7 +950,7 @@ function CategoryTable() {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)' }}>
-            {['Name', 'Order', 'Color', 'Description', ''].map((h) => (
+            {['Name', 'Order', 'Edge colour', 'Description', ''].map((h) => (
               <th
                 key={h}
                 style={{
@@ -962,12 +988,7 @@ function CategoryTable() {
                 />
               </td>
               <td style={{ padding: '6px 8px', width: 60 }}>
-                <input
-                  type="color"
-                  value={getDraft(cat, 'colorScheme')}
-                  onChange={(e) => setDraft(cat.id, 'colorScheme', e.target.value)}
-                  style={{ width: 36, height: 28, cursor: 'pointer', border: 'none', padding: 0, background: 'transparent' }}
-                />
+                <EdgeSwatch order={getDraft(cat, 'order')} colors={edgeColors} />
               </td>
               <td style={{ padding: '6px 8px' }}>
                 <input
@@ -1041,12 +1062,7 @@ function CategoryTable() {
               />
             </td>
             <td style={{ padding: '6px 8px' }}>
-              <input
-                type="color"
-                value={newRow.colorScheme}
-                onChange={(e) => setNewRow((r) => ({ ...r, colorScheme: e.target.value }))}
-                style={{ width: 36, height: 28, cursor: 'pointer', border: 'none', padding: 0, background: 'transparent' }}
-              />
+              <EdgeSwatch order={newRow.order} colors={edgeColors} />
             </td>
             <td style={{ padding: '6px 8px' }}>
               <input
@@ -1492,7 +1508,7 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
               published: form.publishedEdgeColor ?? '#38761d',
               validated: form.validatedEdgeColor ?? '#1155cc',
               verified: form.verifiedEdgeColor ?? '#cc0000',
-              literature: form.literatureEdgeColor ?? '#ff9900',
+              literature: form.literatureEdgeColor ?? '#0ea5e9',
             }}
           />
         </Section>
@@ -1544,9 +1560,18 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
 
         <Section title="Interaction categories">
           <p style={{ fontSize: 12, color: 'var(--text-soft)', marginBottom: 12 }}>
-            Each row controls how an interaction source is displayed in search results.
+            Readers filter search results by these categories. Each edge takes the colour of its
+            highest-order category: orders 1–4 use the Published, Validated, Verified and Literature
+            colours under Appearance, whatever the category is called, and any other order is grey.
           </p>
-          <CategoryTable />
+          <CategoryTable
+            edgeColors={{
+              published: form.publishedEdgeColor ?? '#38761d',
+              validated: form.validatedEdgeColor ?? '#1155cc',
+              verified: form.verifiedEdgeColor ?? '#cc0000',
+              literature: form.literatureEdgeColor ?? '#0ea5e9',
+            }}
+          />
         </Section>
 
         <Section title="Annotation tabs">
@@ -1687,7 +1712,7 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             {(
               [
                 { key: 'showDownloads',   label: 'Show Dataset Downloads' },
-                { key: 'showDownloadAll', label: 'Show Download All Datasets' },
+                { key: 'showDownloadAll', label: 'Show Supplementary Files' },
               ] as { key: 'showDownloads' | 'showDownloadAll'; label: string }[]
             ).map(({ key, label }) => (
               <label

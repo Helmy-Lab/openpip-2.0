@@ -8,6 +8,7 @@ import { useAdminDirty } from '../../../store/adminDirty'
 import { useSettings, useUpdateSettings, useUploadLogo, useDeleteLogo } from '../../../api/settings'
 import { useAdminUsers, useSetAdminAccess } from '../../../api/adminUsers'
 import { useProfile } from '../../../api/auth'
+import { useInteractionCategories } from '../../../api/interactionCategories'
 import { seedSiteText, resetSiteText } from '../../../mocks/handlers/siteText'
 
 vi.mock('../../../api/settings', () => ({
@@ -236,7 +237,24 @@ describe('AdminSettingsPage', () => {
     renderLoaded()
     openPanel(/Downloads/)
     expect(screen.getByText('Show Dataset Downloads')).toBeInTheDocument()
-    expect(screen.getByText('Show Download All Datasets')).toBeInTheDocument()
+    expect(screen.getByText('Show Supplementary Files')).toBeInTheDocument()
+  })
+
+  it('shows each category the edge colour its order really gives', () => {
+    ;(useInteractionCategories as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      data: [
+        { id: 1, categoryName: 'Published', order: '1', colorScheme: '#123456', description: '' },
+        { id: 9, categoryName: 'Extra', order: '7', colorScheme: '#654321', description: '' },
+      ],
+      isLoading: false,
+    })
+    renderLoaded()
+    openPanel(/^Search/)
+    // From publishedEdgeColor, not the category's own colorScheme.
+    expect(screen.getByLabelText('Edge colour #38761d')).toBeInTheDocument()
+    // order 7, and the empty new-category row
+    expect(screen.getAllByLabelText('Edge colour #cccccc')).toHaveLength(2)
+    expect(screen.queryByLabelText('Edge colour #123456')).not.toBeInTheDocument()
   })
 
   it('reports unsaved changes and can discard them', () => {

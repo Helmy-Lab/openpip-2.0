@@ -139,8 +139,10 @@ hand; the rest come from code-reading inventories and still need confirming.
   `/api/proteins/P04637` show the empty stub. Entrez IDs (`7157`) match nothing.
   Likely inherited from the legacy data (~8.4k bare UniProt stubs); check
   legacy behaviour before changing anything.
-- [ ] **BUG-035 — Category colours are editable but never shown (verified in
-  code).** The admin panel edits each interaction category's `colorScheme`,
+- [x] **BUG-035 — Category colours are editable but never shown (verified in
+  code).** _Fixed: legacy coloured edges the same way, so behaviour stays; the
+  admin table now shows the edge colour each order really gives instead of a
+  colour picker that did nothing._ The admin panel edits each interaction category's `colorScheme`,
   but the network colours edges by highest category *order* through the four
   legacy `*EdgeColor` settings (`getEdgeColorByOrder`); categories with order
   outside 1–4 are drawn `#cccccc`. Nothing reads `colorScheme`.
@@ -180,8 +182,9 @@ hand; the rest come from code-reading inventories and still need confirming.
   copies the host's `node_modules/` and `dist/` into the image build.
   _Fixed (624e9f4): the frontend image now builds from the repository root
   with a root `.dockerignore` that excludes them._
-- [ ] **BUG-029 — Download toggles only hide UI, and one is mislabelled
-  (verified in code).** `showDownloads` hides the Downloads page's dataset
+- [x] **BUG-029 — Download toggles only hide UI, and one is mislabelled
+  (verified in code).** _Fixed: relabelled "Show Supplementary Files". Hiding
+  links only matches legacy, which never enforced either flag server-side._ `showDownloads` hides the Downloads page's dataset
   table and `showDownloadAll` its supplementary-files section, but the
   download endpoints keep serving either way. `showDownloadAll` is labelled
   "Show Download All Datasets" in the admin panel, yet no page links the

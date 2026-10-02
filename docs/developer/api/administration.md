@@ -51,7 +51,7 @@ From the reference deployment (long values shortened):
 | `canvasBackgroundColor` | Network canvas background, or `null` for the default. |
 | `horizontalFilterBar` | `true` puts the search page's filters in a ribbon above the network instead of a side panel. |
 | `showTissueExpression`, `showSubcellularLocation` | Turn off for portals whose organism has no such annotations. |
-| `showDownloads`, `showDownloadAll` | Show the dataset table and the supplementary files section of the Downloads page. They hide links only: the download endpoints stay available. |
+| `showDownloads`, `showDownloadAll` | Show the dataset table and the supplementary files section of the Downloads page ("Show Dataset Downloads" and "Show Supplementary Files" in the admin panel). They hide links only, as in the original openPIP: the download endpoints stay available. |
 | `example1`, `example2`, `example3` | Example searches offered on the home page. |
 | `example1Type`, `example2Type`, `example3Type` | Network filter for each example: `None`, `query-query` or `query-interactor` (see [search filters](proteins-and-search.md#get-apisearch)). |
 | `about`, `faq`, `contact`, `download`, `footer`, `homePage` | Page content as HTML. |
@@ -181,7 +181,8 @@ validated, verified or literature-curated. Each interaction can belong to
 several. Readers can filter the network by category, and each edge is coloured
 by its highest-`order` category through the
 [edge colour settings](#get-apisettings). A category's own `colorScheme` is
-stored but not currently displayed anywhere (BUG-035).
+stored for compatibility with the original openPIP, which did not display it
+either. The admin panel shows each category the edge colour its order gives.
 
 ### GET /api/interaction-categories
 
