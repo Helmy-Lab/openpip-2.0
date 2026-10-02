@@ -125,6 +125,18 @@ hand; the rest come from code-reading inventories and still need confirming.
   client-supplied `X-Forwarded-For` header; a new value per request gets a
   fresh bucket. The frontend nginx sets only `X-Real-IP`, which DRF ignores.
   Set `NUM_PROXIES` to the real proxy depth and have nginx set the header.
+- [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
+  (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
+  (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The
+  identifier `P04637` links only to 11911, so `GET /api/search?q=P04637` and
+  `/api/proteins/P04637` show the empty stub. Entrez IDs (`7157`) match nothing.
+  Likely inherited from the legacy data (~8.4k bare UniProt stubs); check
+  legacy behaviour before changing anything.
+- [ ] **BUG-035 — Category colours are editable but never shown (verified in
+  code).** The admin panel edits each interaction category's `colorScheme`,
+  but the network colours edges by highest category *order* through the four
+  legacy `*EdgeColor` settings (`getEdgeColorByOrder`); categories with order
+  outside 1–4 are drawn `#cccccc`. Nothing reads `colorScheme`.
 - [ ] **BUG-021 — CORS allow-list ignored (verified).** `settings/base.py`
   sets `CORS_ALLOW_ALL_ORIGINS = True`, so `CORS_ALLOWED_ORIGINS` has no effect
   in any environment.
@@ -149,8 +161,12 @@ hand; the rest come from code-reading inventories and still need confirming.
   output, yet `admin_panel/views.py` names `/django-admin/` as a fallback.
 - [ ] **BUG-028 — No `frontend/.dockerignore`.** `COPY . .` after `npm ci`
   copies the host's `node_modules/` and `dist/` into the image build.
-- [ ] **BUG-029 — `show_downloads` / `show_download_all` settings not enforced
-  by the download endpoints** (check whether the UI hides the links).
+- [ ] **BUG-029 — Download toggles only hide UI, and one is mislabelled
+  (verified in code).** `showDownloads` hides the Downloads page's dataset
+  table and `showDownloadAll` its supplementary-files section, but the
+  download endpoints keep serving either way. `showDownloadAll` is labelled
+  "Show Download All Datasets" in the admin panel, yet no page links the
+  all-datasets ZIP (`/api/datasets/download/`) at all.
 - [ ] **BUG-030 — Downloads lose the negative flag.** Negative interactions are
   exported in tab/sif/csv with nothing marking them negative.
 - [ ] **BUG-031 — `/v2` hard-coded.** `FORCE_SCRIPT_NAME = "/v2"` in

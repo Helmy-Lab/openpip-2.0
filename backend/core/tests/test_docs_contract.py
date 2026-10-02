@@ -93,7 +93,6 @@ def _documented_endpoints() -> set[tuple[str, str]]:
     return {(m, p) for page in pages for m, p in heading.findall(page.read_text())}
 
 
-@pytest.mark.xfail(reason="API reference in progress on the documentation branch")
 def test_every_endpoint_is_documented_and_real():
     served, documented = _served_endpoints(), _documented_endpoints()
     assert sorted(served - documented) == [], "served but not documented"

@@ -98,6 +98,11 @@ nav:
       - REST API:
           - Overview: developer/api/index.md
           - Authentication and accounts: developer/api/authentication.md
+          - Proteins and search: developer/api/proteins-and-search.md
+          - Datasets, downloads and uploads: developer/api/datasets.md
+          - Saved networks and sharing: developer/api/sharing.md
+          - Site settings and administration: developer/api/administration.md
+      - PSICQUIC service: developer/psicquic.md
   - About:
       - Citing openPIP: about/citation.md
       - License: about/license.md
