@@ -178,18 +178,21 @@ export function AboutPage() {
 
   const vectorTableHtml = t('about.vectorTable.html')
   const assayTableHtml = t('about.assayTable.html')
+  // The app's own path (VITE_BASE), e.g. "/v2" — never hard-coded, so links
+  // work on a deployment served anywhere.
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '')
 
   const usefulLinks: { labelKey: string; descKey: string; to?: string; href?: string }[] = [
     { labelKey: 'about.links.search.label', descKey: 'about.links.search.desc', to: '/search' },
     { labelKey: 'about.links.downloads.label', descKey: 'about.links.downloads.desc', to: '/download' },
     { labelKey: 'about.links.docs.label', descKey: 'about.links.docs.desc', to: '/documentation' },
     { labelKey: 'about.links.developer.label', descKey: 'about.links.developer.desc', to: '/developer' },
-    { labelKey: 'about.links.swagger.label', descKey: 'about.links.swagger.desc', href: '/v2/api/docs/' },
-    { labelKey: 'about.links.schema.label', descKey: 'about.links.schema.desc', href: '/v2/api/schema/' },
+    { labelKey: 'about.links.swagger.label', descKey: 'about.links.swagger.desc', href: `${base}/api/docs/` },
+    { labelKey: 'about.links.schema.label', descKey: 'about.links.schema.desc', href: `${base}/api/schema/` },
     {
       labelKey: 'about.links.psicquic.label',
       descKey: 'about.links.psicquic.desc',
-      href: '/v2/psicquic/rest/query?q=BRCA1&format=tab25',
+      href: `${base}/psicquic/rest/query?q=BRCA1&format=tab25`,
     },
     { labelKey: 'about.links.faq.label', descKey: 'about.links.faq.desc', to: '/faq' },
     { labelKey: 'about.links.contact.label', descKey: 'about.links.contact.desc', to: '/contact' },
@@ -290,17 +293,17 @@ export function AboutPage() {
 
       {/* ── Programmatic access ── */}
       <Block heading={t('about.programmatic.heading')} body={t('about.programmatic.body')} />
-      <HtmlBlock heading={t('about.restApi.heading')} html={t('about.restApi.body')} />
+      <HtmlBlock heading={t('about.restApi.heading')} html={t('about.restApi.body', { base })} />
       <Block heading={t('about.deepLinks.heading')} body={t('about.deepLinks.body')} level={3} />
-      {t('about.deepLinks.examples').trim() && (
+      {t('about.deepLinks.examples', { base }).trim() && (
         <div style={{ background: 'var(--surface-2)', borderRadius: 6, padding: '10px 16px', fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--text)', marginBottom: 12 }}>
-          {parseLines(t('about.deepLinks.examples')).map((url) => (
+          {parseLines(t('about.deepLinks.examples', { base })).map((url) => (
             <div key={url}>{url}</div>
           ))}
         </div>
       )}
       <HtmlBlock heading={t('about.sdk.heading')} html={t('about.sdk.body')} />
-      <HtmlBlock heading={t('about.psicquic.heading')} html={t('about.psicquic.body')} />
+      <HtmlBlock heading={t('about.psicquic.heading')} html={t('about.psicquic.body', { base })} />
       {t('about.programmatic.footer').trim() && (
         <p style={pStyle} dangerouslySetInnerHTML={{ __html: t('about.programmatic.footer') }} />
       )}

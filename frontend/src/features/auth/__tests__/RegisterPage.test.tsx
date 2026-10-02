@@ -27,8 +27,10 @@ describe('RegisterPage', () => {
 
   it('shows the benefits panel', () => {
     render(<RegisterPage />, { wrapper })
-    expect(screen.getByText('Bulk downloads')).toBeInTheDocument()
-    expect(screen.getByText('Saved queries')).toBeInTheDocument()
+    expect(screen.getByText('Saved views')).toBeInTheDocument()
+    expect(screen.getByText('Public links')).toBeInTheDocument()
+    // No personal API key exists, so the panel must not offer one.
+    expect(screen.queryByText('API access')).not.toBeInTheDocument()
   })
 
   it('shows error when passwords do not match', async () => {

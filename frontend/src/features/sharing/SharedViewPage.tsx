@@ -115,7 +115,7 @@ function ShareBanner({ shareId, share }: { shareId: number; share: ReturnType<ty
         )}
         {saved && (
           <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-            Saved — find it on your profile under My Views.
+            Saved — find it on your profile under Saved Views.
           </span>
         )}
       </div>

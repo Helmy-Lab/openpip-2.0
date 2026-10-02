@@ -76,7 +76,7 @@ describe('SharedViewPage save-a-copy', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
-      expect(screen.getByText(/Saved.*My Views/)).toBeInTheDocument(),
+      expect(screen.getByText(/Saved.*Saved Views/)).toBeInTheDocument(),
     )
   })
 

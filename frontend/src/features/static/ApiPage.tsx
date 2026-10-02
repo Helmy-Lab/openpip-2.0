@@ -153,32 +153,20 @@ curl '${BASE}/api/counts'
         `}</Code>
       </Section>
 
-      {/* ── 3. Python SDK ── */}
+      {/* ── 3. Python ── */}
+      {/* The Python package in cli/ is shelved and unpublished, so this shows
+          the REST API from plain Python rather than an SDK no one can install. */}
       <Section title={t('api.sdk.heading')}>
         <p className="text-gray-600 mb-3 text-sm">{t('api.sdk.body')}</p>
         <Code>{`
-pip install openpip        # coming to PyPI - for now: pip install -e cli/
-        `}</Code>
-        <Code>{`
-from openpip import OpenPIP
+import requests
 
-client = OpenPIP()                                     # uses ${BASE} by default
+result = requests.get('${BASE}/api/search', params={'q': 'BRCA1,TP53'}).json()
+for p in result['all_proteins']:
+    print(p['protein_gene_name'], p['protein_uniprot_id'])
 
-# Search - returns list of Protein objects
-proteins = client.search('BRCA1')
-print(proteins[0].gene_name, proteins[0].uniprot_id)
-
-# As a pandas DataFrame
-df = client.search('BRCA1,TP53', as_dataframe=True)
-
-# Interactions
-interactions = client.interactions('BRCA1', as_dataframe=True)
-
-# Export network image
-client.export_network('BRCA1', 'brca1_network.png')
-
-# PSICQUIC
-tab = client.psicquic('BRCA1')                         # PSI-MI TAB 2.5
+# The same interactions as PSI-MI TAB 2.5, from PSICQUIC
+tab = requests.get('${BASE}/psicquic/rest/query', params={'q': 'id:BRCA1'}).text
         `}</Code>
       </Section>
 

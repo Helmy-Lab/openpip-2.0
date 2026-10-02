@@ -150,6 +150,14 @@ hand; the rest come from code-reading inventories and still need confirming.
   They used `op-btn-primary`, which no stylesheet defines. _Fixed._
 - [x] **BUG-041 — "Button color" setting had no effect (verified).** Theme set
   `--color-button` but no CSS read it. _Fixed: primary buttons use it._
+- [x] **BUG-042 — Interface text made false claims (verified).** Registration
+  promised a personal API key, dataset "update digests" and login-only bulk
+  downloads (none exist); the in-app Documentation said downloads need a login
+  and PSI-MI export is "MITAB 2.5 (42 columns)"; About said tissues combine with
+  OR, node size is on by default, the Cytoscape icon is bottom-left, and
+  described a Python SDK; the API page showed `pip install openpip`, which is
+  not published; links hard-coded `/v2`; smaller label errors. _Fixed in the
+  default text (admin overrides still win); `/v2` replaced by the app's base._
 - [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The

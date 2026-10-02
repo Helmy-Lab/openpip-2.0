@@ -1689,7 +1689,7 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           <RichTextEditor
             value={form.contact ?? ''}
             onChange={(v) => set('contact', v)}
-            placeholder="Introductory text shown above the contact form…"
+            placeholder="Text shown on the Contact page…"
             rows={10}
           />
         </Section>

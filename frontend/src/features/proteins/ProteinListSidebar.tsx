@@ -36,7 +36,7 @@ const FILTERS: { key: keyof ProteinListParams; label: string; title: string }[] 
   },
   {
     key: 'hasStructure',
-    label: 'Has 3D structure',
+    label: 'Has UniProt accession',
     title: 'Only proteins with a UniProt accession, which an AlphaFold model requires',
   },
   {

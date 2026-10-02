@@ -54,7 +54,7 @@ export const documentationGroup: TextGroup = {
       label: 'Body',
       section: 'Filtering results',
       kind: 'multiline',
-      default: 'Use the Filter button in the toolbar to narrow results by:',
+      default: 'Use the filter controls beside the results to narrow them by:',
     },
     {
       key: 'docs.filtering.items',
@@ -62,7 +62,7 @@ export const documentationGroup: TextGroup = {
       section: 'Filtering results',
       kind: 'multiline',
       default:
-        'Score threshold | minimum interaction confidence score (0–1)\nEvidence category | Published, Validated, Verified, or Literature\nFilter mode | show all, query↔query only, or query↔interactor only',
+        'Score threshold | minimum interaction confidence score (0–1)\nEvidence category | the interaction categories present in the results\nTissue | proteins expressed in every selected tissue\nFilter mode | all interactions, only query↔query, or only interactions involving a query protein',
       hint: 'One item per line, formatted as "term | description". The term is shown in bold.',
     },
 
@@ -78,7 +78,7 @@ export const documentationGroup: TextGroup = {
       section: 'Downloading data',
       kind: 'multiline',
       default:
-        'After running a search, use the Download button to export the results. Login is required. Available formats:',
+        'After running a search, open the Download section beside the results. No account is needed. Files contain all results of the search, whatever filters are applied. Available formats:',
     },
     {
       key: 'docs.downloading.items',
@@ -86,7 +86,7 @@ export const documentationGroup: TextGroup = {
       section: 'Downloading data',
       kind: 'multiline',
       default:
-        'SIF | Simple Interaction Format (tab-separated: A pp B)\nInteractions CSV | all interaction data as comma-separated values\nInteractors CSV | protein metadata as comma-separated values\nFASTA | protein sequences\nPSI-MI | MITAB 2.5 format (42 columns)',
+        'SIF | Simple Interaction Format (tab-separated: A pp B)\nInteractions CSV | one row per interaction: identifiers, query status, score, category and dataset\nInteractors CSV | protein metadata as comma-separated values\nFASTA | protein sequences\nPSI-MI | PSI-MI TAB with 42 columns (2.7 layout), identifiers and scores filled in\nNetwork image | the network as drawn, as PNG or JPG\nAll datasets | every dataset in one ZIP file',
       hint: 'One item per line, formatted as "term | description". The term is shown in bold.',
     },
 

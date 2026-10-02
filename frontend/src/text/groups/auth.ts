@@ -21,14 +21,14 @@ export const authGroup: TextGroup = {
       label: 'Subtitle',
       section: 'Login page',
       kind: 'multiline',
-      default: 'Access verified datasets and bulk downloads.',
+      default: 'Save, share and discuss your networks.',
     },
 
     {
       key: 'auth.login.panelEyebrow',
       label: 'Eyebrow',
       section: 'Login side panel',
-      default: '76,563 interactions, one query away',
+      default: 'Every interaction, one query away',
     },
     {
       key: 'auth.login.panelQuote',
@@ -49,7 +49,7 @@ export const authGroup: TextGroup = {
       label: 'Subtitle',
       section: 'Registration page',
       kind: 'multiline',
-      default: 'Free for academic and non-commercial use.',
+      default: 'Searching and downloading need no account.',
     },
 
     {
@@ -62,59 +62,59 @@ export const authGroup: TextGroup = {
       key: 'auth.register.benefitsHeading',
       label: 'Heading',
       section: 'Registration side panel',
-      default: 'One key for the whole interactome.',
+      default: 'One account to keep and share your work.',
     },
     {
       key: 'auth.register.benefit1.title',
       label: 'Benefit 1: title',
       section: 'Registration side panel',
-      default: 'Bulk downloads',
+      default: 'Saved views',
     },
     {
       key: 'auth.register.benefit1.desc',
       label: 'Benefit 1: description',
       section: 'Registration side panel',
       kind: 'multiline',
-      default: 'Pull every dataset in PSI-MI tab, SIF, or CSV format.',
+      default: 'Keep a search with its filters and layout, and reopen it on the current data.',
     },
     {
       key: 'auth.register.benefit2.title',
       label: 'Benefit 2: title',
       section: 'Registration side panel',
-      default: 'API access',
+      default: 'Sharing',
     },
     {
       key: 'auth.register.benefit2.desc',
       label: 'Benefit 2: description',
       section: 'Registration side panel',
       kind: 'multiline',
-      default: 'A personal key for the search and protein endpoints.',
+      default: 'Send a view to colleagues with a note, and discuss it together.',
     },
     {
       key: 'auth.register.benefit3.title',
       label: 'Benefit 3: title',
       section: 'Registration side panel',
-      default: 'Saved queries',
+      default: 'Public links',
     },
     {
       key: 'auth.register.benefit3.desc',
       label: 'Benefit 3: description',
       section: 'Registration side panel',
       kind: 'multiline',
-      default: 'Bookmark gene neighborhoods and share them with collaborators.',
+      default: 'Publish a view as a link anyone can open, no login needed.',
     },
     {
       key: 'auth.register.benefit4.title',
       label: 'Benefit 4: title',
       section: 'Registration side panel',
-      default: 'Update digests',
+      default: 'Notifications',
     },
     {
       key: 'auth.register.benefit4.desc',
       label: 'Benefit 4: description',
       section: 'Registration side panel',
       kind: 'multiline',
-      default: 'Get notified when a dataset you cite is revised.',
+      default: 'See when someone shares a view with you or replies.',
     },
 
     {
@@ -128,7 +128,7 @@ export const authGroup: TextGroup = {
       label: 'Body',
       section: 'After registering',
       kind: 'multiline',
-      default: 'Your account is ready. Sign in to access datasets and the API.',
+      default: 'Your account is ready. Sign in to save and share networks.',
     },
   ],
 }
