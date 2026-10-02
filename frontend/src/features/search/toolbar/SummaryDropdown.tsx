@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
 import { useSearchStore } from '../searchStore'
 
+// The API joins terms with "<br>" (legacy's format). Never render it as HTML:
+// for a saved network the found list is the stored query, written by whoever
+// saved it and opened by anyone with the link.
+const asList = (summary: string) => summary.split('<br>').filter(Boolean).join(', ')
+
 export function SummaryDropdown() {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -52,11 +57,11 @@ export function SummaryDropdown() {
 
           <div style={row}>
             <span style={label}>Found: </span>
-            <span dangerouslySetInnerHTML={{ __html: foundSummary }} />
+            {asList(foundSummary) || '—'}
           </div>
           <div style={row}>
             <span style={label}>Not found: </span>
-            {unfoundSummary || '—'}
+            {asList(unfoundSummary) || '—'}
           </div>
           <div style={row}>
             <span style={label}>Total proteins: </span>
