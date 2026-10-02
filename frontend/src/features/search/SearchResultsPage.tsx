@@ -12,6 +12,7 @@ import { QueryPanel } from './QueryPanel'
 import { NodeInfoPanel } from './NodeInfoPanel'
 import { EdgeInfoPanel } from './EdgeInfoPanel'
 import type { Protein, Interaction } from '../../types/api'
+import type { SearchResult } from '../../types/search'
 import { useText } from '../../text'
 import { CONTROL_BG } from './toolbar/LayoutDropdown'
 
@@ -41,9 +42,11 @@ interface SearchResultsPageProps {
   viewState?: Partial<ViewState>
   /** Rendered above the results — who shared this, and their note. */
   banner?: React.ReactNode
+  /** Results already in hand — a saved snapshot — so no live search runs. */
+  result?: SearchResult
 }
 
-export function SearchResultsPage({ term: termProp, viewState, banner }: SearchResultsPageProps = {}) {
+export function SearchResultsPage({ term: termProp, viewState, banner, result }: SearchResultsPageProps = {}) {
   const { term: routeTerm = '' } = useParams<{ term: string }>()
   const term = termProp ?? routeTerm
   const t = useText()
@@ -109,7 +112,10 @@ export function SearchResultsPage({ term: termProp, viewState, banner }: SearchR
   // Sidebar down the left, or a ribbon under the navbar — the deployment's
   // choice, set in Admin → Settings → Search.
   const ribbon = settings?.horizontalFilterBar === true
-  const { data, isLoading, isError } = useSearch(term)
+  const search = useSearch(term, !result)
+  const data = result ?? search.data
+  const isLoading = !result && search.isLoading
+  const isError = !result && search.isError
 
   const {
     setSearchData,

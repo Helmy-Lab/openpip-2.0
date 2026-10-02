@@ -118,9 +118,7 @@ export function ProfileSharingSections() {
                     style={SMALL_BTN}
                     onClick={() =>
                       navigate(
-                        row.live
-                          ? `/views/${row.id}`
-                          : `/search/${encodeURIComponent(row.query)}`,
+                        row.live ? `/views/${row.id}` : `/networks/${row.id}`,
                       )
                     }
                   >

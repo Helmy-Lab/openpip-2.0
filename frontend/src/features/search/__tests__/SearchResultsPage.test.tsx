@@ -64,7 +64,7 @@ describe('SearchResultsPage', () => {
     renderWithRoute() // no term
 
     // No example is run behind the prompt, and no network is drawn.
-    expect(useSearch).toHaveBeenCalledWith('')
+    expect(useSearch).toHaveBeenCalledWith('', true)
     expect(screen.queryByTestId('network')).not.toBeInTheDocument()
     expect(screen.getByText(/Search for a protein to see its interaction network/i)).toBeInTheDocument()
     // The page around the canvas stays put.

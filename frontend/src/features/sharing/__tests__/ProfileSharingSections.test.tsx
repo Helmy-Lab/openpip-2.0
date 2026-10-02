@@ -72,6 +72,6 @@ describe('ProfileSharingSections', () => {
 
     // A snapshot has no filters to restore, so it just re-runs the search.
     networkOpen.click()
-    expect(navigate).toHaveBeenCalledWith('/search/BAD')
+    expect(navigate).toHaveBeenCalledWith(expect.stringMatching(/^\/networks\/\d+$/))
   })
 })

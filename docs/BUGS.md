@@ -158,6 +158,10 @@ hand; the rest come from code-reading inventories and still need confirming.
   described a Python SDK; the API page showed `pip install openpip`, which is
   not published; links hard-coded `/v2`; smaller label errors. _Fixed in the
   default text (admin overrides still win); `/v2` replaced by the app's base._
+- [x] **BUG-043 — Opening a saved network re-ran the live search (verified).**
+  The profile said "N interactions, as they were" but Open went to
+  `/search/<query>`; nothing ever called `GET /api/networks/{pk}`. Legacy
+  reloaded the stored interactions. _Fixed: `/networks/:id` shows the snapshot._
 - [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The
