@@ -235,10 +235,22 @@ export const searchGroup: TextGroup = {
       default: 'PSI-MI',
     },
     {
-      key: 'search.download.direct',
-      label: 'Direct GZ',
+      key: 'search.download.png',
+      label: 'Network image PNG',
       section: 'Download menu',
-      default: 'Direct Download (GZ)',
+      default: 'Network image (PNG)',
+    },
+    {
+      key: 'search.download.jpg',
+      label: 'Network image JPG',
+      section: 'Download menu',
+      default: 'Network image (JPG)',
+    },
+    {
+      key: 'search.download.direct',
+      label: 'All datasets ZIP',
+      section: 'Download menu',
+      default: 'All datasets (ZIP)',
     },
     {
       key: 'search.download.cytoscape',

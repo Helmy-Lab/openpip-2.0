@@ -170,3 +170,33 @@ describe('SearchSidebar ribbon share heading', () => {
     expect(share.style.borderBottom).toBe('2px solid var(--primary)')
   })
 })
+
+const download = vi.hoisted(() => ({
+  downloadImageFile: vi.fn(),
+  formatInteractionsCSV: vi.fn(() => ''),
+}))
+vi.mock('../../../lib/download', async () => ({
+  ...(await vi.importActual<typeof import('../../../lib/download')>('../../../lib/download')),
+  downloadImageFile: download.downloadImageFile,
+  formatInteractionsCSV: download.formatInteractionsCSV,
+  downloadFile: vi.fn(),
+}))
+
+describe('SearchSidebar downloads', () => {
+  it('exports the network as an image, and marks query proteins in the CSV', () => {
+    const cy = { fake: 'cytoscape' }
+    useSearchStore.setState({ networkCy: cy, queryProteinIds: [7] })
+    render(<SearchSidebar term="BAD" visibleInteractionIds={[]} />, { wrapper })
+    fireEvent.click(screen.getByRole('button', { name: /^download/i }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Network image (PNG)' }))
+    expect(download.downloadImageFile).toHaveBeenCalledWith(cy, 'png', undefined)
+
+    fireEvent.click(screen.getByRole('button', { name: /interactions csv/i }))
+    expect(download.formatInteractionsCSV).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      new Set([7])
+    )
+  })
+})

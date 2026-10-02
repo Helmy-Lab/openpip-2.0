@@ -132,6 +132,13 @@ hand; the rest come from code-reading inventories and still need confirming.
   client-supplied `X-Forwarded-For` header; a new value per request gets a
   fresh bucket. The frontend nginx sets only `X-Real-IP`, which DRF ignores.
   Set `NUM_PROXIES` to the real proxy depth and have nginx set the header.
+- [x] **BUG-036 — Network image export unreachable (verified).** The PNG/JPG
+  export lived only in `DownloadModal`, which nothing opens, and the toolbar
+  holding the Download menu (`NetworkToolbar`) is never mounted. _Fixed: PNG
+  and JPG added to the search sidebar's Download section._
+- [x] **BUG-037 — Interactions CSV from the sidebar labels every row non-query
+  (verified).** No query protein IDs were passed to `formatInteractionsCSV`.
+  _Fixed._
 - [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The

@@ -18,7 +18,9 @@ import {
   formatPSIMI,
   buildFilename,
   downloadFile,
+  downloadImageFile,
 } from '../../lib/download'
+import { useCanvasBackground } from './network/canvasBackground'
 
 // The saved network's name column (interaction_network.name) is 100 chars.
 const NAME_MAX = 100
@@ -143,6 +145,9 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
   const filterMode = useSearchStore((s) => s.filterMode)
   const allProteins = useSearchStore((s) => s.allProteins)
   const queryProteinIds = useSearchStore((s) => s.queryProteinIds)
+  const networkCy = useSearchStore((s) => s.networkCy)
+  // The canvas's own colour when one is set; white when it follows the theme.
+  const canvasBackground = useCanvasBackground() ?? undefined
   const allInteractions = useSearchStore((s) => s.allInteractions)
   const foundSummary = useSearchStore((s) => s.foundSummary)
   const unfoundSummary = useSearchStore((s) => s.unfoundSummary)
@@ -217,10 +222,14 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
 
   const downloadActions: { label: string; onClick: () => void }[] = [
     { label: t('search.download.sif'), onClick: () => handleDownload(formatSIF(allInteractions, allProteins), 'SIF', 'sif') },
-    { label: t('search.download.interactionsCsv'), onClick: () => handleDownload(formatInteractionsCSV(allInteractions, allProteins), 'Interactions', 'csv') },
+    // Query ids tell each row which side was searched for; without them every
+    // interaction was labelled non_query.
+    { label: t('search.download.interactionsCsv'), onClick: () => handleDownload(formatInteractionsCSV(allInteractions, allProteins, new Set(queryProteinIds)), 'Interactions', 'csv') },
     { label: t('search.download.interactorsCsv'), onClick: () => handleDownload(formatInteractorsCSV(allProteins), 'Interactors', 'csv') },
     { label: t('search.download.fasta'), onClick: () => handleDownload(formatFASTA(allProteins), 'FASTA', 'fasta') },
     { label: t('search.download.psimi'), onClick: () => handleDownload(formatPSIMI(allInteractions, allProteins), 'PSIMI', 'tsv') },
+    { label: t('search.download.png'), onClick: () => networkCy && downloadImageFile(networkCy, 'png', canvasBackground) },
+    { label: t('search.download.jpg'), onClick: () => networkCy && downloadImageFile(networkCy, 'jpg', canvasBackground) },
     { label: t('search.download.direct'), onClick: () => setModal('directDownload') },
   ]
 
