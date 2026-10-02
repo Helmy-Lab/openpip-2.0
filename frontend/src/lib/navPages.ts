@@ -19,7 +19,6 @@ export const NAV_PAGES: readonly NavPage[] = [
   { id: 'proteins', label: 'Proteins', paths: ['/proteins', '/protein'] },
   { id: 'downloads', label: 'Downloads', paths: ['/download'] },
   { id: 'about', label: 'About', paths: ['/about'] },
-  { id: 'documentation', label: 'Documentation', paths: ['/documentation'] },
   { id: 'developer', label: 'API', paths: ['/developer'] },
   { id: 'faqs', label: 'FAQs', paths: ['/faq'] },
   { id: 'contact', label: 'Contact', paths: ['/contact'] },

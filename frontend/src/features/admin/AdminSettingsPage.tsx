@@ -182,7 +182,6 @@ const TAB_CONFIG: Record<TabId, TabConfig> = {
     textGroups: ['downloads'],
   },
   about:         { fields: ['about'] },
-  documentation: { textGroups: ['documentation'] },
   faqs:          { fields: ['faq'] },
   contact:       { fields: ['contact'] },
   accounts:      { textGroups: ['auth'] },
@@ -1663,11 +1662,6 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           />
         </Section>
 
-      </TabPanel>
-
-      {/* ── DOCUMENTATION ── */}
-      <TabPanel id="documentation" active={activeTab === 'documentation'}>
-        {pageText('documentation')}
       </TabPanel>
 
       {/* ── FAQS ── */}

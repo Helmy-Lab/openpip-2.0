@@ -84,11 +84,6 @@ downloaded through the [API](../developer/api/datasets.md).
 Each dataset's section on the About page is written in its
 [dataset entry](content.md#editing-a-dataset), not here.
 
-## Documentation
-
-Every heading, paragraph and list of the portal's built-in **Documentation**
-page, which explains searching, filtering, downloading and the network.
-
 ## FAQs and Contact
 
 **FAQ page content** and the **Contact** page's text. Both are rich text. The

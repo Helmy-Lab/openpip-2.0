@@ -5,7 +5,6 @@ import { searchGroup } from './groups/search'
 import { searchExamplesGroup } from './groups/searchExamples'
 import { proteinsGroup } from './groups/proteins'
 import { aboutGroup } from './groups/about'
-import { documentationGroup } from './groups/documentation'
 import { apiGroup } from './groups/api'
 import { faqGroup, contactGroup, downloadsGroup } from './groups/staticPages'
 import { authGroup, authLabelsGroup } from './groups/auth'
@@ -31,7 +30,6 @@ export const TEXT_GROUPS: readonly TextGroup[] = [
   proteinsGroup,
   downloadsGroup,
   aboutGroup,
-  documentationGroup,
   apiGroup,
   faqGroup,
   contactGroup,

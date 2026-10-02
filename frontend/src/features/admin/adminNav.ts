@@ -21,7 +21,6 @@ export type SettingsTabId =
   | 'search'
   | 'downloads'
   | 'about'
-  | 'documentation'
   | 'faqs'
   | 'contact'
   | 'accounts'
@@ -61,7 +60,6 @@ export const ADMIN_NAV: readonly AdminNavSection[] = [
       settings('search', 'Search', 'Example queries, interaction categories'),
       settings('downloads', 'Downloads', 'What is offered, and the page intro'),
       settings('about', 'About', 'Page content'),
-      settings('documentation', 'Documentation', 'Every heading and paragraph of the guide'),
       settings('faqs', 'FAQs', 'Page content'),
       settings('contact', 'Contact', 'Page content'),
       settings('accounts', 'Accounts', 'Sign-in and registration copy'),

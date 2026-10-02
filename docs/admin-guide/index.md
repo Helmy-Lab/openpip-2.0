@@ -21,7 +21,7 @@ The sidebar groups every admin screen:
 | Section | Screens |
 |---|---|
 | **Site** | **Site Identity**, **Appearance** |
-| **Pages** | **Home**, **Search**, **Downloads**, **About**, **Documentation**, **FAQs**, **Contact**, **Accounts** |
+| **Pages** | **Home**, **Search**, **Downloads**, **About**, **FAQs**, **Contact**, **Accounts** |
 | **Content** | **News**, **Datasets**, **Files** |
 
 The **Site** and **Pages** screens are settings, described in

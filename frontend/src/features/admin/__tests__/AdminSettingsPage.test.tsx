@@ -359,12 +359,12 @@ describe('AdminSettingsPage', () => {
 
   it('filters a long list of copy fields', async () => {
     renderLoaded()
-    openPanel(/Documentation/)
-    const filter = await screen.findByLabelText(/Filter Documentation page text fields/)
+    openPanel(/^Home/)
+    const filter = await screen.findByLabelText(/Filter Home page text fields/)
 
-    fireEvent.change(filter, { target: { value: 'network' } })
-    expect(screen.getByRole('heading', { name: 'Network visualization' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Filtering results' })).not.toBeInTheDocument()
+    fireEvent.change(filter, { target: { value: 'bibtex' } })
+    expect(screen.getByRole('heading', { name: 'Cite openPIP' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Three ways to start' })).not.toBeInTheDocument()
 
     fireEvent.change(filter, { target: { value: 'zzzz-no-such-copy' } })
     expect(screen.getByText(/Nothing matches/)).toBeInTheDocument()
