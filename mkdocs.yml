@@ -93,7 +93,10 @@ validation:
 nav:
   - Home: index.md
   - Operator guide:
+      - Installation: operator-guide/installation.md
       - Configuration reference: operator-guide/configuration.md
+      - Data file formats: operator-guide/data-formats.md
+      - Maintenance: operator-guide/maintenance.md
   - Developer guide:
       - REST API:
           - Overview: developer/api/index.md
