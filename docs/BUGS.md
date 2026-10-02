@@ -162,6 +162,10 @@ hand; the rest come from code-reading inventories and still need confirming.
   The profile said "N interactions, as they were" but Open went to
   `/search/<query>`; nothing ever called `GET /api/networks/{pk}`. Legacy
   reloaded the stored interactions. _Fixed: `/networks/:id` shows the snapshot._
+- [x] **BUG-044 — Search-page downloads ignored the filters (verified).** They
+  exported every result, while legacy's export endpoint applied the category,
+  filter-mode and score settings. _Fixed: SIF, CSVs, FASTA and PSI-MI hold the
+  visible proteins and the interactions between them._
 - [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The

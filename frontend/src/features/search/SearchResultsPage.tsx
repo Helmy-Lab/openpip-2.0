@@ -420,6 +420,7 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
         key={term}
         term={term}
         visibleInteractionIds={visibleInteractionIds}
+        visibleProteinIds={proteins.map((p) => p.protein_id)}
         variant={ribbon ? 'ribbon' : 'sidebar'}
       />
 

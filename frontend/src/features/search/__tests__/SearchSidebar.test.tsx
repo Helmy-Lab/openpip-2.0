@@ -173,7 +173,7 @@ describe('SearchSidebar ribbon share heading', () => {
 
 const download = vi.hoisted(() => ({
   downloadImageFile: vi.fn(),
-  formatInteractionsCSV: vi.fn(() => ''),
+  formatInteractionsCSV: vi.fn<(...args: unknown[]) => string>(() => ''),
 }))
 vi.mock('../../../lib/download', async () => ({
   ...(await vi.importActual<typeof import('../../../lib/download')>('../../../lib/download')),
@@ -198,5 +198,37 @@ describe('SearchSidebar downloads', () => {
       expect.anything(),
       new Set([7])
     )
+  })
+})
+
+describe('SearchSidebar downloads follow the filters', () => {
+  it('leaves filtered-out interactions and removed proteins out of the files', () => {
+    const protein = (id: number) => ({ protein_id: id, protein_gene_name: `G${id}` })
+    const edge = (id: number, a: number, b: number) => ({
+      interaction_id: id,
+      interactor_A: { protein_id: a },
+      interactor_B: { protein_id: b },
+      dataset_array: [],
+    })
+    useSearchStore.setState({
+      allProteins: [protein(1), protein(2), protein(3)] as never,
+      allInteractions: [edge(10, 1, 2), edge(11, 1, 3), edge(12, 2, 3)] as never,
+      queryProteinIds: [1],
+    })
+    download.formatInteractionsCSV.mockClear()
+    // 12 is filtered out; protein 3 was removed, which takes 11 with it.
+    render(
+      <SearchSidebar term="G1" visibleInteractionIds={[10, 11]} visibleProteinIds={[1, 2]} />,
+      { wrapper }
+    )
+    fireEvent.click(screen.getByRole('button', { name: /^download/i }))
+    fireEvent.click(screen.getByRole('button', { name: /interactions csv/i }))
+
+    const [interactions, proteins] = download.formatInteractionsCSV.mock.calls[0] as [
+      { interaction_id: number }[],
+      { protein_id: number }[],
+    ]
+    expect(interactions.map((i) => i.interaction_id)).toEqual([10])
+    expect(proteins.map((p) => p.protein_id)).toEqual([1, 2])
   })
 })

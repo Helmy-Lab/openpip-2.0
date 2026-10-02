@@ -43,6 +43,8 @@ type Variant = 'sidebar' | 'ribbon'
 interface SearchSidebarProps {
   term: string
   visibleInteractionIds: number[]
+  /** Proteins left after filters and removals; omitted means all of them. */
+  visibleProteinIds?: number[]
   /**
    * Where the controls live. 'sidebar' stacks them down the left; 'ribbon'
    * puts each behind a button in a row under the navbar. Same controls either
@@ -137,7 +139,12 @@ function Section({ variant, label, collapsible = false, defaultOpen = true, widt
   )
 }
 
-export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar' }: SearchSidebarProps) {
+export function SearchSidebar({
+  term,
+  visibleInteractionIds,
+  visibleProteinIds,
+  variant = 'sidebar',
+}: SearchSidebarProps) {
   const t = useText()
 
   const scoreFilter = useSearchStore((s) => s.scoreFilter)
@@ -220,14 +227,27 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
     ...new Set([...tissuesWithData(allProteins), ...tissueFilter]),
   ].sort((a, b) => tissueLabel(a).localeCompare(tissueLabel(b)))
 
+  // Downloads hold what is on screen, as legacy's did: its export endpoint
+  // applied the category, filter-mode and score settings. An interaction is
+  // kept only while both its proteins are, so removed nodes take their edges.
+  const shownProteinIds = new Set(visibleProteinIds ?? allProteins.map((p) => p.protein_id))
+  const shownInteractionIds = new Set(visibleInteractionIds)
+  const shownProteins = allProteins.filter((p) => shownProteinIds.has(p.protein_id))
+  const shownInteractions = allInteractions.filter(
+    (i) =>
+      shownInteractionIds.has(i.interaction_id) &&
+      shownProteinIds.has(i.interactor_A.protein_id) &&
+      shownProteinIds.has(i.interactor_B.protein_id)
+  )
+
   const downloadActions: { label: string; onClick: () => void }[] = [
-    { label: t('search.download.sif'), onClick: () => handleDownload(formatSIF(allInteractions, allProteins), 'SIF', 'sif') },
+    { label: t('search.download.sif'), onClick: () => handleDownload(formatSIF(shownInteractions, shownProteins), 'SIF', 'sif') },
     // Query ids tell each row which side was searched for; without them every
     // interaction was labelled non_query.
-    { label: t('search.download.interactionsCsv'), onClick: () => handleDownload(formatInteractionsCSV(allInteractions, allProteins, new Set(queryProteinIds)), 'Interactions', 'csv') },
-    { label: t('search.download.interactorsCsv'), onClick: () => handleDownload(formatInteractorsCSV(allProteins), 'Interactors', 'csv') },
-    { label: t('search.download.fasta'), onClick: () => handleDownload(formatFASTA(allProteins), 'FASTA', 'fasta') },
-    { label: t('search.download.psimi'), onClick: () => handleDownload(formatPSIMI(allInteractions, allProteins), 'PSIMI', 'tsv') },
+    { label: t('search.download.interactionsCsv'), onClick: () => handleDownload(formatInteractionsCSV(shownInteractions, shownProteins, new Set(queryProteinIds)), 'Interactions', 'csv') },
+    { label: t('search.download.interactorsCsv'), onClick: () => handleDownload(formatInteractorsCSV(shownProteins), 'Interactors', 'csv') },
+    { label: t('search.download.fasta'), onClick: () => handleDownload(formatFASTA(shownProteins), 'FASTA', 'fasta') },
+    { label: t('search.download.psimi'), onClick: () => handleDownload(formatPSIMI(shownInteractions, shownProteins), 'PSIMI', 'tsv') },
     { label: t('search.download.png'), onClick: () => networkCy && downloadImageFile(networkCy, 'png', canvasBackground) },
     { label: t('search.download.jpg'), onClick: () => networkCy && downloadImageFile(networkCy, 'jpg', canvasBackground) },
     { label: t('search.download.direct'), onClick: () => setModal('directDownload') },

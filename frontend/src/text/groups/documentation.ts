@@ -78,7 +78,7 @@ export const documentationGroup: TextGroup = {
       section: 'Downloading data',
       kind: 'multiline',
       default:
-        'After running a search, open the Download section beside the results. No account is needed. Files contain all results of the search, whatever filters are applied. Available formats:',
+        'After running a search, open the Download section beside the results. No account is needed. Files contain what is shown: the filters you set, and any proteins you removed, apply. Available formats:',
     },
     {
       key: 'docs.downloading.items',
