@@ -724,3 +724,20 @@ def test_upload_in_uniprot_ids_reuses_proteins_that_keep_the_accession_on_the_ro
     assert ProteinIdentifier.objects.filter(
         protein=tp53, identifier__identifier="P04637"
     ).exists()
+
+
+@pytest.mark.django_db
+def test_import_counts_interactions_for_every_protein(auth_client):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    content = b"TP53\tMDM2\nTP53\tBRCA1\nTP53\tTP53\n"
+    response = auth_client.post(
+        "/api/datasets/upload",
+        {"file": SimpleUploadedFile("d.tab", content), "dataset_name": "DS"},
+        format="multipart",
+    )
+    assert response.status_code == 201
+    counts = dict(
+        Protein.objects.values_list("gene_name", "number_of_interactions_in_database")
+    )
+    assert counts == {"TP53": 3, "MDM2": 1, "BRCA1": 1}

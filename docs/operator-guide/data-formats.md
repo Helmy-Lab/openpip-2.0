@@ -153,11 +153,8 @@ flag. Use PSI-MI TAB for those.
 
 ## After the upload
 
-- The dataset's interaction count updates when the import finishes.
+- Dataset and protein interaction counts update when the import finishes.
 - Add or correct the dataset's citation and About-page text at any time in
   **Admin → Datasets**. You can look a citation up by PubMed ID or DOI.
 - New data appears in search straight away. The all-datasets download archive
   is rebuilt the first time someone requests it.
-- Proteins created by an upload have no stored interaction count, so the
-  Proteins browser's "has interactions" filter leaves them out until the count
-  is recalculated (BUG-025).

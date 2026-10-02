@@ -10,7 +10,8 @@ from pathlib import Path
 from celery.result import AsyncResult
 
 from django.conf import settings
-from django.db.models import Count, OuterRef, Subquery
+from django.db.models import Count, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.http import FileResponse, Http404, StreamingHttpResponse
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser
@@ -20,6 +21,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
 
 from interactions.models import Interaction, InteractionCategory, InteractionDataset
+from proteins.models import Protein
 from .models import Dataset
 from .citation_lookup import CitationLookupError, fetch_by_doi, fetch_by_pubmed_id
 from .serializers import (
@@ -125,6 +127,7 @@ def _refresh_dataset_counts() -> None:
     # Every import and dataset delete ends here, so it doubles as the point
     # where the cached all-datasets zip goes stale.
     _invalidate_archive()
+    _refresh_protein_counts()
     Dataset.objects.update(
         number_of_interactions=Subquery(
             InteractionDataset.objects.filter(dataset_id=OuterRef("pk"))
@@ -132,6 +135,29 @@ def _refresh_dataset_counts() -> None:
             .annotate(c=Count("id"))
             .values("c")
         )
+    )
+
+
+def _refresh_protein_counts() -> None:
+    """Recount every protein's active interactions, as legacy did: each
+    interaction counts once per protein, a self-interaction included.
+
+    Imports create proteins without a count, and the protein list's "has
+    interactions" filter reads this column, so it must follow the data.
+    """
+    per_protein = (
+        Interaction.objects.filter(
+            Q(interactor_A=OuterRef("pk")) | Q(interactor_B=OuterRef("pk")),
+            removed="0",
+        )
+        .order_by()
+        .annotate(group=Value(1))
+        .values("group")
+        .annotate(n=Count("pk"))
+        .values("n")
+    )
+    Protein.objects.update(
+        number_of_interactions_in_database=Coalesce(Subquery(per_protein), 0)
     )
 
 

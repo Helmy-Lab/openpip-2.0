@@ -158,8 +158,9 @@ hand; the rest come from code-reading inventories and still need confirming.
   both previews use `known_identifiers`, which matches as the import does._
   `ProteinCheckView` / `fast_preview` use exact `identifier__in`; the parser
   uses `iexact`, so the "already in database" count can be wrong.
-- [ ] **BUG-025 — `Protein.number_of_interactions_in_database` is never
-  recomputed.** Proteins created by uploads keep NULL, and the protein list's
+- [x] **BUG-025 — `Protein.number_of_interactions_in_database` is never
+  recomputed.** _Fixed: recounted for all proteins after every import and
+  dataset delete, with legacy's definition (0.6 s on production data)._ Proteins created by uploads keep NULL, and the protein list's
   "has interactions" filter treats them as having none.
 - [ ] **BUG-026 — Upload category only applies to new interactions from TAB.**
   Interactions that already existed (overlaps) get no category, and the CSV
