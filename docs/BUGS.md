@@ -140,7 +140,9 @@ hand; the rest come from code-reading inventories and still need confirming.
   but the network colours edges by highest category *order* through the four
   legacy `*EdgeColor` settings (`getEdgeColorByOrder`); categories with order
   outside 1–4 are drawn `#cccccc`. Nothing reads `colorScheme`.
-- [ ] **BUG-021 — CORS allow-list ignored (verified).** `settings/base.py`
+- [x] **BUG-021 — CORS allow-list ignored (verified).** _Fixed: open CORS is
+  intentional (2026-05-31), so the dead `CORS_ALLOWED_ORIGINS` variable was
+  removed from settings, compose files and examples._ `settings/base.py`
   sets `CORS_ALLOW_ALL_ORIGINS = True`, so `CORS_ALLOWED_ORIGINS` has no effect
   in any environment.
 - [ ] **BUG-022 — TAB rows with a bare gene name are dropped silently

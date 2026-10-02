@@ -152,7 +152,8 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+# Deliberately open: the API serves public data, and login tokens travel in a
+# header, not a cookie, so another site's page cannot act as a signed-in user.
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_URLS_REGEX = r"^/(api|psicquic)/.*$"
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])

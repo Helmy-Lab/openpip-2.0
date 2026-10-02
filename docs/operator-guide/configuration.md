@@ -32,7 +32,6 @@ Read by `backend/openpip/settings/`.
 | `REDIS_URL` | unset | Redis connection, used as the Celery job queue and as the cache that stores rate-limit counters. Compose sets it to `redis://redis:6379/0`. Without it, rate limits are counted separately in each worker process. |
 | `ALLOWED_HOSTS` | empty (development settings allow any host) | Comma-separated host names this site may be served under, e.g. `openpip.example.org`. |
 | `CSRF_TRUSTED_ORIGINS` | empty | Comma-separated origins (`https://openpip.example.org`) trusted for form posts to the Django admin. |
-| `CORS_ALLOWED_ORIGINS` | empty | Comma-separated origins allowed to call the API from a browser. **Currently has no effect**: the settings allow every origin (see [Known limitations](#known-limitations)). |
 
 ### Variables used only by Docker Compose
 
@@ -54,6 +53,10 @@ Read by Vite when the frontend image is **built**, from
 | `VITE_USE_MSW` | mock API **on** in development | Development only: any value except `false` replaces the real API with built-in mock data. `frontend/.env.development` sets `false`. |
 
 ## Fixed settings
+
+Browser requests to `/api/` and `/psicquic/` are accepted from any origin
+(CORS). This is deliberate: the data is public, and login tokens are sent in a
+header, not as cookies, so another site cannot act for a signed-in user.
 
 These are set in code, not by environment variables.
 
@@ -88,10 +91,6 @@ Before exposing a deployment:
 
 ## Known limitations
 
-- **CORS allow-list ignored.** `CORS_ALLOW_ALL_ORIGINS = True` in
-  `settings/base.py` allows browser requests to `/api/` and `/psicquic/` from
-  any origin. This exposes no extra data, because login tokens are sent in a
-  header, not as cookies, and public data is public anyway.
 - **The `/v2` prefix is hard-coded** in `settings/prod.py` and
   `frontend/.env.production`. Serving openPIP at another path needs both
   changed and the images rebuilt.
