@@ -97,6 +97,7 @@ nav:
       - Configuration reference: operator-guide/configuration.md
       - Data file formats: operator-guide/data-formats.md
       - Maintenance: operator-guide/maintenance.md
+      - Migrating from the original openPIP: operator-guide/migrating.md
   - Developer guide:
       - REST API:
           - Overview: developer/api/index.md
