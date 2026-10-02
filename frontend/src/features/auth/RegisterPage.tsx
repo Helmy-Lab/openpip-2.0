@@ -75,6 +75,10 @@ export function RegisterPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setLocalError('')
+    if (form.password.trim().length < 8) {
+      setLocalError(t('auth.reset.tooShort'))
+      return
+    }
     if (form.password !== form.confirm) {
       setLocalError(t('auth.register.mismatch'))
       return

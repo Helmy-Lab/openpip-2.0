@@ -25,6 +25,13 @@ _token_generator = PasswordResetTokenGenerator()
 
 
 SECURITY_QUESTION_COUNT = 3
+MIN_PASSWORD_LENGTH = 8
+
+
+def _clean_password(request) -> str:
+    """Register, reset and login must agree, or a password set with a stray
+    space could never be typed back in."""
+    return str(request.data.get("password", "")).strip()
 
 
 def _normalize_answer(answer: str) -> str:
@@ -37,7 +44,7 @@ class LoginView(APIView):
 
     def post(self, request):
         username = request.data.get("username", "")
-        password = request.data.get("password", "")
+        password = _clean_password(request)
         user = authenticate(request, username=username, password=password)
         if user is None:
             return Response(
@@ -73,11 +80,18 @@ class RegisterView(APIView):
     def post(self, request):
         username = request.data.get("username", "").strip()
         email = request.data.get("email", "").strip()
-        password = request.data.get("password", "").strip()
+        password = _clean_password(request)
         pairs = request.data.get("security_questions") or []
         if not username or not email or not password:
             return Response(
                 {"detail": "All fields required."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if len(password) < MIN_PASSWORD_LENGTH:
+            return Response(
+                {
+                    "detail": f"Password must be at least {MIN_PASSWORD_LENGTH} characters."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
         if not isinstance(pairs, list) or not all(isinstance(p, dict) for p in pairs):
             pairs = []
@@ -315,16 +329,18 @@ class PasswordResetConfirmView(APIView):
     def post(self, request):
         uid = request.data.get("uid", "")
         token = request.data.get("token", "")
-        password = request.data.get("password", "").strip()
+        password = _clean_password(request)
 
         if not uid or not token or not password:
             return Response(
                 {"detail": "uid, token, and password are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if len(password) < 8:
+        if len(password) < MIN_PASSWORD_LENGTH:
             return Response(
-                {"detail": "Password must be at least 8 characters."},
+                {
+                    "detail": f"Password must be at least {MIN_PASSWORD_LENGTH} characters."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -342,6 +358,8 @@ class PasswordResetConfirmView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Changing the hash also retires every refresh token issued before it
+        # (see core/tokens.py).
         user.set_password(password)
         user.save()
         logger.info("Password reset completed for user %s", user.username)

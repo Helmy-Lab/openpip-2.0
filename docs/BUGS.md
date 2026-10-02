@@ -57,11 +57,19 @@ Each fix gets a regression test.
 - [ ] **BUG-010 — Long share/comment notification → 500.** Name (150) + view name
   (200) can exceed `Notification.text` max_length 300 in `sharing/views.py`.
   Truncate the text.
-- [ ] **BUG-011 — No server-side password rules on register; inconsistent strip.**
+- [x] **BUG-011 — No server-side password rules on register; inconsistent strip.**
   `RegisterView` accepts 1-char passwords (reset requires 8). Register/reset
   `.strip()` the password, login does not.
-- [ ] **BUG-012 — Refresh tokens survive a password reset.** Blacklist the
+  _Fixed: register enforces the same 8-char minimum; login strips too, so
+  every account created through register can still sign in._
+- [x] **BUG-012 — Refresh tokens survive a password reset.** Blacklist the
   user's outstanding tokens in `PasswordResetConfirmView`.
+  _Fixed differently: simplejwt 5.3.1 never records rotated refresh tokens
+  against the user, so blacklisting would miss every session that had
+  refreshed once. Refresh tokens now carry a password-hash fingerprint and are
+  refused once it changes. Access tokens still live out their 1 h. Tokens
+  issued before the deploy have no fingerprint, so everyone is logged out
+  once more when it ships._
 - [ ] **BUG-013 — Dataset archive built in memory per anonymous request.**
   `DatasetArchiveDownloadView` rebuilds the full zip every call.
 

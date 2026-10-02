@@ -4,6 +4,8 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+from rest_framework_simplejwt.tokens import AccessToken
+
 from core.models import User
 
 
@@ -399,3 +401,76 @@ def test_discoverable_toggles_from_the_profile(user_auth_client):
     )
     assert response.status_code == 200
     assert response.json()["discoverable"] is False
+
+
+_QUESTIONS = [
+    {"question": "First pet?", "answer": "Rex"},
+    {"question": "Birth city?", "answer": "Regina"},
+    {"question": "First school?", "answer": "Elm"},
+]
+
+
+@pytest.mark.django_db
+def test_register_rejects_short_password(api_client):
+    response = api_client.post(
+        "/api/auth/register",
+        {
+            "username": "shorty",
+            "email": "shorty@example.com",
+            "password": "  abc  ",
+            "security_questions": _QUESTIONS,
+        },
+        format="json",
+    )
+    assert response.status_code == 400
+    assert not User.objects.filter(username="shorty").exists()
+
+
+@pytest.mark.django_db
+def test_login_accepts_password_typed_with_the_space_register_stripped(api_client):
+    api_client.post(
+        "/api/auth/register",
+        {
+            "username": "spacey",
+            "email": "spacey@example.com",
+            "password": " pass1234 ",
+            "security_questions": _QUESTIONS,
+        },
+        format="json",
+    )
+    response = api_client.post(
+        "/api/auth/login",
+        {"username": "spacey", "password": " pass1234 "},
+        format="json",
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_password_reset_retires_refresh_tokens_even_after_rotation(api_client):
+    user = User.objects.create_user("rotated", "rot@example.com", "oldpass123")
+    login = api_client.post(
+        "/api/auth/login",
+        {"username": "rotated", "password": "oldpass123"},
+        format="json",
+    ).json()
+    # A rotated token has no OutstandingToken row tied to the user.
+    refreshed = api_client.post(
+        "/api/auth/token/refresh", {"refresh": login["refresh"]}, format="json"
+    ).json()
+    rotated = refreshed["refresh"]
+    assert "pwd" not in AccessToken(refreshed["access"]).payload
+    response = api_client.post(
+        "/api/auth/password-reset-confirm",
+        {
+            "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+            "token": PasswordResetTokenGenerator().make_token(user),
+            "password": "newpass456",
+        },
+        format="json",
+    )
+    assert response.status_code == 200
+    stale = api_client.post(
+        "/api/auth/token/refresh", {"refresh": rotated}, format="json"
+    )
+    assert stale.status_code == 401
