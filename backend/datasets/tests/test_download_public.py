@@ -56,3 +56,14 @@ def test_dataset_file_download_sif_format(api_client):
     ds = DatasetFactory(name="Test Dataset")
     response = api_client.get(f"/api/datasets/{ds.id}/download?fmt=sif")
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_dataset_file_download_leaves_out_removed_interactions(api_client):
+    ds = DatasetFactory(name="Test Dataset")
+    InteractionDatasetFactory(dataset=ds, interaction=InteractionFactory())
+    InteractionDatasetFactory(dataset=ds, interaction=InteractionFactory(removed="1"))
+
+    response = api_client.get(f"/api/datasets/{ds.id}/download?fmt=sif")
+    lines = b"".join(response.streaming_content).decode().strip().splitlines()
+    assert len(lines) == 1

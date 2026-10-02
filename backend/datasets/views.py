@@ -12,9 +12,10 @@ from rest_framework import status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
 
-from interactions.models import Interaction, InteractionDataset
+from interactions.models import Interaction, InteractionCategory, InteractionDataset
 from proteins.models import Identifier
 from .models import Dataset
 from .citation_lookup import CitationLookupError, fetch_by_doi, fetch_by_pubmed_id
@@ -35,6 +36,26 @@ from .upload_parser import (
 from .tasks import import_dataset_task
 
 logger = logging.getLogger(__name__)
+
+
+def as_bool(value) -> bool:
+    """Multipart sends "false" as a string, which bool() reads as True."""
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _category_id(data) -> int | None:
+    raw = data.get("category_id")
+    if raw in (None, ""):
+        return None
+    try:
+        category_id = int(raw)
+    except (TypeError, ValueError):
+        raise ValidationError({"category_id": "Must be a category id."})
+    # The link is a deferred foreign key, so a missing category would only
+    # fail when the whole import commits.
+    if not InteractionCategory.objects.filter(pk=category_id).exists():
+        raise ValidationError({"category_id": "No such category."})
+    return category_id
 
 
 def _reference_url(dataset) -> str | None:
@@ -118,7 +139,7 @@ class DatasetFileDownloadView(APIView):
             fmt = "tab"
 
         rows = (
-            InteractionDataset.objects.filter(dataset_id=pk)
+            InteractionDataset.objects.filter(dataset_id=pk, interaction__removed="0")
             .select_related(
                 "interaction__interactor_A",
                 "interaction__interactor_B",
@@ -214,7 +235,9 @@ class DatasetArchiveDownloadView(APIView):
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
             for ds in datasets:
                 rows = (
-                    InteractionDataset.objects.filter(dataset=ds)
+                    InteractionDataset.objects.filter(
+                        dataset=ds, interaction__removed="0"
+                    )
                     .select_related(
                         "interaction__interactor_A", "interaction__interactor_B"
                     )
@@ -336,8 +359,7 @@ class DatasetUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         interaction_status = request.data.get("interaction_status", "published")
-        category_id_raw = request.data.get("category_id")
-        category_id = int(category_id_raw) if category_id_raw else None
+        category_id = _category_id(request.data)
 
         file_bytes = uploaded_file.read()
         result = parse_and_ingest(
@@ -375,9 +397,8 @@ class DatasetUploadRowsView(APIView):
             )
 
         interaction_status = request.data.get("interaction_status", "published")
-        category_id_raw = request.data.get("category_id")
-        category_id = int(category_id_raw) if category_id_raw else None
-        is_last_batch = bool(request.data.get("is_last_batch", False))
+        category_id = _category_id(request.data)
+        is_last_batch = as_bool(request.data.get("is_last_batch", False))
 
         t0 = time.monotonic()
         result = process_line_batch(
@@ -533,8 +554,7 @@ class AsyncImportView(APIView):
             )
 
         interaction_status = request.data.get("interaction_status", "published")
-        category_id_raw = request.data.get("category_id")
-        category_id = int(category_id_raw) if category_id_raw else None
+        category_id = _category_id(request.data)
 
         file_bytes = file_obj.read()
         fmt = detect_format(file_obj.name or "", file_bytes)
