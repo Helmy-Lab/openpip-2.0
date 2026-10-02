@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { ProfileSharingSections } from '../ProfileSharingSections'
@@ -70,8 +70,23 @@ describe('ProfileSharingSections', () => {
     viewOpen.click()
     expect(navigate).toHaveBeenCalledWith('/views/7')
 
-    // A snapshot has no filters to restore, so it just re-runs the search.
+    // A snapshot opens as the interactions it stored.
     networkOpen.click()
     expect(navigate).toHaveBeenCalledWith(expect.stringMatching(/^\/networks\/\d+$/))
+  })
+
+  it('asks before deleting, and keeps the item if you cancel', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<ProfileSharingSections />, { wrapper: Wrapper })
+    await screen.findByText('MAPK cluster')
+
+    screen.getByRole('button', { name: 'Delete MAPK cluster' }).click()
+    expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/shared it with loses it/))
+    expect(screen.getByText('MAPK cluster')).toBeInTheDocument()
+
+    confirm.mockReturnValue(true)
+    screen.getByRole('button', { name: 'Delete MAPK cluster' }).click()
+    await waitFor(() => expect(screen.queryByText('MAPK cluster')).not.toBeInTheDocument())
+    confirm.mockRestore()
   })
 })

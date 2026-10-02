@@ -146,9 +146,16 @@ export function ProfileSharingSections() {
                     </button>
                   )}
                   <button
-                    onClick={() =>
-                      row.live ? deleteView.mutate(row.id) : deleteNetwork.mutate(row.id)
-                    }
+                    onClick={() => {
+                      // Deleting a view also deletes every share of it and its
+                      // discussion, so say so before it happens.
+                      const warning = row.live
+                        ? `Delete "${row.name}"? Anyone you shared it with loses it too, with its discussion.`
+                        : `Delete "${row.name}"? This cannot be undone.`
+                      if (!window.confirm(warning)) return
+                      if (row.live) deleteView.mutate(row.id)
+                      else deleteNetwork.mutate(row.id)
+                    }}
                     aria-label={`Delete ${row.name}`}
                     title="Delete"
                     style={{

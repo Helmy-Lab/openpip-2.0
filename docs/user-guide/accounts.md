@@ -64,7 +64,8 @@ it.
 
 On your profile, each saved view has **Details**, where you can keep private
 notes and manage its public link, and **Share**. The **×** on any row deletes
-it straight away, without asking.
+it after asking. Deleting a saved view also removes it from everyone you
+shared it with, along with its discussion.
 
 ## Sharing with colleagues
 
