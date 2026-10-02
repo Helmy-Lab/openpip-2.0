@@ -116,6 +116,7 @@ REST_FRAMEWORK = {
         "user": "1200/min",
         "psicquic": "60/min",
         "security_answer": "10/hour",
+        "security_answer_account": "10/hour",
     },
 }
 

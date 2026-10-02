@@ -256,3 +256,20 @@ def test_psicquic_refuses_max_results_over_the_cap(client, sample_interactions):
     ok = client.get(f"/psicquic/rest/query?q=*&maxResults={MAX_RESULTS}")
     too_many = client.get(f"/psicquic/rest/query?q=*&maxResults={MAX_RESULTS + 1}")
     assert ok.status_code == 200 and too_many.status_code == 400
+
+
+@pytest.mark.django_db
+def test_psicquic_throttles_signed_in_callers_too(
+    client, sample_interactions, regular_user, monkeypatch
+):
+    from django.core.cache import cache
+
+    cache.clear()
+    monkeypatch.setattr(PsicquicThrottle, "THROTTLE_RATES", {"psicquic": "2/min"})
+    from rest_framework_simplejwt.tokens import RefreshToken
+
+    token = RefreshToken.for_user(regular_user).access_token
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+    codes = [client.get("/psicquic/rest/query?q=BRCA1").status_code for _ in range(3)]
+    assert codes == [200, 200, 429]
+    cache.clear()

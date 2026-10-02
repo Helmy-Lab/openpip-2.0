@@ -1,8 +1,9 @@
 from django.http import HttpResponse, JsonResponse
 from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.permissions import AllowAny
-from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
+
+from core.throttling import EveryCallerRateThrottle
 
 from .miql import UnsupportedQuery, parse_miql
 from .mitab import format_queryset, VERSION_WIDTHS
@@ -22,7 +23,7 @@ class IgnoreFormatQueryParam(DefaultContentNegotiation):
         return renderers[0], renderers[0].media_type
 
 
-class PsicquicThrottle(AnonRateThrottle):
+class PsicquicThrottle(EveryCallerRateThrottle):
     """Rate limit for the public PSICQUIC surface.
 
     These endpoints are unauthenticated and return bulk data, so they are the

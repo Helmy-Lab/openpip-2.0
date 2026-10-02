@@ -13,7 +13,7 @@ https://openpip.usask.ca/v2/psicquic/rest/
 ```
 
 All requests are `GET`, need no authentication, and are limited to 60 per
-minute per IP address. Paths have no trailing slash.
+minute per IP address, or per account for logged-in callers. Paths have no trailing slash.
 
 ## Endpoints
 

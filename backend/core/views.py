@@ -12,9 +12,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
-from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.views import TokenRefreshView
+from .throttling import SecurityAnswerAccountThrottle, SecurityAnswerThrottle
 from .tokens import CustomRefreshToken
 
 from .models import User
@@ -286,18 +286,13 @@ class SecurityQuestionView(APIView):
         return Response({"questions": [p["question"] for p in user.security_questions]})
 
 
-class _SecurityAnswerThrottle(AnonRateThrottle):
-    # CACHES points at Redis when REDIS_URL is set, so this counts across all
-    # gunicorn workers rather than per process. Without it the effective limit
-    # was silently 3x the configured one.
-    scope = "security_answer"
-
-
 class SecurityAnswerView(APIView):
     """Step 2: a correct answer hands back a normal password-reset token."""
 
     permission_classes = [AllowAny]
-    throttle_classes = [_SecurityAnswerThrottle]
+    # CACHES points at Redis when REDIS_URL is set, so these count across all
+    # gunicorn workers rather than per process.
+    throttle_classes = [SecurityAnswerThrottle, SecurityAnswerAccountThrottle]
 
     def post(self, request):
         email = request.data.get("email", "").strip()

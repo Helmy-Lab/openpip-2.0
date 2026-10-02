@@ -136,7 +136,7 @@ must be right.
 | Status | Body (`detail`) |
 |---|---|
 | 400 | `Those answers are incorrect.` |
-| 429 | Limited to 10 attempts per hour per IP address for anonymous callers. |
+| 429 | Too many attempts: at most 10 per hour from one caller (IP address, or account when logged in), and 10 per hour for any one email address however many callers try. |
 
 ### POST /api/auth/password-reset-confirm
 

@@ -90,8 +90,9 @@ PSICQUIC errors are plain text, not JSON. See the
 |---|---|
 | Anonymous, per IP address | 600 requests per minute |
 | Logged in, per account | 1,200 requests per minute |
-| PSICQUIC, anonymous, per IP address | 60 requests per minute |
-| Security-question answers, anonymous, per IP address | 10 per hour |
+| PSICQUIC, per IP address, or per account when logged in | 60 requests per minute |
+| Security-question answers, per IP address, or per account when logged in | 10 per hour |
+| Security-question answers about any one email address, from everyone combined | 10 per hour |
 
 A request over the limit gets 429.
 

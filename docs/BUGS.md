@@ -117,8 +117,9 @@ hand; the rest come from code-reading inventories and still need confirming.
   password. Docker's iptables rules bypass `ufw`. Fix: `ports: !reset []`
   (confirmed with `docker compose config`), rotate the DB password with
   `ALTER USER`. Backend 8001 / frontend 8080 are also on `0.0.0.0`.
-- [ ] **BUG-032 — High: security-answer guessing is unthrottled for signed-in
-  users (verified in code).** `_SecurityAnswerThrottle` and `PsicquicThrottle`
+- [x] **BUG-032 — High: security-answer guessing is unthrottled for signed-in
+  users (verified in code).** _Fixed: `core/throttling.py` counts signed-in
+  callers per account, and a second limit caps guesses per target email._ `_SecurityAnswerThrottle` and `PsicquicThrottle`
   subclass `AnonRateThrottle`, which returns no cache key for authenticated
   requests. Registration is open, so anyone can sign in and guess another
   account's security answers (all that recovery needs) without limit.

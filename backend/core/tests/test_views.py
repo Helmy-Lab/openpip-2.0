@@ -506,3 +506,42 @@ def test_deactivated_user_cannot_refresh(api_client):
         "/api/auth/token/refresh", {"refresh": login["refresh"]}, format="json"
     )
     assert response.status_code == 401
+
+
+@pytest.fixture
+def clean_throttles(monkeypatch):
+    from django.core.cache import cache
+
+    from core.throttling import SecurityAnswerAccountThrottle, SecurityAnswerThrottle
+
+    cache.clear()
+    rates = {"security_answer": "3/hour", "security_answer_account": "3/hour"}
+    monkeypatch.setattr(SecurityAnswerThrottle, "THROTTLE_RATES", rates)
+    monkeypatch.setattr(SecurityAnswerAccountThrottle, "THROTTLE_RATES", rates)
+    yield
+    cache.clear()
+
+
+def _guess(client, **extra):
+    return client.post(
+        "/api/auth/security-answer",
+        {"email": "qa@example.com", "answers": ["x", "y", "z"]},
+        format="json",
+        **extra,
+    ).status_code
+
+
+@pytest.mark.django_db
+def test_signed_in_callers_are_throttled_on_security_answers(
+    user_auth_client, question_user, clean_throttles
+):
+    codes = [_guess(user_auth_client) for _ in range(5)]
+    assert codes == [400, 400, 400, 429, 429]
+
+
+@pytest.mark.django_db
+def test_guesses_at_one_account_are_capped_across_addresses(
+    api_client, question_user, clean_throttles
+):
+    codes = [_guess(api_client, REMOTE_ADDR=f"10.0.0.{i}") for i in range(5)]
+    assert codes == [400, 400, 400, 429, 429]
