@@ -22,21 +22,9 @@ describe('OverlaySystem', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders LoadingOverlay when activeModal is "loading"', () => {
-    useSearchStore.setState({ activeModal: 'loading' })
-    wrap()
-    expect(screen.getByText('Preparing network data for export.')).toBeInTheDocument()
-  })
-
   it('renders CyRestModal when activeModal is "cyRest"', () => {
     useSearchStore.setState({ activeModal: 'cyRest' })
     wrap()
     expect(screen.getByText('Open in Cytoscape')).toBeInTheDocument()
-  })
-
-  it('renders DownloadModal when activeModal is "download"', () => {
-    useSearchStore.setState({ activeModal: 'download' })
-    wrap()
-    expect(screen.getByText('Download Data')).toBeInTheDocument()
   })
 })

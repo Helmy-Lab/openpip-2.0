@@ -29,37 +29,10 @@ export function useInteractionCategories() {
   })
 }
 
-export function useDatasetPreview() {
-  return useMutation<DatasetPreviewResult, Error, FormData>({
-    mutationFn: (formData) =>
-      apiClient
-        .post('/datasets/preview', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-        .then((r) => r.data),
-  })
-}
-
 export function useDatasetDelete() {
   const queryClient = useQueryClient()
   return useMutation<void, Error, number>({
     mutationFn: (id) => apiClient.delete(`/datasets/${id}`).then(() => {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['datasets'] })
-      queryClient.invalidateQueries({ queryKey: ['counts'] })
-    },
-  })
-}
-
-export function useDatasetUpload() {
-  const queryClient = useQueryClient()
-  return useMutation<DatasetPreviewResult, Error, FormData>({
-    mutationFn: (formData) =>
-      apiClient
-        .post('/datasets/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-        .then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['datasets'] })
       queryClient.invalidateQueries({ queryKey: ['counts'] })

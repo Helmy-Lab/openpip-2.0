@@ -3,7 +3,7 @@ import type { Protein, Interaction } from '../../types/api'
 import type { SearchResult } from '../../types/search'
 
 type LayoutName = 'cola' | 'cose' | 'concentric' | 'circle' | 'grid'
-type ModalName = 'download' | 'cyRest' | 'loading' | 'directDownload'
+type ModalName = 'cyRest' | 'directDownload'
 
 /**
  * What it takes to look at a network the way someone else was looking at it:

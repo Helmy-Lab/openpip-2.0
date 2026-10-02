@@ -173,6 +173,11 @@ hand; the rest come from code-reading inventories and still need confirming.
   (verified in code).** They clicked a detached link or revoked its object URL
   at once, the pattern the Downloads page warns against. _Fixed: one shared
   `saveBlob` in `lib/download.ts`._
+- [x] **BUG-047 — Dead interface code (verified).** `NetworkToolbar` and its
+  five dropdowns, `DownloadModal`, `LoadingOverlay`, `EnrichmentPanel`, four
+  unused home-page components and three unused API hooks were never rendered
+  or called, which is how the lost image export (BUG-036) went unnoticed.
+  _Removed with their tests; the backend endpoints stay._
 - [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The

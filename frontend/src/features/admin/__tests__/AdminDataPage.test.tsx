@@ -7,7 +7,6 @@ import { useCounts } from '../../../api/counts'
 import { useDatasets } from '../../../api/downloads'
 import {
   useInteractionCategories,
-  useDatasetUpload,
   useDatasetDelete,
 } from '../../../api/datasets'
 
@@ -15,7 +14,6 @@ vi.mock('../../../api/counts', () => ({ useCounts: vi.fn() }))
 vi.mock('../../../api/downloads', () => ({ useDatasets: vi.fn() }))
 vi.mock('../../../api/datasets', () => ({
   useInteractionCategories: vi.fn(),
-  useDatasetUpload: vi.fn(),
   useDatasetDelete: vi.fn(),
   useDatasetUpdate: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false, isError: false })),
   useCitationLookup: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
@@ -57,10 +55,6 @@ describe('AdminDataPage', () => {
     ;(useInteractionCategories as ReturnType<typeof vi.fn>).mockReturnValue({
       data: mockCategories,
       isLoading: false,
-    })
-    ;(useDatasetUpload as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
     })
     ;(useDatasetDelete as ReturnType<typeof vi.fn>).mockReturnValue({
       mutate: vi.fn(),

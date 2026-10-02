@@ -17,7 +17,6 @@ vi.mock('../network/CytoscapeNetwork', () => ({
   ),
 }))
 vi.mock('../tables/ResultTablePanel', () => ({ ResultTablePanel: () => <div>Tables</div> }))
-vi.mock('../enrichment/EnrichmentPanel', () => ({ EnrichmentPanel: () => <div>Enrichment</div> }))
 vi.mock('../NodeInfoPanel', () => ({ NodeInfoPanel: () => null }))
 vi.mock('../modals/OverlaySystem', () => ({ OverlaySystem: () => null }))
 vi.mock('../../../api/search', () => ({ useSearch: vi.fn() }))
