@@ -1,4 +1,5 @@
 site_name: openPIP Documentation
+site_url: https://openpip.usask.ca/v2/docs/
 site_description: >-
   Documentation for openPIP, the open-source platform for hosting, searching
   and visualising protein–protein interaction data.
@@ -18,6 +19,7 @@ exclude_docs: |
   /*.md
   !/index.md
   /*.pdf
+  /requirements.txt
   /plans/
   /specs/
   /superpowers/
@@ -90,3 +92,12 @@ validation:
 
 nav:
   - Home: index.md
+  - Operator guide:
+      - Configuration reference: operator-guide/configuration.md
+  - Developer guide:
+      - REST API:
+          - Overview: developer/api/index.md
+          - Authentication and accounts: developer/api/authentication.md
+  - About:
+      - Citing openPIP: about/citation.md
+      - License: about/license.md

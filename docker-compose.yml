@@ -64,7 +64,9 @@ services:
     command: celery -A openpip worker -l info -Q celery
 
   frontend:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     profiles: [prod]
     restart: unless-stopped
     ports:
