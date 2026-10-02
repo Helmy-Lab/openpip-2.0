@@ -7,9 +7,10 @@ from .base import *  # noqa: F401, F403
 if SECRET_KEY.startswith("django-insecure"):  # noqa: F405
     raise ImproperlyConfigured("Set a real SECRET_KEY in .env for production.")
 
-# App is mounted at /v2/ in production nginx — tells Django's reverse() to
-# prepend this prefix so generated URLs (e.g. Swagger schema link) are correct.
-FORCE_SCRIPT_NAME = "/v2"
+# The path the site is served under (the reference deployment is /v2), so
+# reverse() and STATIC_URL generate URLs with it. Empty for a site at the root
+# of its domain. Must match the frontend's VITE_BASE.
+FORCE_SCRIPT_NAME = env("URL_PREFIX", default="/v2").rstrip("/")  # noqa: F405
 
 SECURE_HSTS_SECONDS = 3600
 SECURE_SSL_REDIRECT = True

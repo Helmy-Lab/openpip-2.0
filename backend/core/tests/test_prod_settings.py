@@ -55,3 +55,25 @@ def test_production_settings_set_one_trusted_proxy():
         text=True,
     )
     assert result.stdout.strip() == "1"
+
+
+def _prod_value(expr: str, **env_vars) -> str:
+    inherited = {k: v for k, v in os.environ.items() if k != "URL_PREFIX"}
+    env = {**inherited, "SECRET_KEY": "x" * 50, **env_vars}
+    return subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            f"import openpip.settings.prod as p; print(repr({expr}))",
+        ],
+        cwd=BACKEND,
+        env=env,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def test_url_prefix_defaults_to_v2_and_can_be_changed_or_emptied():
+    assert _prod_value("p.FORCE_SCRIPT_NAME") == "'/v2'"
+    assert _prod_value("p.FORCE_SCRIPT_NAME", URL_PREFIX="/lab/") == "'/lab'"
+    assert _prod_value("p.FORCE_SCRIPT_NAME", URL_PREFIX="") == "''"

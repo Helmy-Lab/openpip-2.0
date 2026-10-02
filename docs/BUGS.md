@@ -191,7 +191,9 @@ hand; the rest come from code-reading inventories and still need confirming.
   all-datasets ZIP (`/api/datasets/download/`) at all.
 - [ ] **BUG-030 — Downloads lose the negative flag.** Negative interactions are
   exported in tab/sif/csv with nothing marking them negative.
-- [ ] **BUG-031 — `/v2` hard-coded.** `FORCE_SCRIPT_NAME = "/v2"` in
+- [x] **BUG-031 — `/v2` hard-coded.** _Fixed: `URL_PREFIX` (default `/v2`)
+  drives `FORCE_SCRIPT_NAME` and the frontend build's `VITE_BASE`;
+  `DOCS_SITE_URL` sets the docs site URL._ `FORCE_SCRIPT_NAME = "/v2"` in
   `prod.py` and `VITE_BASE=/v2/` in `.env.production`; any other mount path
   needs code edits and a rebuild.
 

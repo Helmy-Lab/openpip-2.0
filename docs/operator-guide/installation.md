@@ -142,10 +142,10 @@ location /v2/ {
   frontend container itself accepts up to 500 MB.
 
 !!! note "Serving at a different path"
-    The `/v2` prefix is built into both images (`FORCE_SCRIPT_NAME` in
-    `backend/openpip/settings/prod.py` and `VITE_BASE` in
-    `frontend/.env.production`). To serve openPIP elsewhere, change both and
-    rebuild.
+    The examples use `/v2`, the default. To serve openPIP under another path,
+    set `URL_PREFIX` (and `DOCS_SITE_URL`) in `.env`, rebuild with
+    `up -d --build`, and use the same path in the `location` block. For a site
+    at the root of its domain, set `URL_PREFIX=` (empty) and use `location /`.
 
 Check from outside the server:
 
