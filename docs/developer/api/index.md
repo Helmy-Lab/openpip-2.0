@@ -1,0 +1,129 @@
+# REST API overview
+
+Everything the openPIP web interface does goes through a JSON REST API, and
+the same API is open to your own scripts. This section documents every
+endpoint the server provides. A test in the backend suite compares this
+reference with the server's URL configuration, so an endpoint cannot be added
+or removed without this reference failing that test.
+
+For bulk interaction data in a standard format, also see the
+[PSICQUIC service](../psicquic.md), which speaks the protocol used by IntAct,
+BioGRID and other interaction databases.
+
+## Base URL
+
+All paths in this reference are relative to the deployment's root URL. On the
+reference deployment that is `https://openpip.usask.ca/v2`, so `GET
+/api/search` means:
+
+```text
+https://openpip.usask.ca/v2/api/search?q=TP53
+```
+
+A deployment served at the root of its domain has no prefix.
+
+## Trailing slashes
+
+Most paths have **no** trailing slash. Paths are matched exactly, so
+`/api/search/` returns 404. The exceptions, which **require** a trailing slash,
+are written with one in this reference: `/api/schema/`, `/api/docs/`,
+`/api/datasets/download/`, `/api/upload/`, and the saved views, shares and
+notifications endpoints. Without the slash, the server answers with a 301
+redirect to the slashed path. That is harmless for `GET`, but most HTTP
+clients repeat a redirected `POST` as a `GET` without its body, so always send
+`POST`, `PUT`, `PATCH` and `DELETE` to the exact path shown.
+
+## Authentication
+
+Public data needs no authentication. Searching, protein and dataset details,
+downloads and PSICQUIC all work anonymously.
+
+Personal endpoints (saved networks, sharing, profiles) and administrative
+endpoints need a login token, sent as a header:
+
+```text
+Authorization: Bearer <access token>
+```
+
+Get tokens from [`POST /api/auth/login`](authentication.md#post-apiauthlogin).
+An access token lasts **1 hour**. Use the refresh token, which lasts 7 days, to
+get a new pair from
+[`POST /api/auth/token/refresh`](authentication.md#post-apiauthtokenrefresh).
+
+!!! note
+    If you send an `Authorization` header with an expired or invalid token, the
+    request fails with 401 even on public endpoints. Omit the header for
+    anonymous requests.
+
+Administrative endpoints additionally require the account to be a site
+administrator. A request from any other account gets 403.
+
+## Errors
+
+Errors use HTTP status codes with a JSON body. Most bodies have a single
+`detail` message:
+
+```json
+{"detail": "Not found."}
+```
+
+Validation errors name the offending fields instead:
+
+```json
+{"category_id": "No such category."}
+```
+
+| Status | Meaning |
+|---|---|
+| 400 | The request is invalid. The body says why. |
+| 401 | No valid login token was sent and the endpoint needs one, or the token sent is invalid or expired. |
+| 403 | You are logged in but not allowed to do this, usually because it is admin-only. |
+| 404 | No such object, or an object you may not see. |
+| 429 | Rate limit exceeded. The body says how many seconds to wait. |
+
+PSICQUIC errors are plain text, not JSON. See the
+[PSICQUIC page](../psicquic.md#errors).
+
+## Rate limits
+
+| Caller | Limit |
+|---|---|
+| Anonymous, per IP address | 600 requests per minute |
+| Logged in, per account | 1,200 requests per minute |
+| PSICQUIC, anonymous, per IP address | 60 requests per minute |
+| Security-question answers, anonymous, per IP address | 10 per hour |
+
+A request over the limit gets 429.
+
+## Pagination
+
+Only one endpoint is paginated:
+[`GET /api/proteins`](proteins-and-search.md#get-apiproteins) takes `limit` and
+`offset`. Every other list returns all its results in one response. Lists that
+could grow large are bounded: search returns the networks for the proteins you
+ask for, notifications return the newest 50, and user search returns at most
+10 matches.
+
+## Cross-origin requests
+
+The API and PSICQUIC accept browser requests from any origin (CORS). Login
+tokens are sent in a header, not as cookies, so a third-party page cannot act
+for a logged-in user.
+
+## Machine-readable schema
+
+### GET /api/schema/
+
+An OpenAPI 3 schema generated from the code, as YAML. Add `?format=json` for
+JSON. No authentication.
+
+!!! warning "The generated schema is incomplete"
+    The schema lists every path and method, but for most endpoints it does not
+    describe the request parameters or the response. Those endpoints are written
+    in a style the generator cannot inspect. Use this reference for request and
+    response details.
+
+### GET /api/docs/
+
+An interactive Swagger UI page for the schema above. It loads its scripts from
+the jsDelivr CDN.

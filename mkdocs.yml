@@ -1,0 +1,92 @@
+site_name: openPIP Documentation
+site_description: >-
+  Documentation for openPIP, the open-source platform for hosting, searching
+  and visualising protein–protein interaction data.
+repo_url: https://github.com/hamid-ananda/openpip-2.0
+repo_name: openpip-2.0
+edit_uri: edit/main/docs/
+copyright: >-
+  openPIP is described in Helmy et al., <i>J. Mol. Biol.</i> 434 (2022) 167603.
+
+docs_dir: docs
+strict: true
+
+# Working notes — plans, specs, audits, migration notes — live in docs/ next
+# to the published pages because CLAUDE.md links to them there. They are not
+# part of the product documentation, so the site leaves them out.
+exclude_docs: |
+  /*.md
+  !/index.md
+  /*.pdf
+  /plans/
+  /specs/
+  /superpowers/
+
+theme:
+  name: material
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  font:
+    text: Inter
+    code: JetBrains Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - toc.follow
+
+extra_css:
+  - assets/extra.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn
+
+nav:
+  - Home: index.md

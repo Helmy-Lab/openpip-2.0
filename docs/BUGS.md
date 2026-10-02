@@ -100,6 +100,63 @@ Each fix gets a regression test.
 - [x] **BUG-019 —** _Fixed: root-owned `0.4.4/` moved aside (`sudo rm` it later)._ `backend/.ruff_cache` permission error; `ruff check` only
   works with `--no-cache`.
 
+
+### Found while writing the documentation (2026-10-02, branch `documentation`)
+
+"Verified" means reproduced or confirmed against the running stack or code by
+hand; the rest come from code-reading inventories and still need confirming.
+
+- [ ] **BUG-020 — Critical: Postgres and Redis published on every interface in
+  production (verified).** `docker-compose.prod.yml` sets `ports: []`, which
+  Compose merges with the base file instead of replacing, so the running stack
+  publishes `0.0.0.0:5432` and `0.0.0.0:6379`. Postgres uses the compose
+  default password `openpip_dev` (no `DB_PASSWORD` in `.env`); Redis has no
+  password. Docker's iptables rules bypass `ufw`. Fix: `ports: !reset []`
+  (confirmed with `docker compose config`), rotate the DB password with
+  `ALTER USER`. Backend 8001 / frontend 8080 are also on `0.0.0.0`.
+- [ ] **BUG-032 — High: security-answer guessing is unthrottled for signed-in
+  users (verified in code).** `_SecurityAnswerThrottle` and `PsicquicThrottle`
+  subclass `AnonRateThrottle`, which returns no cache key for authenticated
+  requests. Registration is open, so anyone can sign in and guess another
+  account's security answers (all that recovery needs) without limit.
+  Throttle by target email/account, not only by caller.
+- [ ] **BUG-033 — Throttle identity is spoofable (verified in code).**
+  `NUM_PROXIES` is unset, so DRF keys anonymous throttles on the entire
+  client-supplied `X-Forwarded-For` header; a new value per request gets a
+  fresh bucket. The frontend nginx sets only `X-Real-IP`, which DRF ignores.
+  Set `NUM_PROXIES` to the real proxy depth and have nginx set the header.
+- [ ] **BUG-021 — CORS allow-list ignored (verified).** `settings/base.py`
+  sets `CORS_ALLOW_ALL_ORIGINS = True`, so `CORS_ALLOWED_ORIGINS` has no effect
+  in any environment.
+- [ ] **BUG-022 — TAB rows with a bare gene name are dropped silently
+  (verified).** `upload_parser._is_header_row` treats any row whose first cell
+  has no `:` as a header. The upload wizard's column guide says column 1 may be
+  "a bare gene name". Bare names do work in CSV uploads.
+- [ ] **BUG-023 — CSV header check differs between UI and server.** The wizard
+  lower-cases headers before checking for `protein_a`/`protein_b`; the parser's
+  `DictReader` is case-sensitive, so `Protein_A` passes the UI and loads 0 rows.
+- [ ] **BUG-024 — Upload preview counts use case-sensitive matching.**
+  `ProteinCheckView` / `fast_preview` use exact `identifier__in`; the parser
+  uses `iexact`, so the "already in database" count can be wrong.
+- [ ] **BUG-025 — `Protein.number_of_interactions_in_database` is never
+  recomputed.** Proteins created by uploads keep NULL, and the protein list's
+  "has interactions" filter treats them as having none.
+- [ ] **BUG-026 — Upload category only applies to new interactions from TAB.**
+  Interactions that already existed (overlaps) get no category, and the CSV
+  parser ignores `category_id`. No way to re-categorise afterwards.
+- [ ] **BUG-027 — `/django-admin/` and `/static/` unreachable in production.**
+  The frontend nginx does not proxy them and nothing serves `collectstatic`
+  output, yet `admin_panel/views.py` names `/django-admin/` as a fallback.
+- [ ] **BUG-028 — No `frontend/.dockerignore`.** `COPY . .` after `npm ci`
+  copies the host's `node_modules/` and `dist/` into the image build.
+- [ ] **BUG-029 — `show_downloads` / `show_download_all` settings not enforced
+  by the download endpoints** (check whether the UI hides the links).
+- [ ] **BUG-030 — Downloads lose the negative flag.** Negative interactions are
+  exported in tab/sif/csv with nothing marking them negative.
+- [ ] **BUG-031 — `/v2` hard-coded.** `FORCE_SCRIPT_NAME = "/v2"` in
+  `prod.py` and `VITE_BASE=/v2/` in `.env.production`; any other mount path
+  needs code edits and a rebuild.
+
 ---
 
 ## Fixed
