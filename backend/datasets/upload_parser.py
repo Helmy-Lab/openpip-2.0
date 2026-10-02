@@ -174,6 +174,15 @@ def _credit_dataset(interaction: Interaction, dataset) -> bool:
     )[1]
 
 
+def _add_category(interaction: Interaction, category_id: int | None) -> None:
+    """Put the interaction in the upload's category, once. Applied to reused
+    interactions as well as new ones, as legacy did (DataController.php)."""
+    if category_id is not None:
+        InteractionInteractionCategory.objects.get_or_create(
+            interaction=interaction, interaction_category_id=category_id
+        )
+
+
 def _parse_psimi_label(raw: str) -> str | None:
     """Extract human-readable label from psi-mi:"MI:XXXX"(label) notation."""
     if not raw or raw.strip() == "-":
@@ -618,6 +627,7 @@ def parse_and_ingest(
                     if _credit_dataset(existing, named_dataset):
                         _handle_detection_method(existing, _safe_col(row, 6))
                         _handle_interaction_annotations(existing, _safe_col(row, 27))
+                    _add_category(existing, category_id)
                     transaction.savepoint_commit(sid)
                     interactions_skipped += 1
                     continue
@@ -662,11 +672,7 @@ def parse_and_ingest(
                     _handle_support_info(interaction, _safe_col(row, 26))
 
                 # ── Category ───────────────────────────────────────────────
-                if category_id is not None:
-                    InteractionInteractionCategory.objects.create(
-                        interaction=interaction,
-                        interaction_category_id=category_id,
-                    )
+                _add_category(interaction, category_id)
 
                 transaction.savepoint_commit(sid)
 
@@ -767,6 +773,7 @@ def parse_and_ingest_csv(
                 existing = _existing_interaction(protein_a, protein_b)
                 if existing:
                     _credit_dataset(existing, named_dataset)
+                    _add_category(existing, category_id)
                     transaction.savepoint_commit(sid)
                     interactions_skipped += 1
                     continue
@@ -785,6 +792,7 @@ def parse_and_ingest_csv(
                     InteractionDataset.objects.get_or_create(
                         interaction=interaction, dataset=named_dataset
                     )
+                _add_category(interaction, category_id)
 
                 transaction.savepoint_commit(sid)
                 interactions_created += 1

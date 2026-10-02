@@ -162,7 +162,9 @@ hand; the rest come from code-reading inventories and still need confirming.
   recomputed.** _Fixed: recounted for all proteins after every import and
   dataset delete, with legacy's definition (0.6 s on production data)._ Proteins created by uploads keep NULL, and the protein list's
   "has interactions" filter treats them as having none.
-- [ ] **BUG-026 — Upload category only applies to new interactions from TAB.**
+- [x] **BUG-026 — Upload category only applies to new interactions from TAB.**
+  _Fixed: added to reused interactions too (legacy did) and in CSV uploads.
+  Removing a category from an interaction still has no UI._
   Interactions that already existed (overlaps) get no category, and the CSV
   parser ignores `category_id`. No way to re-categorise afterwards.
 - [ ] **BUG-027 — `/django-admin/` and `/static/` unreachable in production.**

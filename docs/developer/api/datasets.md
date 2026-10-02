@@ -213,7 +213,7 @@ Start a background import. Multipart form data.
 | `file` | Required. PSI-MI TAB (`.tab`, `.tsv`, `.txt`) or simple CSV (`.csv`). Other extensions are recognised by content. |
 | `dataset_name` | Required. An existing name adds to that dataset. |
 | `interaction_status` | Label for a new dataset. Default `published`. |
-| `category_id` | Optional ID of an [interaction category](administration.md#interaction-categories) to give new interactions (PSI-MI TAB only). |
+| `category_id` | Optional ID of an [interaction category](administration.md#interaction-categories) to add every interaction in the file to, new or reused. |
 | citation and About fields | Optional, as for `PATCH /api/datasets/{pk}`. Validated before the import starts. |
 
 Returns `202 {"task_id": "..."}`. Needs the Celery worker to be running.

@@ -741,3 +741,18 @@ def test_import_counts_interactions_for_every_protein(auth_client):
         Protein.objects.values_list("gene_name", "number_of_interactions_in_database")
     )
     assert counts == {"TP53": 3, "MDM2": 1, "BRCA1": 1}
+
+
+@pytest.mark.django_db
+def test_category_is_added_to_reused_interactions_and_csv_rows():
+    validated = InteractionCategory.objects.create(category_name="Validated", order="2")
+    parse_and_ingest(b"TP53\tMDM2\n", dataset_name="First")
+    parse_and_ingest(b"TP53\tMDM2\n", dataset_name="Second", category_id=validated.pk)
+    parse_and_ingest_csv(
+        b"protein_a,protein_b\nBRCA1,BARD1\n", "Third", category_id=validated.pk
+    )
+
+    categorised = InteractionInteractionCategory.objects.filter(
+        interaction_category=validated
+    )
+    assert categorised.count() == 2  # the reused TP53-MDM2 and the CSV row

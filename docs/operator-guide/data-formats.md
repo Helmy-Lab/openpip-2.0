@@ -50,8 +50,9 @@ Isoform suffixes are kept. `Q00987-11` and `Q00987` are different identifiers.
 **Existing interactions are reused.** If the pair already has an interaction,
 in either order, no new interaction is created. The existing one is credited
 to your dataset as well, and from PSI-MI TAB it also gains your file's
-detection method and interaction annotations. Its score, type, roles and
-categories are not changed. These rows are reported as *skipped*.
+detection method and interaction annotations, and it is added to the upload's
+category. Its score, type and roles are not changed. These rows are reported as
+*skipped*.
 
 **A self-interaction** is a row whose two identifiers are identical. It is
 stored once, with the same protein on both sides.
@@ -62,10 +63,10 @@ number and the reason.
 
 **Category.** The upload form lets you choose one
 [interaction category](../developer/api/administration.md#interaction-categories)
-for the file. It is applied to the interactions the upload **creates**, and
-only for PSI-MI TAB. Interactions that already existed keep their categories,
-and CSV uploads get no category. A category cannot be changed afterwards
-except by re-uploading.
+for the file. Every interaction in the file joins it, whether the upload created
+the interaction or reused an existing one, and it keeps any categories it had
+already. This applies to both PSI-MI TAB and CSV. There is no way to remove an
+interaction from a category afterwards.
 
 ## PSI-MI TAB
 
