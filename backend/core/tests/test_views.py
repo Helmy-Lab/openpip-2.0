@@ -474,3 +474,35 @@ def test_password_reset_retires_refresh_tokens_even_after_rotation(api_client):
         "/api/auth/token/refresh", {"refresh": rotated}, format="json"
     )
     assert stale.status_code == 401
+
+
+@pytest.mark.django_db
+def test_refresh_drops_admin_claim_after_demotion(api_client):
+    admin = User.objects.create_superuser("demoted", "dem@example.com", "password123")
+    login = api_client.post(
+        "/api/auth/login",
+        {"username": "demoted", "password": "password123"},
+        format="json",
+    ).json()
+    admin.is_staff = False
+    admin.save()
+    access = api_client.post(
+        "/api/auth/token/refresh", {"refresh": login["refresh"]}, format="json"
+    ).json()["access"]
+    assert AccessToken(access)["is_admin"] is False
+
+
+@pytest.mark.django_db
+def test_deactivated_user_cannot_refresh(api_client):
+    user = User.objects.create_user("gone", "gone@example.com", "password123")
+    login = api_client.post(
+        "/api/auth/login",
+        {"username": "gone", "password": "password123"},
+        format="json",
+    ).json()
+    user.is_active = False
+    user.save()
+    response = api_client.post(
+        "/api/auth/token/refresh", {"refresh": login["refresh"]}, format="json"
+    )
+    assert response.status_code == 401

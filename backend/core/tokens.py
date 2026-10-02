@@ -30,8 +30,15 @@ class CustomRefreshToken(_RefreshToken):
         user = User.objects.filter(
             **{api_settings.USER_ID_FIELD: self.payload.get(api_settings.USER_ID_CLAIM)}
         ).first()
-        if user is None or self.payload.get(PASSWORD_CLAIM) != _password_stamp(user):
+        if (
+            user is None
+            or not user.is_active
+            or self.payload.get(PASSWORD_CLAIM) != _password_stamp(user)
+        ):
             raise TokenError("Token is no longer valid for this account")
+        # Re-read rather than carry the login-time value forward, so a
+        # demoted admin loses the admin UI at the next refresh.
+        self.payload["is_admin"] = user.is_staff
 
     @property
     def access_token(self):

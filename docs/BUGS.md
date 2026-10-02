@@ -54,9 +54,9 @@ Each fix gets a regression test.
 - [ ] **BUG-009 — PSICQUIC paging unstable and unbounded.** `psicquic/miql.py`
   returns an unordered queryset, so `firstResult` pages can skip/duplicate rows;
   `maxResults` has no cap. Add `order_by("pk")` and a max.
-- [ ] **BUG-010 — Long share/comment notification → 500.** Name (150) + view name
+- [x] **BUG-010 — Long share/comment notification → 500.** Name (150) + view name
   (200) can exceed `Notification.text` max_length 300 in `sharing/views.py`.
-  Truncate the text.
+  Truncate the text. _Fixed in `notify()`, which both callers use._
 - [x] **BUG-011 — No server-side password rules on register; inconsistent strip.**
   `RegisterView` accepts 1-char passwords (reset requires 8). Register/reset
   `.strip()` the password, login does not.
@@ -77,8 +77,10 @@ Each fix gets a regression test.
 
 - [ ] **BUG-014 —** `SummaryDropdown.tsx` shows a literal `<br>` between not-found
   terms; `foundSummary` is rendered as raw HTML (raw saved query for saved networks).
-- [ ] **BUG-015 —** Demoted admin keeps admin UI (not access) until logout:
-  token refresh carries the old `is_admin` claim forward.
+- [x] **BUG-015 —** Demoted admin keeps admin UI (not access) until logout:
+  token refresh carries the old `is_admin` claim forward. _Fixed: refresh
+  re-reads `is_staff`; the UI updates within the 1 h access lifetime. Refresh
+  now also refuses deactivated users, which simplejwt 5.3.1 did not check._
 - [ ] **BUG-016 —** Dataset exports don't filter `removed != "0"` (none exist yet).
 - [ ] **BUG-017 —** Categories sort by the text `order` column ("10" before "2").
 - [ ] **BUG-018 —** Admin endpoints: non-numeric `category_id` → 500;

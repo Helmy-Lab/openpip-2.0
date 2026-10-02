@@ -387,3 +387,21 @@ def test_public_token_is_not_writable(user_auth_client, saved_view):
     )
     saved_view.refresh_from_db()
     assert saved_view.public_token is None
+
+
+@pytest.mark.django_db
+def test_long_names_are_cut_to_fit_the_notification(
+    user_auth_client, regular_user, other_user, saved_view
+):
+    regular_user.first_name = "N" * 150
+    regular_user.save()
+    saved_view.name = "V" * 200
+    saved_view.save()
+    response = user_auth_client.post(
+        "/api/shares/",
+        {"saved_view": saved_view.pk, "recipient": other_user.username},
+        format="json",
+    )
+    assert response.status_code == 201
+    text = Notification.objects.get(user=other_user).text
+    assert len(text) == 300 and text.endswith("…")

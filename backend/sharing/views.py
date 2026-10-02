@@ -29,6 +29,10 @@ def display_name(user) -> str:
 
 
 def notify(user, text: str, link: str) -> None:
+    # A display name (150) plus a view name (200) can outrun the column.
+    limit = Notification._meta.get_field("text").max_length
+    if len(text) > limit:
+        text = text[: limit - 1] + "…"
     Notification.objects.create(user=user, text=text, link=link)
 
 
