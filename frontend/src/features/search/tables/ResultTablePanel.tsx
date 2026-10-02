@@ -187,9 +187,9 @@ export function ResultTablePanel({ selectedProtein }: Props) {
         ) : currentTab === 'interactors' ? (
           <InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />
         ) : currentTab === 'subcellular' ? (
-          <SubcellularLocationTable proteins={allProteins} />
+          <SubcellularLocationTable proteins={proteins} />
         ) : currentTab === 'tissue' ? (
-          <TissueExpressionTable proteins={allProteins} />
+          <TissueExpressionTable proteins={proteins} />
         ) : currentTab === 'summary' ? (
           summaryProtein ? (
             <ProteinSummaryPanel

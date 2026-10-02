@@ -112,8 +112,8 @@ REST interface on the default port.
 | **Interactions** | One row per interaction: both proteins (linked to NCBI Gene), score, category and datasets. Click a column heading to sort. 25 rows per page. |
 | **Interactors** | One row per protein: gene name, UniProt and Ensembl IDs, whether you searched for it, and its interaction count. |
 | **Molecular Function**, **Biological Process**, **Cellular Component**, **Reactome**, **CORUM**, **KEGG** | Enrichment of the proteins in the network, calculated by [g:Profiler](https://biit.cs.ut.ee/gprofiler/) with a false-discovery-rate threshold of 0.05. The top 50 terms are shown. |
-| **Subcellular Location** | Where the proteins are found in the cell, from the Human Protein Atlas. |
-| **Tissue Expression** | Which proteins are expressed in each tissue, from GTEx. |
+| **Subcellular Location** | Where the proteins in the network are found in the cell, from the Human Protein Atlas. |
+| **Tissue Expression** | Which proteins in the network are expressed in each tissue, from GTEx. |
 | **Protein Info** | Everything about the protein you last clicked: identifiers, interaction counts, description, annotations, top tissues, sequence (with **Copy FASTA**) and 3D structure. |
 
 **Click a row** in an enrichment, location or tissue table to highlight its

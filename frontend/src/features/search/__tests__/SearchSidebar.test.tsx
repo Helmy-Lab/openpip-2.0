@@ -232,3 +232,27 @@ describe('SearchSidebar downloads follow the filters', () => {
     expect(proteins.map((p) => p.protein_id)).toEqual([1, 2])
   })
 })
+
+describe('SearchSidebar summary', () => {
+  it('counts the network as filtered, not every result', () => {
+    const protein = (id: number) => ({ protein_id: id, protein_gene_name: `G${id}` })
+    const edge = (id: number, a: number, b: number) => ({
+      interaction_id: id,
+      interactor_A: { protein_id: a },
+      interactor_B: { protein_id: b },
+      dataset_array: [],
+    })
+    useSearchStore.setState({
+      allProteins: [protein(1), protein(2), protein(3)] as never,
+      allInteractions: [edge(10, 1, 2), edge(11, 1, 3), edge(12, 2, 3)] as never,
+      queryProteinIds: [1],
+    })
+    render(
+      <SearchSidebar term="G1" visibleInteractionIds={[10]} visibleProteinIds={[1, 2]} />,
+      { wrapper }
+    )
+    const summary = screen.getByText(/Avg\. node degree/i).closest('div')!.parentElement!
+    expect(summary).toHaveTextContent(/Proteins:\s*2/)
+    expect(summary).toHaveTextContent(/Interactions:\s*1/)
+  })
+})

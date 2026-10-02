@@ -310,17 +310,17 @@ export function SearchSidebar({
             {variant === 'ribbon' && foundBlock}
             <div>
               <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.proteins')} </span>
-              <span style={{ color: 'var(--text-muted)' }}>{allProteins.length}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{shownProteins.length}</span>
             </div>
             <div>
               <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.interactions')} </span>
-              <span style={{ color: 'var(--text-muted)' }}>{allInteractions.length}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{shownInteractions.length}</span>
             </div>
             <div>
               <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.avgDegree')} </span>
               <span style={{ color: 'var(--text-muted)' }}>
-                {allProteins.length > 0
-                  ? ((2 * allInteractions.length) / allProteins.length).toFixed(2)
+                {shownProteins.length > 0
+                  ? ((2 * shownInteractions.length) / shownProteins.length).toFixed(2)
                   : '-'}
               </span>
             </div>
