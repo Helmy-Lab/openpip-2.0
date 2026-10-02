@@ -11,8 +11,8 @@ openPIP runs as five containers, defined in `docker-compose.yml` and
 
 | Service | Image | Role |
 |---|---|---|
-| `frontend` | built from `frontend/Dockerfile` | nginx serving the web interface and this documentation, and passing `/api/`, `/psicquic/` and public media to the backend. Listens on host port **8080**. |
-| `backend` | built from `backend/Dockerfile` | Django REST API, run by Gunicorn with 3 workers. Host port 8001. |
+| `frontend` | built from `frontend/Dockerfile` | nginx serving the web interface and this documentation, and passing `/api/`, `/psicquic/` and public media to the backend. Listens on **127.0.0.1:8080**. |
+| `backend` | built from `backend/Dockerfile` | Django REST API, run by Gunicorn with 3 workers. Listens on 127.0.0.1:8001 for local checks. |
 | `celery` | same image as `backend` | Background worker for dataset imports and UniProt enrichment. |
 | `db` | `postgres:16` | The database, stored in the `postgres_data` volume. |
 | `redis` | `redis:7-alpine` | Job queue for `celery`, and the store for rate-limit counters. |
@@ -180,10 +180,12 @@ described in [Maintenance](maintenance.md#resetting-a-users-password).
 docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod ps
 ```
 
-The `db` and `redis` rows must not show a `0.0.0.0:` mapping. If they do,
-your checkout has a known issue (BUG-020) that publishes them on every network
-interface. Block ports 5432 and 6379 at your firewall, and do not rely on
-`ufw` alone, because Docker's published ports bypass it.
+The `db` and `redis` rows should show no published port, and `frontend` and
+`backend` should show `127.0.0.1:` only. Nothing is reachable from outside
+except through your HTTPS proxy. If you see `0.0.0.0:` mappings, you are
+running without `docker-compose.prod.yml`, or with a copy from before this was
+fixed. Docker's published ports bypass `ufw`, so a host firewall alone does
+not protect them.
 
 ## Next steps
 

@@ -82,9 +82,9 @@ Before exposing a deployment:
 - [ ] `SECRET_KEY` is a newly generated value, not the example.
 - [ ] `DB_PASSWORD` is set to a strong value **before the first start**.
 - [ ] `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` name only your domain.
-- [ ] The database (5432) and Redis (6379) ports are not reachable from
-      outside the host. Check with `docker compose ps`: the `db` and `redis`
-      rows should show no `0.0.0.0:` mapping.
+- [ ] No port is published on a public interface. With both compose files,
+      `docker compose ps` shows no port for `db` and `redis`, and only
+      `127.0.0.1:` for `frontend` and `backend`.
 
 ## Known limitations
 

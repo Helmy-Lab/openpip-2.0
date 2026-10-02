@@ -106,8 +106,11 @@ Each fix gets a regression test.
 "Verified" means reproduced or confirmed against the running stack or code by
 hand; the rest come from code-reading inventories and still need confirming.
 
-- [ ] **BUG-020 — Critical: Postgres and Redis published on every interface in
-  production (verified).** `docker-compose.prod.yml` sets `ports: []`, which
+- [x] **BUG-020 — Critical: Postgres and Redis published on every interface in
+  production (verified).** _Fixed in the compose file: `!reset` for db/redis,
+  frontend and backend bound to 127.0.0.1 (checked with `docker compose
+  config`). Not yet applied to the server; the DB password still needs
+  rotating there._ `docker-compose.prod.yml` sets `ports: []`, which
   Compose merges with the base file instead of replacing, so the running stack
   publishes `0.0.0.0:5432` and `0.0.0.0:6379`. Postgres uses the compose
   default password `openpip_dev` (no `DB_PASSWORD` in `.env`); Redis has no

@@ -1,9 +1,17 @@
+# List-valued keys (ports, volumes) are merged with docker-compose.yml, not
+# replaced, so every override below needs a !reset or !override tag. A plain
+# `ports: []` once left Postgres and Redis published on every interface.
 services:
   db:
-    ports: []
+    ports: !reset []
 
   redis:
-    ports: []
+    ports: !reset []
+
+  frontend:
+    # Reached only through the host's HTTPS proxy.
+    ports: !override
+      - "127.0.0.1:8080:80"
 
   backend:
     environment:
@@ -11,6 +19,8 @@ services:
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-openpip.usask.ca,localhost}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://openpip.usask.ca}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://openpip.usask.ca}
+    ports: !override
+      - "127.0.0.1:8001:8000"
     # !override: a plain list would be merged with the dev ./backend:/app
     # bind-mount, leaving prod running from the working tree.
     volumes: !override

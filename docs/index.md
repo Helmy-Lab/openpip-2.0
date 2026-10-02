@@ -15,15 +15,18 @@ platform on Django, PostgreSQL and React.
 
 -   **Running a portal**
 
-    Install and configure openPIP on your own server.
+    Install openPIP on your own server, load your data and keep it running.
 
-    [Configuration reference](operator-guide/configuration.md)
+    [Installation](operator-guide/installation.md) ·
+    [Data file formats](operator-guide/data-formats.md) ·
+    [Maintenance](operator-guide/maintenance.md)
 
 -   **Building on the data**
 
-    Query a portal from your own code through its REST API.
+    Query a portal from your own code through its REST API or the standard
+    PSICQUIC service.
 
-    [REST API overview](developer/api/index.md)
+    [REST API](developer/api/index.md) · [PSICQUIC](developer/psicquic.md)
 
 -   **About openPIP**
 
