@@ -20,7 +20,10 @@ export interface DatasetPreviewResult {
 
 export function useInteractionCategories() {
   return useQuery<InteractionCategory[]>({
-    queryKey: ['interaction-categories'],
+    // Not the admin list's key: that endpoint returns camelCase fields, and a
+    // shared key let whichever loaded first be shown here with blank names.
+    // The prefix still matches, so the admin mutations' invalidation reaches it.
+    queryKey: ['interaction-categories', 'public'],
     queryFn: () => apiClient.get('/interactions/categories').then((r) => r.data),
     staleTime: 10 * 60 * 1000,
   })

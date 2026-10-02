@@ -143,6 +143,9 @@ hand; the rest come from code-reading inventories and still need confirming.
   home page list ignored `show`, which is all the admin panel's Hide changes.
   _Fixed: public list needs both flags (legacy's home page read only
   `show_on_home_page`, but it also had an announcements page reading `show`)._
+- [x] **BUG-039 — Upload wizard's category list could show blank names
+  (verified).** It and the admin category table cached two differently shaped
+  endpoints under one query key. _Fixed: separate keys._
 - [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The
