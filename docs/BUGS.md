@@ -169,6 +169,10 @@ hand; the rest come from code-reading inventories and still need confirming.
 - [x] **BUG-045 — Saved and shared views did not reopen on their result tab
   (verified).** The tab was saved in the view state but the table panel kept
   its own local copy. _Fixed: the panel reads and writes the store._
+- [x] **BUG-046 — Admin file and all-datasets downloads could fail in Firefox
+  (verified in code).** They clicked a detached link or revoked its object URL
+  at once, the pattern the Downloads page warns against. _Fixed: one shared
+  `saveBlob` in `lib/download.ts`._
 - [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The

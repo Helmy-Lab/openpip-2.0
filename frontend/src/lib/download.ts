@@ -99,6 +99,23 @@ export function buildFilename(format: string, ext: string): string {
   return `openPIP_download_${format}_${month}_${day}_${year}_${time}.${ext}`
 }
 
+/**
+ * Save a fetched file. Firefox ignores a click on an anchor that is not in the
+ * document, and revoking the object URL synchronously can cancel the download
+ * before it starts — so the anchor is attached, and the URL freed afterwards.
+ */
+export function saveBlob(blob: Blob, filename: string): void {
+  const objectUrl = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = objectUrl
+  a.download = filename
+  a.style.display = 'none'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
+}
+
 export function downloadFile(filename: string, content: string): void {
   const a = document.createElement('a')
   a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content)

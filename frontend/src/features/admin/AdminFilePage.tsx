@@ -3,6 +3,7 @@ import { useAdminFiles, useUploadFile, useToggleFileVisibility, useDeleteFile } 
 import { useAuthStore } from '../../store/authStore'
 import type { UploadedFile } from '../../api/files'
 import { BASE_URL } from '../../api/client'
+import { saveBlob } from '../../lib/download'
 
 const ALLOWED_EXTS = ['.fasta', '.fa', '.tab', '.tsv', '.sif', '.csv']
 const MAX_MB = 500
@@ -52,13 +53,7 @@ function FileRow({ file }: { file: UploadedFile }) {
     const url = `${BASE_URL}/files/${file.id}/download`
     fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then((r) => (r.ok ? r.blob() : Promise.reject()))
-      .then((blob) => {
-        const a = document.createElement('a')
-        a.href = URL.createObjectURL(blob)
-        a.download = file.file_name
-        a.click()
-        URL.revokeObjectURL(a.href)
-      })
+      .then((blob) => saveBlob(blob, file.file_name))
       .catch(() => {})
   }
 

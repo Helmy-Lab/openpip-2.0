@@ -7,20 +7,8 @@ import { useSettings } from '../../api/settings'
 import { useText } from '../../text'
 import { BASE_URL } from '../../api/client'
 import { referenceHref, referenceLabel, shortCitation } from '../../lib/citation'
+import { saveBlob } from '../../lib/download'
 
-// Firefox ignores a click on an anchor that is not in the document, and revoking
-// the object URL synchronously can cancel the download before it starts.
-function saveBlob(blob: Blob, filename: string) {
-  const objectUrl = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = objectUrl
-  a.download = filename
-  a.style.display = 'none'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
-}
 
 async function triggerDownload(datasetId: number, fmt: string, token: string | null) {
   const url = `${BASE_URL}/datasets/${datasetId}/download?fmt=${fmt}`

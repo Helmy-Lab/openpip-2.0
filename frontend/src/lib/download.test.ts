@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { formatSIF, formatInteractionsCSV, formatInteractorsCSV, formatFASTA, formatPSIMI, buildFilename } from './download'
+import { describe, it, expect, vi } from 'vitest'
+import { formatSIF, formatInteractionsCSV, formatInteractorsCSV, formatFASTA, formatPSIMI, buildFilename, saveBlob } from './download'
 import type { Protein, Interaction } from '../types/api'
 import { makeDatasetRef } from '../mocks/fixtures/datasetRef'
 
@@ -183,5 +183,27 @@ describe('formatPSIMI citation header', () => {
   it('still produces 42 columns with the header present', () => {
     const rows = psimiRows(formatPSIMI([interaction], [p1, p2]))
     expect(rows[0].split('\t')).toHaveLength(42)
+  })
+})
+
+describe('saveBlob', () => {
+  it('clicks an attached link and frees the URL only afterwards', async () => {
+    vi.useFakeTimers()
+    const created = vi.fn(() => 'blob:x')
+    const revoked = vi.fn()
+    Object.assign(URL, { createObjectURL: created, revokeObjectURL: revoked })
+    let attachedWhenClicked = false
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      attachedWhenClicked = document.body.contains(this)
+    })
+
+    saveBlob(new Blob(['x']), 'f.txt')
+
+    expect(attachedWhenClicked).toBe(true)
+    expect(revoked).not.toHaveBeenCalled()
+    vi.runAllTimers()
+    expect(revoked).toHaveBeenCalledWith('blob:x')
+    click.mockRestore()
+    vi.useRealTimers()
   })
 })
