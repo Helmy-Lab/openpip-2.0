@@ -20,6 +20,13 @@ platform on Django, PostgreSQL and React.
 
     [User guide](user-guide/index.md)
 
+-   **Managing a portal's content**
+
+    Load datasets, edit citations and pages, and change the portal's look from
+    the admin area.
+
+    [Admin guide](admin-guide/index.md)
+
 -   **Running a portal**
 
     Install openPIP on your own server, load your data and keep it running.
