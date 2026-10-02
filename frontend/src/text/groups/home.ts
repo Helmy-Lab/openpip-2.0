@@ -164,6 +164,18 @@ export const homeGroup: TextGroup = {
       default: 'Search',
     },
     {
+      key: 'home.hero.willSearch',
+      label: 'Query preview prefix',
+      section: 'Hero',
+      default: 'Will search',
+    },
+    {
+      key: 'home.hero.cannotFilter',
+      label: 'Query preview: unsupported filter notice',
+      section: 'Hero',
+      default: 'Cannot filter by:',
+    },
+    {
       key: 'home.hero.examplesLabel',
       label: 'Example queries label',
       default: 'Try:',

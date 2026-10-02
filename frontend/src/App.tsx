@@ -16,13 +16,18 @@ import { RegisterPage } from './features/auth/RegisterPage'
 import { ProfilePage } from './features/auth/ProfilePage'
 import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from './features/auth/ResetPasswordPage'
+import { PublicProfilePage } from './features/sharing/PublicProfilePage'
+import { SharedViewPage } from './features/sharing/SharedViewPage'
+import { SavedViewPage } from './features/sharing/SavedViewPage'
+import { SavedNetworkPage } from './features/sharing/SavedNetworkPage'
+import { PublicViewPage } from './features/sharing/PublicViewPage'
 import { ProteinsPage } from './features/proteins/ProteinsPage'
 import { LegacyProteinRedirect } from './features/proteins/LegacyProteinRedirect'
 import { DownloadPage } from './features/static/DownloadPage'
 import { AboutPage } from './features/static/AboutPage'
 import { FAQPage } from './features/static/FAQPage'
 import { ContactPage } from './features/static/ContactPage'
-import { DocumentationPage } from './features/static/DocumentationPage'
+import { DocumentationRedirect } from './features/static/DocumentationRedirect'
 import { ApiPage } from './features/static/ApiPage'
 
 const queryClient = new QueryClient()
@@ -50,13 +55,22 @@ const router = createBrowserRouter(
       { path: 'about', element: <AboutPage /> },
       { path: 'faq', element: <FAQPage /> },
       { path: 'contact', element: <ContactPage /> },
-      { path: 'documentation', element: <DocumentationPage /> },
+      { path: 'documentation', element: <DocumentationRedirect /> },
       { path: 'developer', element: <ApiPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
       { path: 'reset-password', element: <ResetPasswordPage /> },
       { path: 'profile', element: <ProtectedRoute><ProfilePage /></ProtectedRoute> },
+      {
+        path: 'profile/:username',
+        element: <ProtectedRoute><PublicProfilePage /></ProtectedRoute>,
+      },
+      { path: 'shared/:id', element: <ProtectedRoute><SharedViewPage /></ProtectedRoute> },
+      { path: 'views/:id', element: <ProtectedRoute><SavedViewPage /></ProtectedRoute> },
+      { path: 'networks/:id', element: <ProtectedRoute><SavedNetworkPage /></ProtectedRoute> },
+      // A public link: no login, on purpose.
+      { path: 'public/:token', element: <PublicViewPage /> },
       {
         path: 'admin',
         element: (

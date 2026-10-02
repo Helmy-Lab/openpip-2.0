@@ -1,6 +1,7 @@
 import type { Protein } from '../../../types/api'
 import { GtexSourceNote } from './SourceNote'
 import { tissueLabel } from '../../../lib/tissues'
+import { HighlightRow } from './HighlightRow'
 
 interface TissueExpressionTableProps {
   proteins: Protein[]
@@ -9,6 +10,10 @@ interface TissueExpressionTableProps {
 const THRESHOLD = 5.0
 
 const TH: React.CSSProperties = {
+  // Frozen while the results scroll under it.
+  position: 'sticky',
+  top: 0,
+  zIndex: 1,
   padding: '10px 16px',
   textAlign: 'left',
   fontSize: 11,
@@ -46,7 +51,7 @@ export function TissueExpressionTable({ proteins }: TissueExpressionTableProps) 
   }
 
   return (
-    <div style={{ overflowX: 'auto', background: 'var(--bg)' }}>
+    <div style={{ background: 'var(--bg)' }}>
       <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
         <thead>
           <tr>
@@ -57,12 +62,7 @@ export function TissueExpressionTable({ proteins }: TissueExpressionTableProps) 
         </thead>
         <tbody style={{ background: 'var(--bg)' }}>
           {tissues.map((tissue) => (
-            <tr
-              key={tissue}
-              style={{ borderBottom: '1px solid var(--border)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-            >
+            <HighlightRow key={tissue} term={tissue} genes={byTissue[tissue]}>
               <td style={{ padding: '8px 16px', color: 'var(--text)' }}>
                 {tissueLabel(tissue)}
               </td>
@@ -72,7 +72,7 @@ export function TissueExpressionTable({ proteins }: TissueExpressionTableProps) 
               <td style={{ padding: '8px 16px', color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
                 GTEx v6.0
               </td>
-            </tr>
+            </HighlightRow>
           ))}
         </tbody>
       </table>

@@ -5,7 +5,7 @@ Comprehensive tests for the improved PSI-MI TAB 2.7 parser and upload endpoints.
 import io
 import pytest
 
-from datasets.upload_parser import parse_and_ingest
+from datasets.upload_parser import parse_and_ingest, parse_and_ingest_csv
 from interactions.models import (
     AnnotationInteraction,
     Interaction,
@@ -380,6 +380,74 @@ def test_dedup_does_not_skip_removed_interaction():
     assert Interaction.objects.filter(removed="0").count() == 1
 
 
+def _links(interaction):
+    return set(
+        InteractionDataset.objects.filter(interaction=interaction).values_list(
+            "dataset__name", flat=True
+        )
+    )
+
+
+def _experiments(interaction):
+    return sorted(
+        Annotation.objects.filter(
+            identifier=str(interaction.pk), type_name="experiment"
+        ).values_list("annotation", flat=True)
+    )
+
+
+@pytest.mark.django_db
+def test_overlap_credits_both_datasets_and_keeps_new_evidence():
+    """Legacy parity: a pair already in DS1 is linked to DS2 as well, with DS2's
+    detection method attached; DS1's score is not overwritten."""
+    parse_and_ingest(_file(_build_row()), dataset_name="DS1")
+    result = parse_and_ingest(
+        _file(
+            _build_row(
+                method='psi-mi:"MI:0006"(anti bait coimmunoprecipitation)',
+                score="intact-miscore:0.99",
+            )
+        ),
+        dataset_name="DS2",
+    )
+    assert result["interactions_created"] == 0
+    (ix,) = Interaction.objects.all()
+    assert _links(ix) == {"DS1", "DS2"}
+    assert _experiments(ix) == [
+        "anti bait coimmunoprecipitation",
+        "two hybrid prey pooling approach",
+    ]
+    assert ix.score == "0.56"
+
+
+@pytest.mark.django_db
+def test_reupload_to_same_dataset_adds_no_duplicate_evidence():
+    parse_and_ingest(_file(_build_row()), dataset_name="DS1")
+    parse_and_ingest(_file(_build_row()), dataset_name="DS1")
+    (ix,) = Interaction.objects.all()
+    assert _experiments(ix) == ["two hybrid prey pooling approach"]
+
+
+@pytest.mark.django_db
+def test_self_interaction_does_not_block_a_new_pair():
+    """A-A used to match the A-B duplicate check, so A-B was never created."""
+    parse_and_ingest(
+        _file(_build_row(id_b="uniprotkb:P00001", alias_b="-")), dataset_name="DS"
+    )
+    result = parse_and_ingest(_file(_build_row()), dataset_name="DS")
+    assert result["interactions_created"] == 1
+    assert Interaction.objects.count() == 2
+
+
+@pytest.mark.django_db
+def test_csv_overlap_credits_both_datasets():
+    csv_bytes = b"protein_a,protein_b\nuniprotkb:P00001,uniprotkb:P00002\n"
+    parse_and_ingest_csv(csv_bytes, dataset_name="DS1")
+    parse_and_ingest_csv(csv_bytes, dataset_name="DS2")
+    (ix,) = Interaction.objects.all()
+    assert _links(ix) == {"DS1", "DS2"}
+
+
 # ---------------------------------------------------------------------------
 # Dry-run mode
 # ---------------------------------------------------------------------------
@@ -626,3 +694,65 @@ def test_parse_and_ingest_does_not_include_existing_organism_in_new_ids():
     content = _file(_build_row(taxon_a="taxid:9606(human)"))
     result = parse_and_ingest(content, dataset_name="DS")
     assert result["new_organism_ids"] == []
+
+
+@pytest.mark.django_db
+def test_bare_gene_name_rows_are_loaded_not_taken_for_headers():
+    content = b"ID(s) interactor A\tID(s) interactor B\nTP53\tMDM2\nBRCA1\tBARD1\n"
+    result = parse_and_ingest(content, dataset_name="DS")
+    assert result["interactions_created"] == 2
+    assert set(Protein.objects.values_list("gene_name", flat=True)) == {
+        "TP53",
+        "MDM2",
+        "BRCA1",
+        "BARD1",
+    }
+
+
+@pytest.mark.django_db
+def test_upload_in_uniprot_ids_reuses_proteins_that_keep_the_accession_on_the_row():
+    # The original openPIP stored UniProt accessions on the protein, not in the
+    # identifier table; an upload must still find those proteins.
+    tp53 = Protein.objects.create(gene_name="TP53", uniprot_id="P04637")
+    content = b"uniprotkb:P04637\tuniprotkb:Q00987\n"
+
+    result = parse_and_ingest(content, dataset_name="HuRI")
+
+    assert result["proteins_existing"] == 1 and result["proteins_created"] == 1
+    assert Protein.objects.filter(uniprot_id__iexact="P04637").count() == 1
+    assert Interaction.objects.get().interactor_A == tp53
+    assert ProteinIdentifier.objects.filter(
+        protein=tp53, identifier__identifier="P04637"
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_import_counts_interactions_for_every_protein(auth_client):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    content = b"TP53\tMDM2\nTP53\tBRCA1\nTP53\tTP53\n"
+    response = auth_client.post(
+        "/api/datasets/upload",
+        {"file": SimpleUploadedFile("d.tab", content), "dataset_name": "DS"},
+        format="multipart",
+    )
+    assert response.status_code == 201
+    counts = dict(
+        Protein.objects.values_list("gene_name", "number_of_interactions_in_database")
+    )
+    assert counts == {"TP53": 3, "MDM2": 1, "BRCA1": 1}
+
+
+@pytest.mark.django_db
+def test_category_is_added_to_reused_interactions_and_csv_rows():
+    validated = InteractionCategory.objects.create(category_name="Validated", order="2")
+    parse_and_ingest(b"TP53\tMDM2\n", dataset_name="First")
+    parse_and_ingest(b"TP53\tMDM2\n", dataset_name="Second", category_id=validated.pk)
+    parse_and_ingest_csv(
+        b"protein_a,protein_b\nBRCA1,BARD1\n", "Third", category_id=validated.pk
+    )
+
+    categorised = InteractionInteractionCategory.objects.filter(
+        interaction_category=validated
+    )
+    assert categorised.count() == 2  # the reused TP53-MDM2 and the CSV row

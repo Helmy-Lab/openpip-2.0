@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "datasets",
     "admin_panel",
     "psicquic",
+    "sharing",
 ]
 
 MIDDLEWARE = [
@@ -80,7 +81,9 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "/static/"
+# Relative, so Django prefixes it with FORCE_SCRIPT_NAME (/v2 in production);
+# "/static/" would send the browser outside the app's path.
+STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
@@ -96,7 +99,40 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.CursorPagination",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "PAGE_SIZE": 50,
-    "DEFAULT_THROTTLE_RATES": {"security_answer": "10/hour"},
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    # Anonymous limits are per IP, and a whole university sits behind one NAT,
+    # so the browsing rate has to be generous: a single search page fires a
+    # dozen requests and several people share an address. These are sized to
+    # stop scripted hammering, not to police normal use.
+    #
+    # psicquic is deliberately tighter — its callers are machines, and a full
+    # crawl of the database at maxResults=200 is ~615 requests, which still
+    # finishes inside 11 minutes at this rate.
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "600/min",
+        "user": "1200/min",
+        "psicquic": "60/min",
+        "security_answer": "10/hour",
+        "security_answer_account": "10/hour",
+    },
+}
+
+# DRF throttling counts through the cache, so with gunicorn's 3 workers a
+# local-memory cache would give each worker its own counter and triple every
+# limit. Redis is already a hard dependency here (Celery), and Django ships a
+# Redis backend, so no new package.
+CACHES = {
+    "default": (
+        {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": env("REDIS_URL", default="redis://localhost:6379/0"),
+        }
+        if env("REDIS_URL", default="")
+        else {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
+    )
 }
 
 SPECTACULAR_SETTINGS = {
@@ -119,7 +155,8 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+# Deliberately open: the API serves public data, and login tokens travel in a
+# header, not a cookie, so another site's page cannot act as a signed-in user.
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_URLS_REGEX = r"^/(api|psicquic)/.*$"
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])

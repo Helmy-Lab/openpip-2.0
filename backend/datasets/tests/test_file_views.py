@@ -214,3 +214,14 @@ def test_public_list_allowed_for_anonymous(api_client, tmp_path):
     names = [f["file_name"] for f in response.data]
     assert "visible.tab" in names
     assert "hidden.tab" not in names
+
+
+@pytest.mark.django_db
+def test_patch_reads_string_false_as_false(auth_client, tmp_path):
+    record = _make_file_record(tmp_path, show=True)
+    response = auth_client.patch(
+        f"/api/files/{record.pk}", {"show": "false"}, format="multipart"
+    )
+    assert response.status_code == 200
+    record.refresh_from_db()
+    assert record.show is False

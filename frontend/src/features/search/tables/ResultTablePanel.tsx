@@ -9,6 +9,7 @@ import { SubcellularLocationTable } from '../enrichment/SubcellularLocationTable
 import { TissueExpressionTable } from '../enrichment/TissueExpressionTable'
 import { useEnrichment, type EnrichmentSource } from '../../../api/enrichment'
 import type { Protein } from '../../../types/api'
+import { useSettings } from '../../../api/settings'
 import { useText } from '../../../text'
 
 type Tab = 'interactions' | 'interactors' | EnrichmentSource | 'subcellular' | 'tissue' | 'summary'
@@ -26,6 +27,22 @@ const TABS: { id: Tab; textKey: string }[] = [
   { id: 'tissue', textKey: 'search.tab.tissue' },
   { id: 'summary', textKey: 'search.tab.summary' },
 ]
+
+/**
+ * Tabs for annotations this deployment actually has.
+ *
+ * Tissue expression and subcellular location only mean something for a
+ * multicellular organism. The paper records that hosting the yeast YeRI dataset
+ * meant deleting these from the source; they are settings now, so a deployment
+ * turns off what its data cannot support instead of forking the code.
+ */
+function visibleTabs(showTissue: boolean, showSubcellular: boolean) {
+  return TABS.filter(
+    (tab) =>
+      (tab.id !== 'tissue' || showTissue) &&
+      (tab.id !== 'subcellular' || showSubcellular)
+  )
+}
 
 const TAB_BTN = (isActive: boolean): React.CSSProperties => ({
   padding: '10px 16px',
@@ -62,7 +79,11 @@ export function ResultTablePanel({ selectedProtein }: Props) {
     tissueFilter,
   } = useSearchStore()
 
-  const [activeTab, setActiveTab] = useState<Tab>('interactions')
+  // In the store, not local state, so a saved or shared view restores the tab
+  // it was saved on (captureViewState already records activeTableTab).
+  const activeTab = useSearchStore((s) => s.activeTableTab) as Tab
+  const setActiveTab = useSearchStore((s) => s.setTableTab)
+  const { data: settings } = useSettings()
   const [prevProtein, setPrevProtein] = useState(selectedProtein)
   const t = useText()
 
@@ -80,6 +101,17 @@ export function ResultTablePanel({ selectedProtein }: Props) {
   )
 
   const geneNames = proteins.map((p) => p.protein_gene_name)
+
+  // Settings default to on where absent, so a deployment that has not saved
+  // them keeps the tabs it has always had.
+  const showTissue = settings?.showTissueExpression !== false
+  const showSubcellular = settings?.showSubcellularLocation !== false
+  const tabs = visibleTabs(showTissue, showSubcellular)
+
+  // A hidden tab must not stay selected — switching it off while a visitor is
+  // reading it would otherwise leave the panel showing a tab nobody can return
+  // to and no way back.
+  const currentTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : 'interactions'
 
   // Run enrichment in the background as soon as results are shown (this panel is
   // always mounted, regardless of the active tab) so the enrichment tabs are
@@ -99,8 +131,9 @@ export function ResultTablePanel({ selectedProtein }: Props) {
   const summaryGene = summaryProtein?.protein_gene_name || summaryProtein?.protein_uniprot_id
 
   return (
-    <div>
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <div style={{
+        flexShrink: 0,
         display: 'flex',
         flexWrap: 'wrap',
         borderTop: '1px solid var(--border)',
@@ -108,13 +141,14 @@ export function ResultTablePanel({ selectedProtein }: Props) {
         background: 'var(--surface)',
         paddingLeft: 8,
       }}>
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.id
+        {tabs.map((tab) => {
+          const isActive = currentTab === tab.id
           const count = counts[tab.id]
           return (
             <button
               key={tab.id}
               type="button"
+              aria-pressed={isActive}
               onClick={() => setActiveTab(tab.id)}
               style={TAB_BTN(isActive)}
             >
@@ -145,16 +179,18 @@ export function ResultTablePanel({ selectedProtein }: Props) {
         })}
       </div>
 
-      <div style={{ background: 'var(--bg)' }}>
-        {activeTab === 'interactions' ? (
+      {/* The one scrolling box on this page: the table headers stick to its
+          top, and the network above it never moves. */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg)' }}>
+        {currentTab === 'interactions' ? (
           <InteractionsTable interactions={interactions} proteins={proteins} />
-        ) : activeTab === 'interactors' ? (
+        ) : currentTab === 'interactors' ? (
           <InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />
-        ) : activeTab === 'subcellular' ? (
-          <SubcellularLocationTable proteins={allProteins} />
-        ) : activeTab === 'tissue' ? (
-          <TissueExpressionTable proteins={allProteins} />
-        ) : activeTab === 'summary' ? (
+        ) : currentTab === 'subcellular' ? (
+          <SubcellularLocationTable proteins={proteins} />
+        ) : currentTab === 'tissue' ? (
+          <TissueExpressionTable proteins={proteins} />
+        ) : currentTab === 'summary' ? (
           summaryProtein ? (
             <ProteinSummaryPanel
               protein={summaryProtein}
@@ -167,7 +203,7 @@ export function ResultTablePanel({ selectedProtein }: Props) {
             </div>
           )
         ) : (
-          <EnrichmentTable geneNames={geneNames} source={activeTab as EnrichmentSource} />
+          <EnrichmentTable geneNames={geneNames} source={currentTab as EnrichmentSource} />
         )}
       </div>
     </div>

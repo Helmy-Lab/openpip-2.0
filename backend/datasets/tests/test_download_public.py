@@ -5,6 +5,13 @@ from datasets.tests.factories import DatasetFactory
 from interactions.tests.factories import InteractionFactory, InteractionDatasetFactory
 
 
+@pytest.fixture(autouse=True)
+def media_root(settings, tmp_path):
+    """The archive is cached under MEDIA_ROOT; keep it out of the repo."""
+    settings.MEDIA_ROOT = tmp_path
+    return tmp_path
+
+
 @pytest.mark.django_db
 def test_dataset_file_download_requires_no_auth(api_client):
     """Legacy behavior: dataset file downloads are public, no login needed."""
@@ -56,3 +63,49 @@ def test_dataset_file_download_sif_format(api_client):
     ds = DatasetFactory(name="Test Dataset")
     response = api_client.get(f"/api/datasets/{ds.id}/download?fmt=sif")
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_dataset_file_download_leaves_out_removed_interactions(api_client):
+    ds = DatasetFactory(name="Test Dataset")
+    InteractionDatasetFactory(dataset=ds, interaction=InteractionFactory())
+    InteractionDatasetFactory(dataset=ds, interaction=InteractionFactory(removed="1"))
+
+    response = api_client.get(f"/api/datasets/{ds.id}/download?fmt=sif")
+    lines = b"".join(response.streaming_content).decode().strip().splitlines()
+    assert len(lines) == 1
+
+
+@pytest.mark.django_db
+def test_archive_is_built_once_and_rebuilt_after_a_dataset_edit(
+    api_client, auth_client, monkeypatch
+):
+    from datasets.views import DatasetArchiveDownloadView
+
+    ds = DatasetFactory(name="Cached")
+    builds = []
+    real = DatasetArchiveDownloadView._write_archive
+    monkeypatch.setattr(
+        DatasetArchiveDownloadView,
+        "_write_archive",
+        lambda self, f: builds.append(1) or real(self, f),
+    )
+
+    first = b"".join(api_client.get("/api/datasets/download/").streaming_content)
+    b"".join(api_client.get("/api/datasets/download/").streaming_content)
+    assert len(builds) == 1
+
+    auth_client.patch(f"/api/datasets/{ds.id}", {"title": "New"}, format="json")
+    again = b"".join(api_client.get("/api/datasets/download/").streaming_content)
+    assert len(builds) == 2
+    assert first[:2] == again[:2] == b"PK"
+
+
+@pytest.mark.django_db
+def test_import_invalidates_the_cached_archive(api_client, media_root):
+    from datasets.views import _refresh_dataset_counts
+
+    b"".join(api_client.get("/api/datasets/download/").streaming_content)
+    assert (media_root / "cache" / "datasets.zip").exists()
+    _refresh_dataset_counts()
+    assert not (media_root / "cache" / "datasets.zip").exists()

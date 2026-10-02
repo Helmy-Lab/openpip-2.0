@@ -116,6 +116,10 @@ function buildColumns(entrezById: Map<number, string>): ColumnDef<Interaction>[]
 }
 
 const TH_BASE: React.CSSProperties = {
+  // Frozen while the results scroll under it.
+  position: 'sticky',
+  top: 0,
+  zIndex: 1,
   padding: '10px 16px',
   textAlign: 'left',
   fontSize: 11,
@@ -156,7 +160,7 @@ export function InteractionsTable({ interactions, proteins }: InteractionsTableP
 
   return (
     <div style={{ background: 'var(--bg)' }}>
-      <div style={{ overflowX: 'auto', background: 'var(--bg)' }}>
+      <div style={{ background: 'var(--bg)' }}>
         <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (

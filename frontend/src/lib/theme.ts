@@ -1,4 +1,5 @@
 import type { AdminSettings } from '../types/api'
+import { navPageIdFor, parseNavOverrides } from './navPages'
 
 function hexToRgb(hex: string): [number, number, number] | null {
   const clean = hex.replace('#', '')
@@ -70,14 +71,26 @@ function parseRgbTriplet(value: string): Rgb {
   return parts ? ([+parts[0], +parts[1], +parts[2]] as Rgb) : [0, 0, 0]
 }
 
-export function injectCSSVars(settings: AdminSettings): void {
+/**
+ * The navbar style in force on a route: the page's own choice if an admin set
+ * one, otherwise the site-wide default.
+ */
+export function navStyleFor(settings: AdminSettings, pathname?: string): string {
+  const fallback = settings.navStyle || 'solid'
+  if (!pathname) return fallback
+  const pageId = navPageIdFor(pathname)
+  if (!pageId) return fallback
+  return parseNavOverrides(settings.navStyleOverrides)[pageId] || fallback
+}
+
+export function injectCSSVars(settings: AdminSettings, pathname?: string): void {
   const root = document.documentElement
   const isDark = root.dataset.theme === 'dark'
 
   const primary  = settings.mainColorScheme  || '#2563eb'
   const primary2 = settings.mainColorScheme2 || '#0ea5e9'
   const angle    = settings.gradientAngle    ?? 135
-  const style    = settings.navStyle         || 'solid'
+  const style    = navStyleFor(settings, pathname)
 
   // Primary brand color + derived shades.
   //

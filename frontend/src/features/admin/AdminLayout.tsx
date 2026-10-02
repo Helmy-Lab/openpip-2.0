@@ -107,8 +107,19 @@ export function AdminLayout() {
                         borderRadius: 6,
                         fontSize: 13,
                         fontWeight: current ? 600 : 500,
-                        color: current ? 'var(--primary)' : 'var(--text-muted)',
-                        background: current ? 'var(--surface-2)' : 'transparent',
+                        // The chip pair, not raw --primary on --surface-2. Both
+                        // of those fail in dark mode: theme.ts sets --primary
+                        // inline on the root from the admin's brand colour, so
+                        // it overrides the dark-theme token and lands whatever
+                        // lightness the brand happens to be — 1.05:1 for the
+                        // Midnight preset. --surface-2 against the sidebar's
+                        // --surface is 1.06:1, so the background gave no
+                        // fallback signal either. --primary-soft/-deep are
+                        // derived per theme precisely for selected rows, with
+                        // --primary-deep held to 4.5:1 against the soft
+                        // background whatever the brand.
+                        color: current ? 'var(--primary-deep)' : 'var(--text-muted)',
+                        background: current ? 'var(--primary-soft)' : 'transparent',
                         textDecoration: 'none',
                       }}
                     >

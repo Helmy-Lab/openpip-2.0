@@ -40,8 +40,7 @@ graphify-out/
 
 # Generated / runtime artifacts — never commit
 backend/staticfiles/
-backend/mediafiles/uploads/
-backend/mediafiles/logos/
+backend/mediafiles/
 
 # Scratch / test artifacts
 test_upload.csv
@@ -64,3 +63,5 @@ docs/*.pdf
 # Belt-and-suspenders: never commit secrets file even if it ends up here
 .openpip-2.0-secrets
 .git-credentials*
+.venv-docs/
+site/

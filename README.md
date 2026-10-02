@@ -1,171 +1,103 @@
-# openPIP 2.0
+# openPIP
 
-Modernization of [openPIP](https://github.com/BaderLab/openPIP) — the
-Open-source Protein Interaction Platform — from PHP 5.6 / Symfony 2.8 /
-MySQL to a contemporary stack: Django 5 + DRF / PostgreSQL 16 / React 18
-+ TypeScript + Vite.
+**openPIP** (Open-source Protein Interaction Platform) is a web portal for
+hosting, searching and visualising protein–protein interaction data. A
+research group runs it alongside a published interactome map, so readers can
+look up the proteins they care about, explore their interaction networks and
+download the data, without the group writing any code. openPIP powers the
+portals of the Human and Yeast Reference Interactome maps (HuRI and YeRI).
 
-GSoC 2026 project under [NRNB](https://nrnb.org/). Migration strategy:
-functional parity first, enhancements after. See [docs/MIGRATION_STRATEGY.md](docs/MIGRATION_STRATEGY.md).
+This repository is **openPIP 2.0**, a rebuild of the
+[original platform](https://github.com/BaderLab/openPIP) on Django,
+PostgreSQL and React.
 
-**Status**: Community bonding (May 2026). Backend scaffold and migration
-script land in week 3.
+**Live portal:** <https://openpip.usask.ca/v2> ·
+**Documentation:** <https://openpip.usask.ca/v2/docs/>
 
-## Project background
+## Features
 
-openPIP is a customizable web platform for hosting and visualizing
-protein-protein interaction (PPI) data, with deployments serving the
-Human Reference Interactome (HuRI) and the Yeast Reference Interactome
-(YeRI). The original platform was published in Helmy et al., *J. Mol.
-Biol.*, 2022 ([DOI](https://doi.org/10.1016/j.jmb.2022.167603)).
+- **Search** by gene name or identifier, one protein or a whole list, and get
+  the interaction network back as an interactive graph and as tables.
+- **Explore the network**: filter by confidence score, evidence category,
+  tissue and annotation; switch layouts; highlight proteins; open any protein or
+  interaction for its details, external links and 3D structure.
+- **Download** whole datasets (PSI-MI TAB with the dataset's citation, SIF,
+  CSV) or the results of a search.
+- **Keep and share**: save views, share them with colleagues, discuss them, or
+  publish a link that needs no login.
+- **Standard access for programs**: a JSON REST API and a
+  [PSICQUIC](https://psicquic.github.io/) service that answers MIQL queries in
+  PSI-MI TAB 2.5–2.8.
+- **Run it without code**: an admin panel to load datasets (PSI-MI TAB or CSV,
+  with automatic UniProt enrichment), edit citations, and change the portal's
+  name, logo, colours and every piece of text.
 
-This project rebuilds the platform on a modern stack while preserving
-exact behavioral parity with the legacy system in Phase 1, then adding
-enhancements (CSV upload, async pipelines, UniProt enrichment, GO term
-enrichment) in Phase 2.
+## Running a portal
 
-## Team
+openPIP runs as a set of Docker containers. The
+[installation guide](https://openpip.usask.ca/v2/docs/operator-guide/installation/)
+covers configuration, HTTPS and the first administrator. In short:
 
-| Role | Name | Affiliation |
-|---|---|---|
-| Student | Mahafujul Hamid Ananda | University of Saskatchewan |
-| Primary mentor | Dr. Mohamed Helmy | VIDO, University of Saskatchewan |
-| Co-mentor | Dr. Gary Bader | University of Toronto |
-
-## Repository structure
-
-~~~
-openpip-2.0/
-├── CLAUDE.md                  # Always-loaded context for Claude Code sessions
-├── README.md                  # This file
-├── .claude/                   # Claude Code config (slash commands, hooks, settings)
-├── .mcp.json                  # MCP server config (GitHub, Filesystem)
-├── backend/                   # Django REST Framework project (scaffolded in week 3)
-├── frontend/                  # React + TypeScript + Vite (scaffolded in week 10)
-├── migration/                 # Legacy reference material + migration scripts
-│   ├── CLAUDE.md              # Migration-specific conventions
-│   ├── legacy-schema/         # MySQL dumps from legacy openPIP
-│   ├── legacy-uploader-reference/  # Original Python PSI-MI TAB uploader
-│   └── legacy-docker-reference/    # Original Docker setup
-├── docs/                      # Deep documentation referenced from CLAUDE.md
-│   ├── MIGRATION_STRATEGY.md  # Phase 1/2 boundary, parity protocol
-│   ├── DATA_MODEL.md          # 38-table schema + MySQL→Postgres type translation
-│   ├── API.md                 # Endpoint catalog (Phase 1 + Phase 2)
-│   └── REFERENCES.md          # PSI-MI TAB specs, UniProt API, stack docs
-└── .git-credentials-openpip   # (gitignored) GitHub PAT for HTTPS push
-~~~
-
-## Quick start for contributors
-
-### Prerequisites
-
-- Node.js 20+ (for Vite, npm, and the Filesystem MCP)
-- Python 3.11+ (for Django, scaffolded in week 3)
-- PostgreSQL 16 (development DB, week 3+)
-- Docker + Docker Compose (for the legacy reference setup and Phase 2 deployment)
-- A GitHub Personal Access Token with `Contents: read+write` and
-  `Issues: read+write` on this repo (only needed if using Claude Code's
-  GitHub MCP)
-
-### Clone
-
-~~~bash
+```bash
 git clone https://github.com/hamid-ananda/openpip-2.0.git
 cd openpip-2.0
-~~~
+cp .env.example .env    # then set SECRET_KEY, DB_PASSWORD, ALLOWED_HOSTS
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod up -d --build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backend python manage.py createsuperuser
+```
 
-### Install the pre-commit hook
+Production needs both compose files. Do not run plain `docker compose up` on
+a production server.
 
-The hook lives in `.claude/hooks/pre-commit-lint.sh` and is graceful:
-it runs ruff + black + npm run lint on staged files when those tools
-are available, and silently skips when they aren't. Wire it in:
+## Developing
 
-~~~bash
-ln -s ../../.claude/hooks/pre-commit-lint.sh .git/hooks/pre-commit
-chmod +x .claude/hooks/pre-commit-lint.sh
-~~~
+Requirements: Docker with Compose 2.24.4+, and Node.js 20.19+ (or 22.12+).
 
-This is a one-time setup per clone. The hook also blocks commits that
-touch paths under `~/openPIP/` (live legacy production).
+```bash
+docker compose up -d            # Postgres, Redis, the API (dev settings, port 8001) and the worker
+cd frontend
+npm ci
+npm run dev                     # web interface on http://localhost:5173
+```
 
-### Set up GitHub PAT (optional, for Claude Code MCP users)
+The development backend reloads when you edit files in `backend/`, and the
+Vite dev server forwards `/api` to it. The database starts empty: create an
+administrator with `docker compose exec backend python manage.py createsuperuser`,
+then load a dataset from **Admin → Datasets**.
 
-If you use Claude Code and want the GitHub MCP integration, create a
-fine-grained PAT scoped to this repo with `Contents`, `Issues`, `Pull
-requests`, and `Actions` access, then put it in a non-committed secrets
-file:
+See [CONTRIBUTING.md](CONTRIBUTING.md) for running the tests, linters and the
+documentation site.
 
-~~~bash
-cat > ~/.openpip-2.0-secrets <<'EOF'
-export GITHUB_TOKEN="github_pat_<your_token_here>"
-export GITHUB_USERNAME="<your-github-username>"
-export GITHUB_REPO="openpip-2.0"
-EOF
-chmod 600 ~/.openpip-2.0-secrets
-~~~
+| | |
+|---|---|
+| Backend | Django 5, Django REST Framework, simplejwt, Celery, PostgreSQL 16, Redis |
+| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, Zustand, Cytoscape.js |
+| Docs | MkDocs with Material |
 
-Add to your `~/.bashrc` to auto-load when entering the project:
+```text
+backend/     Django project: API, PSICQUIC service, data import
+frontend/    React web interface (its Docker image also serves the docs)
+docs/        Documentation site sources (mkdocs.yml at the root); project notes in docs/project/
+migration/   One-off migration from an original openPIP MySQL database
+```
 
-~~~bash
-function openpip_2_load_secrets() {
-  if [[ "$PWD" == "$HOME/openpip-2.0"* ]] && [[ -z "$GITHUB_TOKEN" ]]; then
-    [[ -f "$HOME/.openpip-2.0-secrets" ]] && source "$HOME/.openpip-2.0-secrets"
-  fi
-}
-PROMPT_COMMAND="openpip_2_load_secrets;${PROMPT_COMMAND:-}"
-~~~
+## Citing
 
-## Development workflow
+If you use openPIP, please cite:
 
-- **Branch protection on `main`**: force-push blocked, deletion blocked,
-  linear history required. Direct pushes allowed in solo phase; will
-  add PR review when mentors actively review.
-- **Branches**: `feature/<short-name>`, `fix/<short-name>`,
-  `docs/<short-name>`, `migrate/<area>` (e.g., `migrate/protein-search`).
-- **Commits**: [Conventional Commits](https://www.conventionalcommits.org/)
-  format. Types: `feat`, `fix`, `migrate`, `docs`, `test`, `chore`,
-  `refactor`. Imperative mood.
-- **Tests**: pytest for backend, vitest + React Testing Library for
-  frontend. Parity tests in `tests/parity/` compare against legacy.
-
-See `CLAUDE.md` for the full conventions document and verification
-checklist.
-
-## Phase plan
-
-### Phase 1: Functional parity (weeks 3–17)
-
-- Every legacy feature replicated on the new stack
-- Schema is a 1:1 translation (same tables, columns, relationships)
-- UX/UI may be modernized; behavior is preserved
-- See [docs/MIGRATION_STRATEGY.md](docs/MIGRATION_STRATEGY.md) for the
-  parity test protocol and migration workflow
-
-### Phase 2: Enhancements (weeks 18–22 or post-GSoC)
-
-- CSV upload format alongside PSI-MI TAB
-- Real-time validation feedback
-- Async import pipeline with SSE/WebSocket progress
-- UniProt metadata enrichment
-- GO term enrichment analysis
-
-## Live production reference
-
-The current live deployment runs at https://openpip.usask.ca (legacy
-PHP/Symfony stack on `~/openPIP/` on the VIDO development server). This
-is the source of truth for Phase 1 parity testing.
-
-**The live deployment is read-only reference.** Never modify it. See
-the "DO NOT TOUCH LEGACY" section in `CLAUDE.md`.
-
-## Acknowledgments
-
-- [NRNB](https://nrnb.org/) for the GSoC mentorship program
-- [VIDO](https://vido.org/) at the University of Saskatchewan
-- The original openPIP authors (Helmy et al., 2022)
-- The Bader Lab at the University of Toronto
+> Helmy M, Mee M, Ranjan A, Hao T, Vidal M, Calderwood MA, Luck K, Bader GD.
+> OpenPIP: An Open-source Platform for Hosting, Visualizing and Analyzing
+> Protein Interaction Data. *J Mol Biol* 434(11):167603 (2022).
+> [doi:10.1016/j.jmb.2022.167603](https://doi.org/10.1016/j.jmb.2022.167603)
 
 ## License
 
-To be confirmed — Phase 1 inherits whatever license legacy openPIP uses;
-will check during community bonding.
+[MIT](LICENSE), the same license as the original openPIP.
+
+## Acknowledgements
+
+openPIP 2.0 was built as a Google Summer of Code 2026 project with the
+[National Resource for Network Biology (NRNB)](https://nrnb.org/), by
+Mahafujul Hamid Ananda, mentored by Dr. Mohamed Helmy (VIDO, University of
+Saskatchewan) and Dr. Gary Bader (University of Toronto). It rebuilds the
+original openPIP by Helmy et al.

@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import UploadFiles
+from .views import as_bool
 
 ALLOWED_EXTENSIONS = {".fasta", ".fa", ".tab", ".tsv", ".sif", ".csv"}
 MAX_UPLOAD_BYTES = getattr(settings, "FILE_MANAGER_MAX_UPLOAD_MB", 500) * 1024 * 1024
@@ -83,7 +84,7 @@ class FileListView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        force = request.data.get("force", "false").lower() == "true"
+        force = as_bool(request.data.get("force", False))
         original_name = uploaded.name
         disk_name = original_name
 
@@ -125,7 +126,7 @@ class FileDetailView(APIView):
             raise Http404
         show = request.data.get("show")
         if show is not None:
-            record.show = bool(show)
+            record.show = as_bool(show)
             record.save(update_fields=["show"])
         return Response(UploadFilesSerializer(record).data)
 

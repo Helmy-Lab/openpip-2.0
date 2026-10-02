@@ -86,6 +86,7 @@ export function MiniNetworkGraph() {
             queryProteinIds={queryIds}
             layout="cola"
             height={320}
+            showControls={false}
           />
         )}
         {!isLoading && proteins.length === 0 && (

@@ -5,12 +5,15 @@ import io
 import re
 
 from django.db import transaction
+from django.db.models import Q
+from django.db.models.functions import Lower
 
 from datasets.models import Dataset
 from interactions.models import (
     AnnotationInteraction,
     Interaction,
     InteractionDataset,
+    InteractionParticipant,
     InteractionInteractionCategory,
     InteractionSupportInformation,
     SupportInformation,
@@ -46,6 +49,8 @@ def detect_format(filename: str, file_bytes: bytes) -> str:
 
 # psi-mi:"MI:1112"(two hybrid prey pooling approach)
 _PSIMI_LABEL_RE = re.compile(r'psi-mi:"[^"]*"\(([^)]+)\)', re.IGNORECASE)
+# The accession out of the same cell: psi-mi:"MI:0496"(bait) -> 0496
+_PSIMI_CODE_RE = re.compile(r'psi-mi:"MI:(\d+)"', re.IGNORECASE)
 # taxid:9606(human)
 _TAXID_RE = re.compile(r"taxid:(\d+)\(([^)]+)\)")
 
@@ -72,8 +77,52 @@ def _strip_prefix(identifier: str) -> str:
     return identifier.strip()
 
 
-def _protein_handler(raw_id: str) -> Protein:
-    """Resolve or create a Protein from a raw PSI-MI identifier string."""
+# Which Protein column holds an identifier of each naming convention.
+_PROTEIN_COLUMN = {
+    "uniprotkb": "uniprot_id",
+    "ensembl": "ensembl_id",
+    "entrez": "entrez_id",
+    "gene_name": "gene_name",
+}
+
+
+def known_identifiers(identifiers) -> set[str]:
+    """The given identifiers (prefixes already stripped) that an upload would
+    match to an existing protein, lower-cased.
+
+    Mirrors _protein_handler: case-insensitive, and checking the protein's own
+    columns as well as the identifier table, so an upload preview counts what
+    the import will actually find.
+    """
+    wanted = {i.strip().lower() for i in identifiers if i and i.strip()}
+    if not wanted:
+        return set()
+    found = set(
+        Identifier.objects.annotate(key=Lower("identifier"))
+        .filter(key__in=wanted)
+        .values_list("key", flat=True)
+    )
+    for column in _PROTEIN_COLUMN.values():
+        missing = wanted - found
+        if not missing:
+            break
+        found |= set(
+            Protein.objects.annotate(key=Lower(column))
+            .filter(key__in=missing)
+            .values_list("key", flat=True)
+        )
+    return found
+
+
+def _protein_handler(raw_id: str) -> tuple[Protein, bool]:
+    """Resolve or create a Protein from a raw PSI-MI identifier string.
+
+    Returns (protein, created). The identifier table is tried first, then the
+    protein's own column for that kind of identifier: the original openPIP
+    kept UniProt accessions on the protein row, not in the identifier table,
+    so skipping the column made an upload in UniProt IDs create a second, empty
+    protein beside every existing one (BUG-034).
+    """
     clean_id = _strip_prefix(raw_id)
     naming_convention = _get_naming_convention(raw_id)
 
@@ -81,27 +130,57 @@ def _protein_handler(raw_id: str) -> Protein:
     if identifier_obj:
         link = ProteinIdentifier.objects.filter(identifier=identifier_obj).first()
         if link:
-            return link.protein
+            return link.protein, False
 
-    protein = Protein.objects.create(
-        uniprot_id=clean_id if naming_convention == "uniprotkb" else None,
-        gene_name=clean_id if naming_convention == "gene_name" else None,
+    column = _PROTEIN_COLUMN[naming_convention]
+    protein = (
+        Protein.objects.filter(**{f"{column}__iexact": clean_id}).order_by("id").first()
     )
-    identifier_obj = Identifier.objects.create(
-        identifier=clean_id,
-        naming_convention=naming_convention,
-    )
+    created = protein is None
+    if created:
+        protein = Protein.objects.create(
+            uniprot_id=clean_id if naming_convention == "uniprotkb" else None,
+            gene_name=clean_id if naming_convention == "gene_name" else None,
+        )
+    if identifier_obj is None:
+        identifier_obj = Identifier.objects.create(
+            identifier=clean_id,
+            naming_convention=naming_convention,
+        )
     ProteinIdentifier.objects.create(protein=protein, identifier=identifier_obj)
-    return protein
+    return protein, created
 
 
-def _is_new_interaction(protein_a: Protein, protein_b: Protein) -> bool:
-    """Return True only when no non-removed interaction exists for this protein pair."""
-    return not Interaction.objects.filter(
-        interactor_A_id__in=[protein_a.id, protein_b.id],
-        interactor_B_id__in=[protein_a.id, protein_b.id],
+def _existing_interaction(protein_a: Protein, protein_b: Protein):
+    """The active interaction for this pair in either orientation, or None.
+
+    Matched as (A, B) or (B, A): testing each side against [a, b] also matched
+    an a-a self-interaction, so a-b was taken for a duplicate and never created.
+    """
+    return Interaction.objects.filter(
+        Q(interactor_A=protein_a, interactor_B=protein_b)
+        | Q(interactor_A=protein_b, interactor_B=protein_a),
         removed="0",
-    ).exists()
+    ).first()
+
+
+def _credit_dataset(interaction: Interaction, dataset) -> bool:
+    """Link an existing interaction to this upload's dataset as well (legacy
+    parity). True when the link is new, i.e. this dataset's evidence is too."""
+    if dataset is None:
+        return False
+    return InteractionDataset.objects.get_or_create(
+        interaction=interaction, dataset=dataset
+    )[1]
+
+
+def _add_category(interaction: Interaction, category_id: int | None) -> None:
+    """Put the interaction in the upload's category, once. Applied to reused
+    interactions as well as new ones, as legacy did (DataController.php)."""
+    if category_id is not None:
+        InteractionInteractionCategory.objects.get_or_create(
+            interaction=interaction, interaction_category_id=category_id
+        )
 
 
 def _parse_psimi_label(raw: str) -> str | None:
@@ -217,6 +296,92 @@ def _handle_dataset(
     InteractionDataset.objects.get_or_create(interaction=interaction, dataset=dataset)
 
 
+def _parse_psimi_code(raw: str) -> str | None:
+    """Extract the bare accession from psi-mi:"MI:0496"(bait) notation."""
+    if not raw or raw.strip() == "-":
+        return None
+    match = _PSIMI_CODE_RE.search(raw)
+    return match.group(1) if match else None
+
+
+def _clean_cell(raw: str) -> str | None:
+    """A free-text MITAB cell, or None when the file said nothing."""
+    value = (raw or "").strip()
+    return value or None if value != "-" else None
+
+
+def _is_header_row(row: list[str]) -> bool:
+    """True for a header line, which MITAB marks with a leading '#'.
+
+    Row 0 used to be skipped unconditionally. Our own export writes a '#'
+    header so that looked fine, but PSICQUIC services return MITAB with no
+    header at all — so uploading a file fetched from IntAct silently lost its
+    first interaction. Identifier cells are "db:id"; a header cell such as
+    "ID(s) interactor A" has no colon, which separates the two cases without
+    assuming a position.
+
+    A missing colon alone is not enough, though: a bare gene name ("TP53") has
+    none either, and treating it as a header dropped the row without a word.
+    Header cells are column titles, so they hold a space or a bracket; neither
+    an identifier nor a gene name ever does.
+    """
+    if not row or not row[0]:
+        return False
+    first = row[0].strip()
+    if first.startswith("#"):
+        return True
+    return ":" not in first and any(c in first for c in " ()")
+
+
+def _parse_negative(raw: str) -> bool:
+    """MITAB column 36. True only when the file says so.
+
+    A negative interaction is a reported non-interaction — an experiment that
+    looked and found nothing. This column was not read at all while the
+    formatter emitted a hardcoded "false", so an uploaded negative result came
+    back out as a positive claim, which is worse than losing it.
+
+    Anything that is not an explicit true reads as positive, matching MITAB:
+    a row that says nothing about this column is a positive finding.
+    """
+    return (raw or "").strip().lower() in {"true", "yes", "1"}
+
+
+def _handle_participants(interaction: Interaction, protein_a, protein_b, row) -> None:
+    """Record each side's role from MITAB columns 17-22, 37-44.
+
+    These columns were read and thrown away before InteractionParticipant
+    existed, so an upload lost exactly the experimental detail openPIP exists to
+    surface. Absent values stay NULL rather than being defaulted, so "the file
+    did not say" stays distinguishable from a recorded MI:0499 unspecified role.
+
+    The upload wizard shows admins which columns are read, in
+    PSIMI_COLS_SPEC in frontend/src/features/admin/AdminDataPage.tsx. Teaching
+    this function a new column means changing that list too: an admin told a
+    column is ignored will not bother to include it, so a stale entry there
+    quietly costs real data.
+    """
+    sides = (
+        (InteractionParticipant.SIDE_A, protein_a, 16, 18, 20, 40, 42, 36, 38),
+        (InteractionParticipant.SIDE_B, protein_b, 17, 19, 21, 41, 43, 37, 39),
+    )
+    for side, protein, bio, exp, itype, ident, effect, feat, stoich in sides:
+        InteractionParticipant.objects.update_or_create(
+            interaction=interaction,
+            side=side,
+            defaults={
+                "protein": protein,
+                "biological_role": _parse_psimi_code(_safe_col(row, bio)),
+                "experimental_role": _parse_psimi_code(_safe_col(row, exp)),
+                "interactor_type": _parse_psimi_code(_safe_col(row, itype)),
+                "identification_method": _parse_psimi_code(_safe_col(row, ident)),
+                "biological_effect": _parse_psimi_code(_safe_col(row, effect)),
+                "features": _clean_cell(_safe_col(row, feat)),
+                "stoichiometry": _clean_cell(_safe_col(row, stoich)),
+            },
+        )
+
+
 def _handle_detection_method(interaction: Interaction, method_col: str) -> None:
     """Store detection method label as Annotation (type_name='experiment')."""
     label = _parse_psimi_label(method_col)
@@ -317,7 +482,7 @@ def fast_preview(file_bytes: bytes) -> dict:
     errors: list[dict] = []
 
     for row_num, row in enumerate(reader):
-        if row_num == 0 or (row and row[0].startswith("#")):
+        if _is_header_row(row):
             continue
         if not row or len(row) < 2:
             continue
@@ -337,12 +502,7 @@ def fast_preview(file_bytes: bytes) -> dict:
 
     unique_ids = {_strip_prefix(r).lower() for r in all_raw_ids}
 
-    existing_lower = set(
-        Identifier.objects.filter(identifier__in=list(unique_ids)).values_list(
-            "identifier", flat=True
-        )
-    )
-    existing_lower = {v.lower() for v in existing_lower}
+    existing_lower = known_identifiers(unique_ids)
 
     proteins_existing = sum(1 for uid in unique_ids if uid in existing_lower)
     proteins_created = len(unique_ids) - proteins_existing
@@ -410,7 +570,7 @@ def parse_and_ingest(
 
         for row_num, row in enumerate(reader):
             # Skip header row (row 0 or first row where col 0 starts with #)
-            if row_num == 0 or (row and row[0].startswith("#")):
+            if _is_header_row(row):
                 continue
             if not row:
                 continue
@@ -425,30 +585,24 @@ def parse_and_ingest(
             sid = transaction.savepoint()
             try:
                 # ── Proteins ────────────────────────────────────────────────
-                existing_a = Identifier.objects.filter(
-                    identifier__iexact=_strip_prefix(raw_a)
-                ).exists()
-                protein_a = _protein_handler(raw_a)
-                if existing_a:
-                    proteins_existing += 1
-                else:
+                protein_a, created_a = _protein_handler(raw_a)
+                if created_a:
                     proteins_created += 1
                     if protein_a.id not in new_protein_ids:
                         new_protein_ids.append(protein_a.id)
+                else:
+                    proteins_existing += 1
 
                 if raw_a == raw_b:
                     protein_b = protein_a
                 else:
-                    existing_b = Identifier.objects.filter(
-                        identifier__iexact=_strip_prefix(raw_b)
-                    ).exists()
-                    protein_b = _protein_handler(raw_b)
-                    if existing_b:
-                        proteins_existing += 1
-                    else:
+                    protein_b, created_b = _protein_handler(raw_b)
+                    if created_b:
                         proteins_created += 1
                         if protein_b.id not in new_protein_ids:
                             new_protein_ids.append(protein_b.id)
+                    else:
+                        proteins_existing += 1
 
                 # ── Aliases (cols 4+5) ──────────────────────────────────────
                 _add_gene_name_aliases(protein_a, _safe_col(row, 4))
@@ -465,7 +619,15 @@ def parse_and_ingest(
                         new_organism_ids.append(org_id)
 
                 # ── Dedup ──────────────────────────────────────────────────
-                if not _is_new_interaction(protein_a, protein_b):
+                # An overlap still credits this dataset and brings its evidence
+                # along. The score is left alone: it came with the dataset that
+                # created the interaction.
+                existing = _existing_interaction(protein_a, protein_b)
+                if existing:
+                    if _credit_dataset(existing, named_dataset):
+                        _handle_detection_method(existing, _safe_col(row, 6))
+                        _handle_interaction_annotations(existing, _safe_col(row, 27))
+                    _add_category(existing, category_id)
                     transaction.savepoint_commit(sid)
                     interactions_skipped += 1
                     continue
@@ -483,6 +645,10 @@ def parse_and_ingest(
                     interactor_A=protein_a,
                     interactor_B=protein_b,
                     score=score,
+                    negative=_parse_negative(_safe_col(row, 35)),
+                    # Column 12. Stored so the depositor's statement about their
+                    # own experiment outranks the type openPIP would infer.
+                    interaction_type=_parse_psimi_code(_safe_col(row, 11)),
                     removed="0",
                 )
                 interactions_created += 1
@@ -495,6 +661,7 @@ def parse_and_ingest(
 
                 # ── Detection method (col 6) ───────────────────────────────
                 _handle_detection_method(interaction, _safe_col(row, 6))
+                _handle_participants(interaction, protein_a, protein_b, row)
 
                 # ── Interaction annotations (col 27) ───────────────────────
                 _handle_interaction_annotations(interaction, _safe_col(row, 27))
@@ -505,11 +672,7 @@ def parse_and_ingest(
                     _handle_support_info(interaction, _safe_col(row, 26))
 
                 # ── Category ───────────────────────────────────────────────
-                if category_id is not None:
-                    InteractionInteractionCategory.objects.create(
-                        interaction=interaction,
-                        interaction_category_id=category_id,
-                    )
+                _add_category(interaction, category_id)
 
                 transaction.savepoint_commit(sid)
 
@@ -547,7 +710,9 @@ def parse_and_ingest_csv(
     Parse a simple CSV interaction file and ingest interactions.
 
     Expected format (header required):
-        protein_a,protein_b[,score][,pubmed_id]
+        protein_a,protein_b[,score]
+
+    Header names are matched case-insensitively; other columns are ignored.
 
     Protein identifiers follow the same convention as PSI-MI TAB
     (e.g. ``uniprotkb:P12345`` or a bare gene name).
@@ -562,6 +727,10 @@ def parse_and_ingest_csv(
 
     text = file_bytes.decode("utf-8", errors="replace")
     reader = csv.DictReader(io.StringIO(text))
+    # The upload wizard accepts "Protein_A"; match it here too, or the file
+    # passes that check and then loads nothing.
+    if reader.fieldnames:
+        reader.fieldnames = [name.strip().lower() for name in reader.fieldnames]
 
     def _run() -> None:
         nonlocal proteins_created, proteins_existing, interactions_created
@@ -582,32 +751,29 @@ def parse_and_ingest_csv(
 
             sid = transaction.savepoint()
             try:
-                existing_a = Identifier.objects.filter(
-                    identifier__iexact=_strip_prefix(raw_a)
-                ).exists()
-                protein_a = _protein_handler(raw_a)
-                if existing_a:
-                    proteins_existing += 1
-                else:
+                protein_a, created_a = _protein_handler(raw_a)
+                if created_a:
                     proteins_created += 1
                     if protein_a.id not in new_protein_ids:
                         new_protein_ids.append(protein_a.id)
+                else:
+                    proteins_existing += 1
 
                 if raw_a == raw_b:
                     protein_b = protein_a
                 else:
-                    existing_b = Identifier.objects.filter(
-                        identifier__iexact=_strip_prefix(raw_b)
-                    ).exists()
-                    protein_b = _protein_handler(raw_b)
-                    if existing_b:
-                        proteins_existing += 1
-                    else:
+                    protein_b, created_b = _protein_handler(raw_b)
+                    if created_b:
                         proteins_created += 1
                         if protein_b.id not in new_protein_ids:
                             new_protein_ids.append(protein_b.id)
+                    else:
+                        proteins_existing += 1
 
-                if not _is_new_interaction(protein_a, protein_b):
+                existing = _existing_interaction(protein_a, protein_b)
+                if existing:
+                    _credit_dataset(existing, named_dataset)
+                    _add_category(existing, category_id)
                     transaction.savepoint_commit(sid)
                     interactions_skipped += 1
                     continue
@@ -626,6 +792,7 @@ def parse_and_ingest_csv(
                     InteractionDataset.objects.get_or_create(
                         interaction=interaction, dataset=named_dataset
                     )
+                _add_category(interaction, category_id)
 
                 transaction.savepoint_commit(sid)
                 interactions_created += 1

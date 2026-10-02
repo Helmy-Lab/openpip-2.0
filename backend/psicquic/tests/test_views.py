@@ -3,7 +3,7 @@ import pytest
 from proteins.models import Protein, Organism, ProteinOrganism
 from interactions.models import Interaction, InteractionDataset
 from datasets.models import Dataset
-from psicquic.views import SUPPORTED_FORMATS, REST_VERSION
+from psicquic.views import SUPPORTED_FORMATS, SERVICE_VERSION, PsicquicThrottle
 
 
 @pytest.fixture
@@ -105,10 +105,12 @@ def test_psicquic_formats_lists_what_the_query_view_accepts(client):
 
 
 @pytest.mark.django_db
-def test_psicquic_version_reports_the_rest_spec_level(client):
+def test_psicquic_version_reports_this_services_own_version(client):
+    # Not a spec level: the EBI registry's 34 services report mutually
+    # inconsistent values (1.5.3, 1.3.3, 1.3.14), so the field is per-service.
     response = client.get("/psicquic/rest/version")
     assert response.status_code == 200
-    assert response.content.decode().strip() == REST_VERSION
+    assert response.content.decode().strip() == SERVICE_VERSION
 
 
 @pytest.mark.django_db
@@ -123,3 +125,151 @@ def test_psicquic_rejects_non_numeric_paging(client, sample_interactions):
     # int() on a query param used to raise ValueError -> 500.
     response = client.get("/psicquic/rest/query?q=BRCA1&maxResults=all")
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_psicquic_throttles_a_hammering_client(
+    client, sample_interactions, monkeypatch
+):
+    # These endpoints are unauthenticated and return bulk data, so an unbounded
+    # loop against them is the cheapest way to hurt the site.
+    from django.core.cache import cache
+
+    cache.clear()
+    # THROTTLE_RATES is read into a class attribute at import time, so patching
+    # settings at runtime would not reach it.
+    monkeypatch.setattr(PsicquicThrottle, "THROTTLE_RATES", {"psicquic": "3/min"})
+    codes = [client.get("/psicquic/rest/query?q=BRCA1").status_code for _ in range(5)]
+    assert codes[:3] == [200, 200, 200]
+    assert codes[3:] == [429, 429]
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_psicquic_format_param_is_not_drf_content_negotiation(
+    client, sample_interactions
+):
+    # DRF reads ?format= as a renderer override and 404s when it finds none.
+    # PSICQUIC owns this parameter, so the view must see it, not DRF.
+    assert client.get("/psicquic/rest/query?q=BRCA1&format=tab25").status_code == 200
+    assert client.get("/psicquic/rest/query?q=BRCA1&format=json").status_code == 200
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("fmt,width", [("tab25", 15), ("tab26", 36), ("tab27", 42)])
+def test_psicquic_serves_each_tab_version(client, sample_interactions, fmt, width):
+    response = client.get(f"/psicquic/rest/query?q=BRCA1&format={fmt}")
+    assert response.status_code == 200
+    rows = response.content.decode().strip().split("\n")
+    assert all(row.count("\t") == width - 1 for row in rows)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "query",
+    [
+        'detmethod:"two hybrid"',
+        "type:MI:0407",
+        "pbioroleA:bait",
+        "stc:1",
+    ],
+)
+def test_unsupported_miql_is_refused_not_answered_with_zero(
+    client, sample_interactions, query
+):
+    """The bug this guards is a wrong answer, not a missing feature.
+
+    These queries used to fall through to a plain-text search, match nothing,
+    and return 0 with a 200 — telling a federating client that openPIP holds no
+    human interactions and no two-hybrid data, when it holds tens of thousands
+    of both.
+    """
+    response = client.get("/psicquic/rest/query", {"q": query, "format": "count"})
+    assert response.status_code == 400
+    assert response.content.decode().strip() != "0"
+
+
+@pytest.mark.django_db
+def test_the_count_endpoint_refuses_them_too(client, sample_interactions):
+    response = client.get("/psicquic/rest/query/count", {"q": "pbioroleA:bait"})
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_supported_queries_still_answer(client, sample_interactions):
+    for query in ["BRCA1", "idA:BRCA1", "id:P38398", "taxidA:9606", "*"]:
+        response = client.get("/psicquic/rest/query", {"q": query, "format": "count"})
+        assert response.status_code == 200, query
+
+
+@pytest.mark.django_db
+def test_every_advertised_field_is_actually_answerable(client, sample_interactions):
+    """SUPPORTED_FIELDS must not disagree with the parser.
+
+    Adding `species` to the list while leaving its branch below the
+    unsupported-field guard produced exactly that: a field advertised in the
+    error message and then rejected by it. This checks the two cannot drift.
+    """
+    from psicquic.miql import SUPPORTED_FIELDS
+
+    for field in SUPPORTED_FIELDS:
+        value = {"taxidA": "9606", "taxidB": "9606", "species": "9606"}.get(
+            field, "12345678" if field == "pubid" else "BRCA1"
+        )
+        response = client.get(
+            "/psicquic/rest/query", {"q": f"{field}:{value}", "format": "count"}
+        )
+        assert response.status_code == 200, f"{field} is advertised but refused"
+
+
+@pytest.mark.django_db
+def test_species_now_answers_instead_of_refusing(client, sample_interactions):
+    response = client.get(
+        "/psicquic/rest/query", {"q": "species:9606", "format": "count"}
+    )
+    assert response.status_code == 200
+    assert response.content.decode().strip() == "1"
+
+
+@pytest.mark.django_db
+def test_psicquic_pages_are_ordered_and_disjoint(client, sample_interactions):
+    from psicquic.miql import parse_miql
+
+    a, b = sample_interactions.interactor_A, sample_interactions.interactor_B
+    for _ in range(4):
+        Interaction.objects.create(interactor_A=a, interactor_B=b, score="0.5")
+    assert parse_miql("*").ordered and parse_miql("BRCA1").ordered
+
+    ids = []
+    for first in range(0, 5, 2):
+        page = client.get(
+            f"/psicquic/rest/query?q=*&format=json&firstResult={first}&maxResults=2"
+        )
+        ids += [row["interaction_id"] for row in page.json()]
+    assert ids == sorted(Interaction.objects.values_list("pk", flat=True))
+
+
+@pytest.mark.django_db
+def test_psicquic_refuses_max_results_over_the_cap(client, sample_interactions):
+    from psicquic.views import MAX_RESULTS
+
+    ok = client.get(f"/psicquic/rest/query?q=*&maxResults={MAX_RESULTS}")
+    too_many = client.get(f"/psicquic/rest/query?q=*&maxResults={MAX_RESULTS + 1}")
+    assert ok.status_code == 200 and too_many.status_code == 400
+
+
+@pytest.mark.django_db
+def test_psicquic_throttles_signed_in_callers_too(
+    client, sample_interactions, regular_user, monkeypatch
+):
+    from django.core.cache import cache
+
+    cache.clear()
+    monkeypatch.setattr(PsicquicThrottle, "THROTTLE_RATES", {"psicquic": "2/min"})
+    from rest_framework_simplejwt.tokens import RefreshToken
+
+    token = RefreshToken.for_user(regular_user).access_token
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+    codes = [client.get("/psicquic/rest/query?q=BRCA1").status_code for _ in range(3)]
+    assert codes == [200, 200, 429]
+    cache.clear()

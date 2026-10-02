@@ -10,8 +10,26 @@ logger = logging.getLogger(__name__)
 UNIPROT_SEARCH = "https://rest.uniprot.org/uniprotkb/search"
 UNIPROT_FIELDS = (
     "accession,gene_names,protein_name,sequence,cc_function,"
-    "xref_ensembl,xref_geneid,organism_name,organism_id"
+    "xref_ensembl,xref_geneid,organism_name,organism_id,"
+    "xref_pdb,xref_interpro"
 )
+
+# UniProt cross-reference databases worth storing, and how MITAB should treat
+# each. "id" databases name the same molecule and belong in the alternative
+# identifier columns (3/4); "xref" databases point at other resources and belong
+# in the cross-reference columns (23/24).
+#
+# GO, Reactome and RefSeq are deliberately not fetched. All are verifiable; the
+# objection is signal, not correctness. A protein carries dozens of GO and
+# Reactome entries and the portal already surfaces both via g:Profiler
+# enrichment. RefSeq returns isoform-level accessions — BRCA1 has 33 — which
+# would swell the alternative-identifier column from two entries to thirty-five
+# while saying nothing Ensembl and Entrez do not already say.
+XREF_DATABASES = {
+    "PDB": ("pdb", "xref"),
+    "InterPro": ("interpro", "xref"),
+}
+ALT_ID_CONVENTIONS = {"ensembl", "gene_name", "uniprotkb", "entrez"}
 BATCH_SIZE = 50
 TIMEOUT = 30
 
@@ -121,6 +139,73 @@ def extract_taxon(entry: dict) -> tuple[str, str] | None:
     return str(taxon_id), organism.get("scientificName") or ""
 
 
+def extract_xrefs(entry: dict) -> list[tuple[str, str]]:
+    """Return [(naming_convention, identifier)] for the cross-references we keep.
+
+    Every value is UniProt's own curated cross-reference for that accession —
+    recorded, not inferred, so it can be checked against the entry.
+    """
+    found = []
+    for xref in entry.get("uniProtKBCrossReferences", []):
+        mapping = XREF_DATABASES.get(xref.get("database"))
+        identifier = xref.get("id")
+        if mapping and identifier:
+            found.append((mapping[0], identifier))
+    return found
+
+
+def _store_xrefs(protein, entry) -> int:
+    """Attach UniProt cross-references as Identifier rows. Adds only."""
+    from proteins.models import Identifier, ProteinIdentifier
+
+    added = 0
+    existing = {
+        (pi.identifier.naming_convention, pi.identifier.identifier)
+        for pi in protein.protein_identifiers.select_related("identifier")
+        if pi.identifier
+    }
+    for convention, value in extract_xrefs(entry):
+        if (convention, value) in existing:
+            continue
+        identifier, _ = Identifier.objects.get_or_create(
+            identifier=value, naming_convention=convention
+        )
+        ProteinIdentifier.objects.get_or_create(protein=protein, identifier=identifier)
+        existing.add((convention, value))
+        added += 1
+    return added
+
+
+def _store_taxon(protein, entry) -> bool:
+    """Link the protein to its organism, creating the Organism if needed.
+
+    Previously taxonomy came only from the uploaded file's columns 10/11, so a
+    file that omitted them left the protein with no organism and MITAB columns
+    10/11 empty. UniProt states the organism for the accession, which is a
+    recorded fact about that entry rather than an inference.
+    """
+    from proteins.models import Organism, ProteinOrganism
+
+    if protein.protein_organisms.exists():
+        return False
+    taxon = extract_taxon(entry)
+    if not taxon:
+        return False
+    taxonomy_id, scientific_name = taxon
+    organism = Organism.objects.filter(taxonomy_id=taxonomy_id).first()
+    if organism is None:
+        organism = Organism.objects.create(
+            taxonomy_id=taxonomy_id,
+            name=scientific_name,
+            scientific_name=scientific_name,
+        )
+    elif scientific_name and not organism.scientific_name:
+        organism.scientific_name = scientific_name
+        organism.save(update_fields=["scientific_name"])
+    ProteinOrganism.objects.get_or_create(protein=protein, organism=organism)
+    return True
+
+
 def enrich_proteins_from_uniprot(protein_ids: list[int]) -> tuple[int, bool]:
     """
     Fetch UniProt metadata for proteins with a known uniprot_id and fill in
@@ -183,6 +268,13 @@ def enrich_proteins_from_uniprot(protein_ids: list[int]) -> tuple[int, bool]:
             if tid:
                 protein.entrez_id = tid
                 changed = True
+
+        # Related rows rather than fields on the protein, so they are saved
+        # regardless of whether any scalar field changed.
+        if _store_taxon(protein, entry):
+            changed = True
+        if _store_xrefs(protein, entry):
+            changed = True
 
         if changed:
             protein.save(

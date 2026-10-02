@@ -54,6 +54,29 @@ def test_patch_settings_as_admin(auth_client):
 
 
 @pytest.mark.django_db
+def test_patch_settings_stores_per_page_nav_style(auth_client):
+    AdminSettings.objects.create(pk=1, nav_style="solid")
+    response = auth_client.patch(
+        "/api/settings",
+        {"navStyleOverrides": "home:gradient,search:light"},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["navStyleOverrides"] == "home:gradient,search:light"
+
+
+@pytest.mark.django_db
+def test_patch_settings_stores_canvas_background_color(auth_client):
+    AdminSettings.objects.create(pk=1)
+    response = auth_client.patch(
+        "/api/settings", {"canvasBackgroundColor": "#0f172a"}, format="json"
+    )
+    assert response.status_code == 200
+    assert response.json()["canvasBackgroundColor"] == "#0f172a"
+    assert AdminSettings.objects.get(pk=1).canvas_background_color == "#0f172a"
+
+
+@pytest.mark.django_db
 def test_get_announcements_returns_home_page_announcements(api_client):
     Announcement.objects.create(title="Shown", text="Hello", show_on_home_page=True)
     Announcement.objects.create(title="Hidden", text="World", show_on_home_page=False)
@@ -827,3 +850,15 @@ def test_public_register_never_grants_admin(api_client):
     user = User.objects.get(username="plain")
     assert user.is_staff is False
     assert user.is_superuser is False
+
+
+@pytest.mark.django_db
+def test_hidden_announcements_stay_off_the_home_page(api_client):
+    Announcement.objects.create(
+        title="Live", text="x", show=True, show_on_home_page=True
+    )
+    Announcement.objects.create(
+        title="Hidden", text="x", show=False, show_on_home_page=True
+    )
+    titles = [a["title"] for a in api_client.get("/api/announcements").json()]
+    assert titles == ["Live"]

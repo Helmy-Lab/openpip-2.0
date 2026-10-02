@@ -39,12 +39,21 @@ export interface AdminSettings {
   version: string
   logoUrl?: string | null
   navStyle?: string | null
+  /** Per-page navbar style, as `home:gradient,search:solid`. */
+  navStyleOverrides?: string | null
   mainColorScheme2?: string | null
   gradientAngle?: number | null
   about: string
   faq: string
   contact: string
   download: string
+  /** Annotation features that only apply to a multicellular organism. */
+  showTissueExpression: boolean
+  showSubcellularLocation: boolean
+  /** Search controls as a ribbon under the navbar instead of a left sidebar. */
+  horizontalFilterBar: boolean
+  /** Network canvas background; null follows the light/dark theme. */
+  canvasBackgroundColor?: string | null
   showDownloads: boolean
   showDownloadAll: boolean
   example1: string
@@ -141,6 +150,7 @@ export interface Protein {
   annotation_array: Record<string, string>
   tissue_expression_array: Record<string, unknown>
   subcellular_location_expression_array: Record<string, unknown>
+  tissue_specificity_array?: Record<string, unknown>
 }
 
 export interface Interaction {

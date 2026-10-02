@@ -81,4 +81,27 @@ describe('AdminLayout', () => {
     expect(confirm).not.toHaveBeenCalled()
     expect(screen.getByRole('link', { name: /Appearance/ })).toHaveAttribute('aria-current', 'page')
   })
+
+  it('marks the selected panel with the theme-derived chip pair', () => {
+    // Not raw --primary on --surface-2. theme.ts sets --primary inline on the
+    // root from the admin's brand colour, which overrides the dark-theme token,
+    // so in dark mode the selected row rendered the brand's own lightness on a
+    // near-identical background: 1.05:1 for the Midnight preset, invisible.
+    // --primary-soft/-deep are derived per theme and already held to 4.5:1 by
+    // the theme tests, so using them is what makes the selection legible for
+    // every brand.
+    renderShell('/admin/settings')
+    const selected = screen.getByRole('link', { name: /Site Identity/ })
+
+    expect(selected).toHaveAttribute('aria-current', 'page')
+    expect(selected.style.color).toBe('var(--primary-deep)')
+    expect(selected.style.background).toBe('var(--primary-soft)')
+  })
+
+  it('leaves unselected panels unstyled so only one row reads as current', () => {
+    renderShell('/admin/settings')
+    const other = screen.getByRole('link', { name: /^Appearance/ })
+    expect(other).not.toHaveAttribute('aria-current')
+    expect(other.style.background).toBe('transparent')
+  })
 })

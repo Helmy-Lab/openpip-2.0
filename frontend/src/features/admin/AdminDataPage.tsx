@@ -182,35 +182,56 @@ function formatBytes(bytes: number): string {
 
 type ColStatus = 'required' | 'parsed' | 'ignored'
 
+// Mirrors what datasets/upload_parser.py actually reads. If the parser learns a
+// column, change it here too — an admin who is told a column is ignored will not
+// bother to include it, so a stale "ignored" quietly costs real data.
 const PSIMI_COLS_SPEC: { col: number; name: string; status: ColStatus; note: string }[] = [
   { col: 1,  name: 'Unique identifier - Protein A',   status: 'required', note: 'e.g. uniprotkb:P04637 or a bare gene name' },
   { col: 2,  name: 'Unique identifier - Protein B',   status: 'required', note: 'same format as column 1' },
-  { col: 3,  name: 'Alternative IDs - Protein A',     status: 'ignored',  note: 'accepted in file but not read' },
-  { col: 4,  name: 'Alternative IDs - Protein B',     status: 'ignored',  note: 'accepted in file but not read' },
+  { col: 3,  name: 'Alternative IDs - Protein A',     status: 'ignored',  note: 'looked up from UniProt instead' },
+  { col: 4,  name: 'Alternative IDs - Protein B',     status: 'ignored',  note: 'looked up from UniProt instead' },
   { col: 5,  name: 'Aliases - Protein A',             status: 'parsed',   note: 'gene names extracted, e.g. uniprotkb:TP53(gene name)' },
   { col: 6,  name: 'Aliases - Protein B',             status: 'parsed',   note: 'same format as column 5' },
   { col: 7,  name: 'Detection method',                status: 'parsed',   note: 'e.g. psi-mi:"MI:0018"(two hybrid)' },
   { col: 8,  name: 'First author',                    status: 'ignored',  note: 'use dataset metadata in the next step instead' },
   { col: 9,  name: 'Publication ID (PubMed)',         status: 'ignored',  note: 'use dataset metadata in the next step instead' },
-  { col: 10, name: 'Taxon - Protein A',               status: 'parsed',   note: 'e.g. taxid:9606(human)' },
+  { col: 10, name: 'Taxon - Protein A',               status: 'parsed',   note: 'e.g. taxid:9606(human). If absent, taken from UniProt' },
   { col: 11, name: 'Taxon - Protein B',               status: 'parsed',   note: 'same format as column 10' },
-  { col: 12, name: 'Interaction type',                status: 'ignored',  note: '' },
+  { col: 12, name: 'Interaction type',                status: 'parsed',   note: 'e.g. psi-mi:"MI:0915"(physical association). A stated type wins over any openPIP infers' },
   { col: 13, name: 'Source database',                 status: 'ignored',  note: '' },
   { col: 14, name: 'Interaction identifier',          status: 'ignored',  note: '' },
   { col: 15, name: 'Confidence score',                status: 'parsed',   note: 'e.g. 0.92 or intact-miscore:0.92' },
   { col: 16, name: 'Expansion method',                status: 'ignored',  note: '' },
-  { col: 17, name: 'Biological role - Protein A',     status: 'ignored',  note: '' },
-  { col: 18, name: 'Biological role - Protein B',     status: 'ignored',  note: '' },
-  { col: 19, name: 'Experimental role - Protein A',   status: 'ignored',  note: '' },
-  { col: 20, name: 'Experimental role - Protein B',   status: 'ignored',  note: '' },
-  { col: 21, name: 'Interactor type - Protein A',     status: 'ignored',  note: '' },
-  { col: 22, name: 'Interactor type - Protein B',     status: 'ignored',  note: '' },
-  { col: 23, name: 'Xref - Protein A',                status: 'ignored',  note: '' },
-  { col: 24, name: 'Xref - Protein B',                status: 'ignored',  note: '' },
+  { col: 17, name: 'Biological role - Protein A',     status: 'parsed',   note: 'e.g. psi-mi:"MI:0499"(unspecified role)' },
+  { col: 18, name: 'Biological role - Protein B',     status: 'parsed',   note: 'same format as column 17' },
+  { col: 19, name: 'Experimental role - Protein A',   status: 'parsed',   note: 'e.g. psi-mi:"MI:0496"(bait)' },
+  { col: 20, name: 'Experimental role - Protein B',   status: 'parsed',   note: 'e.g. psi-mi:"MI:0498"(prey)' },
+  { col: 21, name: 'Interactor type - Protein A',     status: 'parsed',   note: 'e.g. psi-mi:"MI:0326"(protein)' },
+  { col: 22, name: 'Interactor type - Protein B',     status: 'parsed',   note: 'same format as column 21' },
+  { col: 23, name: 'Xref - Protein A',                status: 'ignored',  note: 'PDB and InterPro looked up from UniProt instead' },
+  { col: 24, name: 'Xref - Protein B',                status: 'ignored',  note: 'looked up from UniProt instead' },
   { col: 25, name: 'Xref - Interaction',              status: 'ignored',  note: '' },
   { col: 26, name: 'Annotations - Protein A',         status: 'parsed',   note: 'key:value pairs stored as support info' },
   { col: 27, name: 'Annotations - Protein B',         status: 'parsed',   note: 'same format as column 26' },
   { col: 28, name: 'Annotations - Interaction',       status: 'parsed',   note: 'pipe-separated key:value pairs' },
+  { col: 29, name: 'Host organism',                   status: 'ignored',  note: '' },
+  { col: 30, name: 'Interaction parameters',          status: 'ignored',  note: '' },
+  { col: 31, name: 'Creation date',                   status: 'ignored',  note: '' },
+  { col: 32, name: 'Update date',                     status: 'ignored',  note: '' },
+  { col: 33, name: 'Checksum - Protein A',            status: 'ignored',  note: 'computed on export as a ROGID, not read' },
+  { col: 34, name: 'Checksum - Protein B',            status: 'ignored',  note: 'computed on export as a ROGID, not read' },
+  { col: 35, name: 'Checksum - Interaction',          status: 'ignored',  note: 'computed on export as a RIGID, not read' },
+  { col: 36, name: 'Negative',                        status: 'parsed',   note: 'true marks a reported non-interaction; anything else is positive' },
+  { col: 37, name: 'Features - Protein A',            status: 'parsed',   note: 'free text, e.g. binding-associated region:1-50' },
+  { col: 38, name: 'Features - Protein B',            status: 'parsed',   note: 'same format as column 37' },
+  { col: 39, name: 'Stoichiometry - Protein A',       status: 'parsed',   note: 'free text' },
+  { col: 40, name: 'Stoichiometry - Protein B',       status: 'parsed',   note: 'same format as column 39' },
+  { col: 41, name: 'Identification method - A',       status: 'parsed',   note: 'e.g. psi-mi:"MI:0396"(predetermined participant)' },
+  { col: 42, name: 'Identification method - B',       status: 'parsed',   note: 'same format as column 41' },
+  { col: 43, name: 'Biological effect - Protein A',   status: 'parsed',   note: 'TAB 2.8 (CausalTAB). Kept, though openPIP generates none' },
+  { col: 44, name: 'Biological effect - Protein B',   status: 'parsed',   note: 'same format as column 43' },
+  { col: 45, name: 'Causal regulatory mechanism',     status: 'ignored',  note: 'TAB 2.8 (CausalTAB)' },
+  { col: 46, name: 'Causal statement',                status: 'ignored',  note: 'TAB 2.8 (CausalTAB)' },
 ]
 
 const STATUS_BADGE: Record<ColStatus, { label: string; color: string; bg: string }> = {
@@ -288,7 +309,7 @@ function FileFormatGuide() {
                   cursor: 'pointer',
                 }}
               >
-                {t === 'psimi' ? 'PSI-MI TAB 2.7  (.tab / .tsv / .txt)' : 'CSV  (.csv)'}
+                {t === 'psimi' ? 'PSI-MI TAB 2.5-2.8  (.tab / .tsv / .txt)' : 'CSV  (.csv)'}
               </button>
             ))}
           </div>
@@ -321,9 +342,12 @@ function FileFormatGuide() {
           {tab === 'psimi' ? (
             <>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 10px' }}>
-                Tab-separated, 28 columns. Lines starting with <code style={{ fontFamily: 'var(--mono)' }}>#</code> are
-                skipped (use them for comments or a human-readable header). Columns 1 and 2 are the only ones required
-                - all others may be <code style={{ fontFamily: 'var(--mono)' }}>-</code> (dash) if unknown.
+                Tab-separated. A file may stop at any version's width - 15 columns for TAB 2.5, 36 for 2.6, 42 for
+                2.7, 46 for 2.8 - and anything beyond what it carries is treated as absent. Lines starting with{' '}
+                <code style={{ fontFamily: 'var(--mono)' }}>#</code> are skipped (use them for comments or a
+                human-readable header), and a file with no header line is read from its first row. Columns 1 and 2 are
+                the only ones required - all others may be{' '}
+                <code style={{ fontFamily: 'var(--mono)' }}>-</code> (dash) if unknown.
               </p>
               <div style={{ overflowX: 'auto', borderRadius: 6, border: '1px solid var(--border)', maxHeight: 340, overflowY: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
@@ -1189,7 +1213,7 @@ function Step3({ state, onBack, onNext }: Step3Props) {
             </div>
             <div>
               <div className="op-num" style={{ fontSize: 22, fontWeight: 600, color: 'var(--text-muted)' }}>{result.interactions_skipped.toLocaleString()}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interactions skipped</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Already in database</div>
             </div>
           </div>
         </div>
@@ -1449,7 +1473,7 @@ function Step4({ state, onReset }: Step4Props) {
               </div>
               <div>
                 <div className="op-num" style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-muted)' }}>{totals.interactions_skipped.toLocaleString()}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interactions skipped</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Already in database</div>
               </div>
             </div>
           </div>

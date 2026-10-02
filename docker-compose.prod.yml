@@ -1,17 +1,34 @@
+# List-valued keys (ports, volumes) are merged with docker-compose.yml, not
+# replaced, so every override below needs a !reset or !override tag. A plain
+# `ports: []` once left Postgres and Redis published on every interface.
 services:
   db:
-    ports: []
+    ports: !reset []
 
   redis:
-    ports: []
+    ports: !reset []
+
+  frontend:
+    build:
+      args:
+        VITE_BASE: ${URL_PREFIX-/v2}/
+        DOCS_SITE_URL: ${DOCS_SITE_URL:-https://openpip.usask.ca/v2/docs/}
+    # Reached only through the host's HTTPS proxy.
+    ports: !override
+      - "127.0.0.1:8080:80"
 
   backend:
     environment:
       DJANGO_SETTINGS_MODULE: openpip.settings.prod
+      URL_PREFIX: ${URL_PREFIX-/v2}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-openpip.usask.ca,localhost}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://openpip.usask.ca}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://openpip.usask.ca}
-    volumes: []
+    ports: !override
+      - "127.0.0.1:8001:8000"
+    # !override: a plain list would be merged with the dev ./backend:/app
+    # bind-mount, leaving prod running from the working tree.
+    volumes: !override
+      - media:/app/mediafiles
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
@@ -21,4 +38,10 @@ services:
   celery:
     environment:
       DJANGO_SETTINGS_MODULE: openpip.settings.prod
-    volumes: []
+    # !override: a plain list would be merged with the dev ./backend:/app
+    # bind-mount, leaving prod running from the working tree.
+    volumes: !override
+      - media:/app/mediafiles
+
+volumes:
+  media:

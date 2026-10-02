@@ -74,18 +74,18 @@ describe('HeroSection', () => {
       wrapper,
     })
 
-    // "None" is what this filter is called in the sidebar and the admin editor.
-    expect(screen.getByText('None')).toBeInTheDocument()
+    // "no filter" is what this filter is called in the sidebar and the admin editor.
+    expect(screen.getByText('no filter')).toBeInTheDocument()
     expect(screen.queryByText('all')).not.toBeInTheDocument()
     expect(screen.getByText('query-query')).toBeInTheDocument()
   })
 
-  it('labels a legacy "all" example None too', () => {
+  it('labels a legacy "all" example none too', () => {
     settings.value = { example1: 'BAD', example1Type: 'all' }
     render(<HeroSection shortTitle="openPIP" proteins={0} interactions={0} datasets={0} />, {
       wrapper,
     })
 
-    expect(screen.getByText('None')).toBeInTheDocument()
+    expect(screen.getByText('no filter')).toBeInTheDocument()
   })
 })

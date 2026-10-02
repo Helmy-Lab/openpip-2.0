@@ -2,11 +2,14 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useSettings, useUpdateSettings, useUploadLogo, useDeleteLogo } from '../../api/settings'
 import { injectCSSVars } from '../../lib/theme'
-import { EXAMPLE_TYPES, normalizeExampleType } from '../../lib/exampleType'
+import { NAV_PAGES, parseNavOverrides, formatNavOverrides } from '../../lib/navPages'
+import { mediaUrl } from '../../api/client'
+import { EXAMPLE_TYPES, exampleTypeLabel, normalizeExampleType } from '../../lib/exampleType'
 import type { AdminSettings } from '../../types/api'
 import { RichTextEditor } from '../../components/RichTextEditor'
 import { TEXT_GROUP_BY_ID } from '../../text'
 import { SiteTextFields } from './SiteTextFields'
+import { PhraseHelp } from './PhraseHelp'
 import { useSiteTextDrafts } from './useSiteTextDrafts'
 import {
   settingsTabFromSearch,
@@ -106,6 +109,7 @@ type TabId = SettingsTabId
 /** Fields that only affect appearance — used for dirty-tracking and reset. */
 const COLOR_FIELDS: (keyof AdminSettings)[] = [
   'navStyle',
+  'navStyleOverrides',
   'mainColorScheme',
   'mainColorScheme2',
   'gradientAngle',
@@ -119,6 +123,19 @@ const COLOR_FIELDS: (keyof AdminSettings)[] = [
   'verifiedEdgeColor',
   'literatureEdgeColor',
 ]
+
+/** Small inline dropdown, as used by the per-page navbar and example types. */
+const SELECT_STYLE: React.CSSProperties = {
+  fontSize: 12,
+  padding: '4px 8px',
+  borderRadius: 6,
+  border: '1px solid var(--border-strong)',
+  background: 'var(--surface)',
+  color: 'var(--text)',
+  fontFamily: 'var(--font)',
+  cursor: 'pointer',
+  outline: 'none',
+}
 
 interface TabConfig {
   /** Settings columns edited on this tab. Drives the unsaved-changes marker. */
@@ -153,14 +170,18 @@ const TAB_CONFIG: Record<TabId, TabConfig> = {
     fields: [
       'example1', 'example2', 'example3',
       'example1Type', 'example2Type', 'example3Type',
+      'showTissueExpression', 'showSubcellularLocation',
+      'horizontalFilterBar', 'canvasBackgroundColor',
     ],
+    // The phrase examples live beside the gene ones they sit next to on the
+    // page, rather than on Home where the rest of the hero copy is edited.
+    textGroups: ['searchExamples'],
   },
   downloads: {
     fields: ['download', 'showDownloads', 'showDownloadAll'],
     textGroups: ['downloads'],
   },
   about:         { fields: ['about'] },
-  documentation: { textGroups: ['documentation'] },
   faqs:          { fields: ['faq'] },
   contact:       { fields: ['contact'] },
   accounts:      { textGroups: ['auth'] },
@@ -616,7 +637,7 @@ function LogoUploadSection({ currentLogoUrl }: { currentLogoUrl?: string | null 
         >
           {currentLogoUrl ? (
             <img
-              src={currentLogoUrl}
+              src={mediaUrl(currentLogoUrl)}
               alt="Site logo"
               style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6 }}
             />
@@ -872,7 +893,33 @@ function AdminAccessSection() {
 // ─────────────────────────────────────────────────────────
 // Interaction category table
 // ─────────────────────────────────────────────────────────
-function CategoryTable() {
+type EdgeColors = { published: string; validated: string; verified: string; literature: string }
+
+// The network colours an edge by its highest category order, through the four
+// Appearance colours (getEdgeColorByOrder) — not by the category's own stored
+// colorScheme, which nothing displays. Show the colour edges will really get.
+function edgeColorForOrder(order: string, colors: EdgeColors): string {
+  const byOrder: Record<string, string> = {
+    '1': colors.published,
+    '2': colors.validated,
+    '3': colors.verified,
+    '4': colors.literature,
+  }
+  return byOrder[order.trim()] ?? '#cccccc'
+}
+
+function EdgeSwatch({ order, colors }: { order: string; colors: EdgeColors }) {
+  const color = edgeColorForOrder(order, colors)
+  return (
+    <span
+      title={`Edges whose highest category has order ${order || '?'} are drawn ${color}`}
+      aria-label={`Edge colour ${color}`}
+      style={{ display: 'inline-block', width: 28, height: 6, borderRadius: 3, background: color }}
+    />
+  )
+}
+
+function CategoryTable({ edgeColors }: { edgeColors: EdgeColors }) {
   const { data: categories = [], isLoading } = useInteractionCategories()
   const { mutate: createCat, isPending: creating } = useCreateCategory()
   const { mutate: updateCat } = useUpdateCategory()
@@ -902,7 +949,7 @@ function CategoryTable() {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)' }}>
-            {['Name', 'Order', 'Color', 'Description', ''].map((h) => (
+            {['Name', 'Order', 'Edge colour', 'Description', ''].map((h) => (
               <th
                 key={h}
                 style={{
@@ -940,12 +987,7 @@ function CategoryTable() {
                 />
               </td>
               <td style={{ padding: '6px 8px', width: 60 }}>
-                <input
-                  type="color"
-                  value={getDraft(cat, 'colorScheme')}
-                  onChange={(e) => setDraft(cat.id, 'colorScheme', e.target.value)}
-                  style={{ width: 36, height: 28, cursor: 'pointer', border: 'none', padding: 0, background: 'transparent' }}
-                />
+                <EdgeSwatch order={getDraft(cat, 'order')} colors={edgeColors} />
               </td>
               <td style={{ padding: '6px 8px' }}>
                 <input
@@ -1019,12 +1061,7 @@ function CategoryTable() {
               />
             </td>
             <td style={{ padding: '6px 8px' }}>
-              <input
-                type="color"
-                value={newRow.colorScheme}
-                onChange={(e) => setNewRow((r) => ({ ...r, colorScheme: e.target.value }))}
-                style={{ width: 36, height: 28, cursor: 'pointer', border: 'none', padding: 0, background: 'transparent' }}
-              />
+              <EdgeSwatch order={newRow.order} colors={edgeColors} />
             </td>
             <td style={{ padding: '6px 8px' }}>
               <input
@@ -1092,6 +1129,16 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
   const set = useCallback(<K extends keyof AdminSettings>(field: K, value: AdminSettings[K]) => {
     setForm((f) => ({ ...f, [field]: value }))
   }, [])
+
+  // Per-page navbar style. Stored as one string so it rides along with the
+  // rest of the settings form; a page with no entry follows navStyle.
+  const navOverrides = parseNavOverrides(form.navStyleOverrides)
+  function setNavOverride(pageId: string, style: string) {
+    const next = { ...navOverrides }
+    if (style) next[pageId] = style
+    else delete next[pageId]
+    set('navStyleOverrides', formatNavOverrides(next))
+  }
 
   const changedFields = useMemo(
     () =>
@@ -1381,6 +1428,41 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           )}
         </Section>
 
+        {/* Per-page overrides. The style above is the site's default; a page
+            listed here departs from it. */}
+        <Section title="Per-page navbar">
+          <p style={{ fontSize: 12, color: 'var(--text-soft)', margin: '0 0 12px' }}>
+            Every page uses the style above unless you choose another for it here.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 20px' }}>
+            {NAV_PAGES.map((page) => (
+              <label
+                key={page.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  fontSize: 13,
+                  color: 'var(--text)',
+                }}
+              >
+                {page.label}
+                <select
+                  value={navOverrides[page.id] ?? ''}
+                  onChange={(e) => setNavOverride(page.id, e.target.value)}
+                  style={SELECT_STYLE}
+                >
+                  <option value="">Site default</option>
+                  <option value="solid">Solid</option>
+                  <option value="gradient">Gradient</option>
+                  <option value="light">Light</option>
+                </select>
+              </label>
+            ))}
+          </div>
+        </Section>
+
         {/* Buttons */}
         <Section title="Buttons &amp; accents">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -1425,7 +1507,7 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
               published: form.publishedEdgeColor ?? '#38761d',
               validated: form.validatedEdgeColor ?? '#1155cc',
               verified: form.verifiedEdgeColor ?? '#cc0000',
-              literature: form.literatureEdgeColor ?? '#ff9900',
+              literature: form.literatureEdgeColor ?? '#0ea5e9',
             }}
           />
         </Section>
@@ -1452,21 +1534,11 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
                   <select
                     value={normalizeExampleType(form[typeKey])}
                     onChange={(e) => set(typeKey, e.target.value)}
-                    style={{
-                      fontSize: 12,
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                      border: '1px solid var(--border-strong)',
-                      background: 'var(--surface)',
-                      color: 'var(--text)',
-                      fontFamily: 'var(--font)',
-                      cursor: 'pointer',
-                      outline: 'none',
-                    }}
+                    style={SELECT_STYLE}
                   >
                     {EXAMPLE_TYPES.map((type) => (
                       <option key={type} value={type}>
-                        {type}
+                        {exampleTypeLabel(type)}
                       </option>
                     ))}
                   </select>
@@ -1487,11 +1559,96 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
 
         <Section title="Interaction categories">
           <p style={{ fontSize: 12, color: 'var(--text-soft)', marginBottom: 12 }}>
-            Each row controls how an interaction source is displayed in search results.
+            Readers filter search results by these categories. Each edge takes the colour of its
+            highest-order category: orders 1–4 use the Published, Validated, Verified and Literature
+            colours under Appearance, whatever the category is called, and any other order is grey.
           </p>
-          <CategoryTable />
+          <CategoryTable
+            edgeColors={{
+              published: form.publishedEdgeColor ?? '#38761d',
+              validated: form.validatedEdgeColor ?? '#1155cc',
+              verified: form.verifiedEdgeColor ?? '#cc0000',
+              literature: form.literatureEdgeColor ?? '#0ea5e9',
+            }}
+          />
         </Section>
 
+        <Section title="Annotation tabs">
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 14px', maxWidth: '62ch' }}>
+            Tissue expression and subcellular location only mean something for a
+            multicellular organism. Turn off whichever this deployment's data
+            cannot support and the tab disappears from search results, along
+            with the tissue filter and the phrase search's tissue suggestions.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {(
+              [
+                { key: 'showTissueExpression', label: 'Show Tissue Expression tab' },
+                { key: 'showSubcellularLocation', label: 'Show Subcellular Location tab' },
+              ] as { key: 'showTissueExpression' | 'showSubcellularLocation'; label: string }[]
+            ).map(({ key, label }) => (
+              <label
+                key={key}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13 }}
+              >
+                <input
+                  type="checkbox"
+                  checked={form[key] ?? true}
+                  onChange={(e) => set(key, e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer' }}
+                />
+                <span style={{ color: 'var(--text)' }}>{label}</span>
+              </label>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Filter layout">
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 14px', maxWidth: '62ch' }}>
+            Search filters and tools normally sit in a sidebar down the left of
+            the results page. Turn this on and they move into a ribbon under the
+            navbar instead, each one opening its panel when pressed — more room
+            for the network, fewer controls in view at once.
+          </p>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13 }}>
+            <input
+              type="checkbox"
+              checked={form.horizontalFilterBar ?? false}
+              onChange={(e) => set('horizontalFilterBar', e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer' }}
+            />
+            <span style={{ color: 'var(--text)' }}>Show filters as a ribbon under the navbar</span>
+          </label>
+        </Section>
+
+        <Section title="Network canvas">
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 14px', maxWidth: '62ch' }}>
+            The default background behind the interaction network, also used
+            for PNG and JPG exports. Unset, it follows the light or dark theme.
+            Visitors can pick their own from the canvas's Layout menu.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: 420 }}>
+            <div style={{ flex: 1 }}>
+              <ColorInput
+                label="Canvas Background"
+                value={form.canvasBackgroundColor || '#fafafa'}
+                onChange={(v) => set('canvasBackgroundColor', v)}
+              />
+            </div>
+            <button
+              type="button"
+              className="op-btn"
+              disabled={!form.canvasBackgroundColor}
+              onClick={() => set('canvasBackgroundColor', null)}
+              style={{ fontSize: 13 }}
+            >
+              Follow theme
+            </button>
+          </div>
+        </Section>
+
+        <PhraseHelp />
+        {pageText('search')}
       </TabPanel>
 
       {/* ── ABOUT ── */}
@@ -1505,11 +1662,6 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           />
         </Section>
 
-      </TabPanel>
-
-      {/* ── DOCUMENTATION ── */}
-      <TabPanel id="documentation" active={activeTab === 'documentation'}>
-        {pageText('documentation')}
       </TabPanel>
 
       {/* ── FAQS ── */}
@@ -1531,7 +1683,7 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           <RichTextEditor
             value={form.contact ?? ''}
             onChange={(v) => set('contact', v)}
-            placeholder="Introductory text shown above the contact form…"
+            placeholder="Text shown on the Contact page…"
             rows={10}
           />
         </Section>
@@ -1554,7 +1706,7 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             {(
               [
                 { key: 'showDownloads',   label: 'Show Dataset Downloads' },
-                { key: 'showDownloadAll', label: 'Show Download All Datasets' },
+                { key: 'showDownloadAll', label: 'Show Supplementary Files' },
               ] as { key: 'showDownloads' | 'showDownloadAll'; label: string }[]
             ).map(({ key, label }) => (
               <label

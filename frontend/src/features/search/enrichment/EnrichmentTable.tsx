@@ -1,6 +1,7 @@
 import { useEnrichment, type EnrichmentSource } from '../../../api/enrichment'
 import { EnrichmentSourceNote } from './SourceNote'
 import { enrichmentDatasetName } from './sources'
+import { HighlightRow } from './HighlightRow'
 
 interface EnrichmentTableProps {
   geneNames: string[]
@@ -8,6 +9,10 @@ interface EnrichmentTableProps {
 }
 
 const TH: React.CSSProperties = {
+  // Frozen while the results scroll under it.
+  position: 'sticky',
+  top: 0,
+  zIndex: 1,
   padding: '10px 16px',
   textAlign: 'left',
   fontSize: 11,
@@ -71,7 +76,7 @@ export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
 
   return (
     <div>
-      <div style={{ overflowX: 'auto', background: 'var(--bg)' }}>
+      <div style={{ background: 'var(--bg)' }}>
       <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
         <thead>
           <tr>
@@ -83,12 +88,7 @@ export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
         </thead>
         <tbody style={{ background: 'var(--bg)' }}>
           {rows.map((term) => (
-            <tr
-              key={term.term_id}
-              style={{ borderBottom: '1px solid var(--border)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-            >
+            <HighlightRow key={term.term_id} term={term.term_id} genes={term.genes}>
               <td style={{ padding: '8px 16px' }}>
                 <a
                   href={termUrl(term.term_id, source)}
@@ -106,7 +106,7 @@ export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
               <td style={{ padding: '8px 16px', fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-muted)' }}>
                 {term.p_value.toExponential(2)}
               </td>
-            </tr>
+            </HighlightRow>
           ))}
         </tbody>
       </table>

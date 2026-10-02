@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useNavigate, Link, Navigate } from 'react-router-dom'
+import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom'
 import { useLogin } from '../../api/auth'
 import { useAuthStore } from '../../store/authStore'
 import { useText } from '../../text'
+import { returnPath } from '../../lib/returnTo'
 
 /* Static network preview for the gradient panel */
 const LOGIN_NODES = [
@@ -71,12 +72,15 @@ export function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const t = useText()
+  // Back to the page that sent the visitor here (a search, a shared view),
+  // not always the home page.
+  const destination = returnPath(useLocation().state)
 
-  if (isLoggedIn) return <Navigate to="/" replace />
+  if (isLoggedIn) return <Navigate to={destination} replace />
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    login({ username, password }, { onSuccess: () => navigate('/') })
+    login({ username, password }, { onSuccess: () => navigate(destination, { replace: true }) })
   }
 
   return (

@@ -1,15 +1,14 @@
 import { useState, type CSSProperties } from 'react'
-import { buildLinks } from './externalLinks'
-import { useNavigate } from 'react-router-dom'
-import { useGeneAutocomplete } from '../../components/useGeneAutocomplete'
-import { GeneSuggestionList } from '../../components/GeneSuggestionList'
-import { useSearchStore } from './searchStore'
+import { buildLinks, LINK_ICON_STYLE } from './externalLinks'
+import { CanvasDropdown, RibbonHeading } from './toolbar/CanvasDropdown'
+import { QueryPanel } from './QueryPanel'
+import { useSearchStore, captureViewState } from './searchStore'
+import { ShareDialog } from '../sharing/ShareDialog'
 import { useAuthStore } from '../../store/authStore'
 import { useSettings } from '../../api/settings'
 import { useSaveNetwork } from '../../api/networks'
 import { useText } from '../../text'
-import { normalizeExampleType, toFilterMode } from '../../lib/exampleType'
-import { tissueLabel } from '../../lib/tissues'
+import { tissueLabel, tissuesThatFit } from '../../lib/tissues'
 import { tissuesWithData } from './filterInteractions'
 import {
   formatSIF,
@@ -19,7 +18,13 @@ import {
   formatPSIMI,
   buildFilename,
   downloadFile,
+  downloadImageFile,
 } from '../../lib/download'
+import { useCanvasBackground } from './network/canvasBackground'
+
+// The saved network's name column (interaction_network.name) is 100 chars.
+const NAME_MAX = 100
+
 
 const CATEGORY_COLORS: Record<string, string> = {
   Published: 'var(--hi-union)',
@@ -28,98 +33,35 @@ const CATEGORY_COLORS: Record<string, string> = {
   Literature: 'var(--literature)',
 }
 
-type LayoutName = 'cola' | 'cose' | 'concentric' | 'circle' | 'grid'
-
-function LayoutIcon({ value }: { value: LayoutName }) {
-  const s = { flexShrink: 0 as const }
-  if (value === 'cola') return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" style={s} aria-hidden="true">
-      <circle cx="9" cy="4" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="3" cy="13" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="15" cy="13" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="9" cy="10" r="1.5" fill="currentColor" stroke="none" />
-      <line x1="9" y1="5.5" x2="9" y2="8.5" />
-      <line x1="9" y1="11.5" x2="4.2" y2="12.3" />
-      <line x1="9" y1="11.5" x2="13.8" y2="12.3" />
-      <line x1="9" y1="5.5" x2="3.5" y2="11.8" />
-    </svg>
-  )
-  if (value === 'cose') return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" style={s} aria-hidden="true">
-      <circle cx="9" cy="9" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="3" cy="4" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="15" cy="5" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="4" cy="14" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="14" cy="14" r="1.5" fill="currentColor" stroke="none" />
-      <line x1="9" y1="9" x2="3.8" y2="5.2" />
-      <line x1="9" y1="9" x2="14.2" y2="6" />
-      <line x1="9" y1="9" x2="4.8" y2="13" />
-      <line x1="9" y1="9" x2="13.2" y2="13" />
-      <line x1="3.8" y1="5.2" x2="14.2" y2="6" />
-    </svg>
-  )
-  if (value === 'concentric') return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.3" style={s} aria-hidden="true">
-      <circle cx="9" cy="9" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="9" cy="9" r="4.5" />
-      <circle cx="9" cy="9" r="7.5" />
-      <circle cx="9" cy="4.5" r="1.2" fill="currentColor" stroke="none" />
-      <circle cx="9" cy="13.5" r="1.2" fill="currentColor" stroke="none" />
-      <circle cx="13.5" cy="9" r="1.2" fill="currentColor" stroke="none" />
-      <circle cx="4.5" cy="9" r="1.2" fill="currentColor" stroke="none" />
-    </svg>
-  )
-  if (value === 'circle') return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.3" style={s} aria-hidden="true">
-      <circle cx="9" cy="2" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="15.2" cy="5.5" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="15.2" cy="12.5" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="9" cy="16" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="2.8" cy="12.5" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="2.8" cy="5.5" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="9" cy="9" r="6.5" strokeDasharray="2 2" />
-    </svg>
-  )
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.3" style={s} aria-hidden="true">
-      <circle cx="4" cy="4" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="9" cy="4" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="14" cy="4" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="4" cy="9" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="14" cy="9" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="4" cy="14" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="9" cy="14" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="14" cy="14" r="1.4" fill="currentColor" stroke="none" />
-    </svg>
-  )
-}
-
-const LAYOUT_OPTIONS: { value: LayoutName; textKey: string }[] = [
-  { value: 'cola',       textKey: 'search.layout.cola'       },
-  { value: 'cose',       textKey: 'search.layout.cose'       },
-  { value: 'concentric', textKey: 'search.layout.concentric' },
-  { value: 'circle',     textKey: 'search.layout.circle'     },
-  { value: 'grid',       textKey: 'search.layout.grid'       },
-]
-
 const FILTER_MODE_OPTIONS: { textKey: string; value: 'None' | 'query_query' | 'query_interactor' }[] = [
   { textKey: 'search.filterMode.none', value: 'None' },
   { textKey: 'search.filterMode.queryQuery', value: 'query_query' },
   { textKey: 'search.filterMode.queryInteractor', value: 'query_interactor' },
 ]
 
+type Variant = 'sidebar' | 'ribbon'
+
 interface SearchSidebarProps {
   term: string
   visibleInteractionIds: number[]
+  /** Proteins left after filters and removals; omitted means all of them. */
+  visibleProteinIds?: number[]
+  /**
+   * Where the controls live. 'sidebar' stacks them down the left; 'ribbon'
+   * puts each behind a button in a row under the navbar. Same controls either
+   * way — the deployment picks the shape in Admin → Settings → Search.
+   */
+  variant?: Variant
 }
 
+// Section headings carry the deployment's theme colour, so the sidebar reads
+// as one thing rather than a stack of grey labels.
 const sectionLabelStyle: CSSProperties = {
-  fontSize: 10,
-  fontWeight: 600,
-  color: 'var(--text-soft)',
+  fontSize: 12,
+  fontWeight: 700,
+  color: 'var(--primary)',
   textTransform: 'uppercase',
-  letterSpacing: '.09em',
+  letterSpacing: '.08em',
   display: 'block',
   marginBottom: 8,
 }
@@ -132,24 +74,21 @@ function SidebarAccordion({ label, children, defaultOpen = true }: { label: stri
         type="button"
         onClick={() => setOpen((v) => !v)}
         style={{
+          ...sectionLabelStyle,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           width: '100%',
+          marginBottom: 0,
           background: 'none',
           border: 'none',
           padding: '4px 0',
           cursor: 'pointer',
-          fontSize: 10,
-          fontWeight: 600,
-          color: 'var(--text-soft)',
-          textTransform: 'uppercase',
-          letterSpacing: '.09em',
         }}
       >
         <span>{label}</span>
         <svg
-          width="11" height="11" viewBox="0 0 24 24" fill="none"
+          width="12" height="12" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2.5"
           style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s', flexShrink: 0 }}
           aria-hidden="true"
@@ -166,18 +105,57 @@ function SidebarAccordion({ label, children, defaultOpen = true }: { label: stri
   )
 }
 
-export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProps) {
-  const navigate = useNavigate()
-  const [localQuery, setLocalQuery] = useState(term)
-  const ac = useGeneAutocomplete(localQuery, setLocalQuery, 'sidebar-gene')
+/**
+ * One labelled group of controls, drawn the way this deployment asks for:
+ * stacked under a heading (or an accordion) in the sidebar, or behind a
+ * dropdown button in the ribbon.
+ */
+function Section({ variant, label, collapsible = false, defaultOpen = true, width, children }: {
+  variant: Variant
+  label: string
+  collapsible?: boolean
+  defaultOpen?: boolean
+  width?: number
+  children: React.ReactNode
+}) {
+  if (variant === 'ribbon') {
+    return (
+      <CanvasDropdown label={label} up={false} plain width={width}>
+        {children}
+      </CanvasDropdown>
+    )
+  }
+  if (collapsible) {
+    return (
+      <SidebarAccordion label={label} defaultOpen={defaultOpen}>
+        {children}
+      </SidebarAccordion>
+    )
+  }
+  return (
+    <div>
+      <label style={sectionLabelStyle}>{label}</label>
+      {children}
+    </div>
+  )
+}
+
+export function SearchSidebar({
+  term,
+  visibleInteractionIds,
+  visibleProteinIds,
+  variant = 'sidebar',
+}: SearchSidebarProps) {
   const t = useText()
 
   const scoreFilter = useSearchStore((s) => s.scoreFilter)
   const categoryFilter = useSearchStore((s) => s.categoryFilter)
   const filterMode = useSearchStore((s) => s.filterMode)
-  const selectedLayout = useSearchStore((s) => s.selectedLayout)
   const allProteins = useSearchStore((s) => s.allProteins)
   const queryProteinIds = useSearchStore((s) => s.queryProteinIds)
+  const networkCy = useSearchStore((s) => s.networkCy)
+  // The canvas's own colour when one is set; white when it follows the theme.
+  const canvasBackground = useCanvasBackground() ?? undefined
   const allInteractions = useSearchStore((s) => s.allInteractions)
   const foundSummary = useSearchStore((s) => s.foundSummary)
   const unfoundSummary = useSearchStore((s) => s.unfoundSummary)
@@ -187,22 +165,22 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
   const setFilterMode = useSearchStore((s) => s.setFilterMode)
   const setTissueFilter = useSearchStore((s) => s.setTissueFilter)
   const clearTissueFilter = useSearchStore((s) => s.clearTissueFilter)
-  const setLayout = useSearchStore((s) => s.setLayout)
+  const tissueNodeSize = useSearchStore((s) => s.tissueNodeSize)
+  const tissueNodeColor = useSearchStore((s) => s.tissueNodeColor)
+  const setTissueDisplay = useSearchStore((s) => s.setTissueDisplay)
   const setModal = useSearchStore((s) => s.setModal)
 
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   const { data: settings } = useSettings()
-  const searchExamples = [
-    { proteins: settings?.example1, type: settings?.example1Type },
-    { proteins: settings?.example2, type: settings?.example2Type },
-    { proteins: settings?.example3, type: settings?.example3Type },
-  ].filter((ex) => ex.proteins?.trim())
 
   const { mutateAsync: saveNetwork, isPending: isSaving } = useSaveNetwork()
   const [saveOpen, setSaveOpen] = useState(false)
-  const [saveName, setSaveName] = useState(term)
+  const [saveName, setSaveName] = useState(term.slice(0, NAME_MAX))
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
+  // Sharing is its own action: it never touches the saved networks above, and
+  // it keeps the filters and layout rather than the interaction list.
+  const [shareOpen, setShareOpen] = useState(false)
 
   async function handleSaveNetwork() {
     setSaveError('')
@@ -220,24 +198,21 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
         query: term,
         score_parameter: scoreFilter.toFixed(2),
         category_array: activeCategories,
-        tissue_expression_array: '',
+        // Legacy's 100-character column. Only the filter shown on reopening is
+        // affected if tissues are dropped to fit: the saved interactions are
+        // stored exactly either way.
+        tissue_expression_array: tissuesThatFit(tissueFilter),
         interaction_ids: visibleInteractionIds,
       })
       setSaveSuccess(true)
       setTimeout(() => {
         setSaveOpen(false)
-        setSaveName(term)
+        setSaveName(term.slice(0, NAME_MAX))
         setSaveSuccess(false)
       }, 1500)
     } catch {
       setSaveError(t('search.save.failed'))
     }
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const q = localQuery.trim()
-    if (q) navigate(`/search/${encodeURIComponent(q)}`)
   }
 
   function handleDownload(content: string, format: string, ext: string) {
@@ -249,113 +224,46 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
   // Offer only tissues these results can actually be filtered by. Anything
   // already ticked stays listed even when a new search has nothing for it, so
   // the list never disagrees with the filter that is still applied.
+  // Hidden when the deployment says its organism has no tissues — offering a
+  // filter for data whose tab is switched off would be a dead control.
+  const showTissue = settings?.showTissueExpression !== false
   const tissueOptions = [
     ...new Set([...tissuesWithData(allProteins), ...tissueFilter]),
   ].sort((a, b) => tissueLabel(a).localeCompare(tissueLabel(b)))
 
+  // Downloads hold what is on screen, as legacy's did: its export endpoint
+  // applied the category, filter-mode and score settings. An interaction is
+  // kept only while both its proteins are, so removed nodes take their edges.
+  const shownProteinIds = new Set(visibleProteinIds ?? allProteins.map((p) => p.protein_id))
+  const shownInteractionIds = new Set(visibleInteractionIds)
+  const shownProteins = allProteins.filter((p) => shownProteinIds.has(p.protein_id))
+  const shownInteractions = allInteractions.filter(
+    (i) =>
+      shownInteractionIds.has(i.interaction_id) &&
+      shownProteinIds.has(i.interactor_A.protein_id) &&
+      shownProteinIds.has(i.interactor_B.protein_id)
+  )
+
   const downloadActions: { label: string; onClick: () => void }[] = [
-    { label: t('search.download.sif'), onClick: () => handleDownload(formatSIF(allInteractions, allProteins), 'SIF', 'sif') },
-    { label: t('search.download.interactionsCsv'), onClick: () => handleDownload(formatInteractionsCSV(allInteractions, allProteins), 'Interactions', 'csv') },
-    { label: t('search.download.interactorsCsv'), onClick: () => handleDownload(formatInteractorsCSV(allProteins), 'Interactors', 'csv') },
-    { label: t('search.download.fasta'), onClick: () => handleDownload(formatFASTA(allProteins), 'FASTA', 'fasta') },
-    { label: t('search.download.psimi'), onClick: () => handleDownload(formatPSIMI(allInteractions, allProteins), 'PSIMI', 'tsv') },
+    { label: t('search.download.sif'), onClick: () => handleDownload(formatSIF(shownInteractions, shownProteins), 'SIF', 'sif') },
+    // Query ids tell each row which side was searched for; without them every
+    // interaction was labelled non_query.
+    { label: t('search.download.interactionsCsv'), onClick: () => handleDownload(formatInteractionsCSV(shownInteractions, shownProteins, new Set(queryProteinIds)), 'Interactions', 'csv') },
+    { label: t('search.download.interactorsCsv'), onClick: () => handleDownload(formatInteractorsCSV(shownProteins), 'Interactors', 'csv') },
+    { label: t('search.download.fasta'), onClick: () => handleDownload(formatFASTA(shownProteins), 'FASTA', 'fasta') },
+    { label: t('search.download.psimi'), onClick: () => handleDownload(formatPSIMI(shownInteractions, shownProteins), 'PSIMI', 'tsv') },
+    { label: t('search.download.png'), onClick: () => networkCy && downloadImageFile(networkCy, 'png', canvasBackground) },
+    { label: t('search.download.jpg'), onClick: () => networkCy && downloadImageFile(networkCy, 'jpg', canvasBackground) },
     { label: t('search.download.direct'), onClick: () => setModal('directDownload') },
-    { label: t('search.download.cytoscape'), onClick: () => setModal('cyRest') },
   ]
 
-  return (
-    <aside style={{
-      width: 272,
-      flexShrink: 0,
-      background: 'var(--surface)',
-      borderRight: '1px solid var(--border)',
-      padding: '20px 16px',
-      overflowY: 'auto',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 24,
-    }}>
+  const querySection = (
+    <Section variant={variant} label={t('search.sidebar.query')} width={288}>
+      <QueryPanel term={term} />
+    </Section>
+  )
 
-      {/* Query */}
-      <div>
-        <label style={sectionLabelStyle}>{t('search.sidebar.query')}</label>
-        <form onSubmit={handleSubmit}>
-          <div style={{ position: 'relative' }}>
-            <input
-              className="op-input"
-              value={localQuery}
-              {...ac.inputProps}
-              placeholder={t('search.sidebar.queryPlaceholder')}
-              style={{ paddingLeft: 32, fontFamily: 'var(--mono)', fontSize: 13 }}
-            />
-            <svg
-              width="13" height="13" viewBox="0 0 24 24" fill="none"
-              stroke="var(--text-muted)" strokeWidth="2"
-              style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.5-3.5" />
-            </svg>
-            {ac.showList && (
-              <GeneSuggestionList
-                idPrefix="sidebar-gene"
-                suggestions={ac.suggestions}
-                activeIndex={ac.activeIndex}
-                setActiveIndex={ac.setActiveIndex}
-                onSelect={ac.selectSuggestion}
-              />
-            )}
-          </div>
-          <button
-            type="submit"
-            className="op-btn primary"
-            style={{ width: '100%', justifyContent: 'center', marginTop: 8, fontSize: 13, padding: '8px' }}
-          >
-            {t('search.sidebar.searchButton')}
-          </button>
-        </form>
-
-        {searchExamples.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 10 }}>
-            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-muted)', opacity: 0.55, textTransform: 'uppercase', paddingBottom: 2 }}>
-              {t('search.sidebar.examples')}
-            </span>
-            {searchExamples.map((ex, i) => {
-              const genes = (ex.proteins ?? '').split('\n').map((g) => g.trim()).filter(Boolean)
-              const preview = genes.slice(0, 2).join(', ') + (genes.length > 2 ? '…' : '')
-              const query = genes.join(',')
-              const typeLabel = normalizeExampleType(ex.type)
-              return (
-                <button
-                  key={i}
-                  onClick={() => {
-                    setFilterMode(toFilterMode(ex.type))
-                    navigate(`/search/${encodeURIComponent(query)}`)
-                  }}
-                  className="op-chip"
-                  style={{
-                    cursor: 'pointer',
-                    fontFamily: 'var(--mono)',
-                    fontSize: 11,
-                    textAlign: 'left',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                  title={genes.join(', ')}
-                >
-                  {preview} · {typeLabel}
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Confidence score */}
-      <div>
-        <label style={sectionLabelStyle}>{t('search.sidebar.score')}</label>
+  const scoreBody = (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <input
             type="range"
@@ -370,10 +278,16 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
             {scoreFilter.toFixed(2)}
           </span>
         </div>
-      </div>
+  )
 
-      {/* Found / not found */}
-      {(foundSummary || unfoundSummary) && (
+  const scoreSection = (
+    <Section variant={variant} label={t('search.sidebar.score')} width={216}>
+      {scoreBody}
+    </Section>
+  )
+
+  /* Found / not found */
+  const foundBlock = (foundSummary || unfoundSummary) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {foundSummary && (
             <div style={{ fontSize: 12, lineHeight: 1.5 }}>
@@ -388,12 +302,38 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
             </div>
           )}
         </div>
-      )}
+  )
 
-      {/* Interaction sources */}
-      {hasCategories && (
-        <div>
-          <label style={sectionLabelStyle}>{t('search.sidebar.sources')}</label>
+  /* Network summary — next to the found/not-found lines it answers the
+     same question: what did this search actually return? */
+  const summarySection = term && (
+    <Section variant={variant} label={t('search.sidebar.summary')} collapsible>
+      {/* The ribbon has no column to list the found/not-found lines down, so
+          they ride with the counts: same question, same panel. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
+            {variant === 'ribbon' && foundBlock}
+            <div>
+              <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.proteins')} </span>
+              <span style={{ color: 'var(--text-muted)' }}>{shownProteins.length}</span>
+            </div>
+            <div>
+              <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.interactions')} </span>
+              <span style={{ color: 'var(--text-muted)' }}>{shownInteractions.length}</span>
+            </div>
+            <div>
+              <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.avgDegree')} </span>
+              <span style={{ color: 'var(--text-muted)' }}>
+                {shownProteins.length > 0
+                  ? ((2 * shownInteractions.length) / shownProteins.length).toFixed(2)
+                  : '-'}
+              </span>
+            </div>
+          </div>
+    </Section>
+  )
+
+  const sourcesBody = (
+    <>
           {Object.entries(categoryFilter).map(([name, checked]) => (
             <label
               key={name}
@@ -423,35 +363,18 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
               {name}
             </label>
           ))}
-        </div>
-      )}
+    </>
+  )
 
-      {/* Tool sections - only shown once a search has been performed */}
-      {term && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={sectionLabelStyle}>{t('search.sidebar.tools')}</span>
+  const sourcesSection = hasCategories && (
+    <Section variant={variant} label={t('search.sidebar.sources')}>
+      {sourcesBody}
+    </Section>
+  )
 
-          <SidebarAccordion label={t('search.sidebar.layout')}>
-            {LAYOUT_OPTIONS.map(({ value, textKey }) => (
-              <label
-                key={value}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', fontSize: 13, cursor: 'pointer', color: 'var(--text)' }}
-              >
-                <input
-                  type="radio"
-                  name="sidebarLayout"
-                  value={value}
-                  checked={selectedLayout === value}
-                  onChange={() => setLayout(value)}
-                  style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
-                />
-                <LayoutIcon value={value} />
-                {t(textKey)}
-              </label>
-            ))}
-          </SidebarAccordion>
-
-          <SidebarAccordion label={t('search.sidebar.filterMode')}>
+  /* Tool sections - only shown once a search has been performed */
+  const filterModeBody = (
+    <>
             {FILTER_MODE_OPTIONS.map(({ textKey, value }) => (
               <label
                 key={value}
@@ -468,20 +391,51 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                 {t(textKey)}
               </label>
             ))}
-          </SidebarAccordion>
+    </>
+  )
 
-          {/* Tissue expression — several may be selected, and they AND together */}
-          <fieldset style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-            <legend style={{ ...sectionLabelStyle, padding: 0 }}>
-              {t('search.sidebar.tissue')}
-            </legend>
+  const filterModeSection = term && (
+    <Section variant={variant} label={t('search.sidebar.filterMode')} collapsible>
+      {filterModeBody}
+    </Section>
+  )
+
+  /* Tissue expression — several may be selected, and they AND together.
+     Collapsed like the other tool sections; the count in the label keeps a
+     live filter visible while the list is shut. */
+  const tissueLabelText =
+    tissueFilter.length > 0
+      ? `${t('search.sidebar.tissue')} (${tissueFilter.length})`
+      : t('search.sidebar.tissue')
+
+  const tissueBody = (
+            <div role="group" aria-label={t('search.sidebar.tissue')}>
             {tissueOptions.length === 0 ? (
               <p style={{ fontSize: 12, color: 'var(--text-soft)', margin: '4px 0 0' }}>
                 {t('search.sidebar.noTissueData')}
               </p>
             ) : (
               <>
-                <div style={{ maxHeight: 168, overflowY: 'auto', paddingRight: 4 }}>
+                {/* Legacy's two node-styling switches; either one makes the
+                    tissue list pick one tissue at a time. */}
+                {([
+                  ['tissueNodeSize', 'search.sidebar.tissueNodeSize'],
+                  ['tissueNodeColor', 'search.sidebar.tissueNodeColor'],
+                ] as const).map(([which, textKey]) => (
+                  <label
+                    key={which}
+                    style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '3px 0', cursor: 'pointer', fontSize: 13, color: 'var(--text)' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={which === 'tissueNodeSize' ? tissueNodeSize : tissueNodeColor}
+                      onChange={(e) => setTissueDisplay(which, e.target.checked)}
+                      style={{ accentColor: 'var(--primary)', cursor: 'pointer', flexShrink: 0 }}
+                    />
+                    {t(textKey)}
+                  </label>
+                ))}
+                <div style={{ maxHeight: 168, overflowY: 'auto', paddingRight: 4, marginTop: 6, borderTop: '1px solid var(--border)', paddingTop: 4 }}>
                   {tissueOptions.map((key) => (
                     <label
                       key={key}
@@ -519,30 +473,17 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                 )}
               </>
             )}
-          </fieldset>
-
-          <SidebarAccordion label={t('search.sidebar.summary')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
-              <div>
-                <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.proteins')} </span>
-                <span style={{ color: 'var(--text-muted)' }}>{allProteins.length}</span>
-              </div>
-              <div>
-                <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.interactions')} </span>
-                <span style={{ color: 'var(--text-muted)' }}>{allInteractions.length}</span>
-              </div>
-              <div>
-                <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.avgDegree')} </span>
-                <span style={{ color: 'var(--text-muted)' }}>
-                  {allProteins.length > 0
-                    ? ((2 * allInteractions.length) / allProteins.length).toFixed(2)
-                    : '-'}
-                </span>
-              </div>
             </div>
-          </SidebarAccordion>
+  )
 
-          <SidebarAccordion label={t('search.sidebar.download')} defaultOpen={false}>
+  const tissueSection = term && showTissue && (
+    <Section variant={variant} collapsible defaultOpen={false} label={tissueLabelText}>
+      {tissueBody}
+    </Section>
+  )
+
+  const downloadSection = term && (
+    <Section variant={variant} label={t('search.sidebar.download')} collapsible defaultOpen={false}>
             {downloadActions.map(({ label, onClick }) => (
               <button
                 key={label}
@@ -566,22 +507,25 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                 {label}
               </button>
             ))}
-          </SidebarAccordion>
+    </Section>
+  )
 
-          <SidebarAccordion label={t('search.sidebar.externalLinks')} defaultOpen={false}>
+  const linksSection = term && (
+    <Section variant={variant} label={t('search.sidebar.externalLinks')} collapsible defaultOpen={false}>
             {allProteins.length === 0 ? (
               <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('search.sidebar.noProteins')}</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {buildLinks(allProteins, queryProteinIds).map((link) =>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {buildLinks(allProteins, queryProteinIds, allInteractions).map((link) =>
                   link.href ? (
                     <a
                       key={link.id}
                       href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ fontSize: 12, color: 'var(--accent)' }}
+                      style={{ fontSize: 12, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 8 }}
                     >
+                      <img src={link.icon} alt="" style={LINK_ICON_STYLE} />
                       {link.label}
                     </a>
                   ) : (
@@ -589,69 +533,214 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                       key={link.id}
                       type="button"
                       onClick={() => link.onClick?.()}
-                      style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
+                      style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
                     >
+                      <img src={link.icon} alt="" style={LINK_ICON_STYLE} />
                       {link.label}
                     </button>
                   )
                 )}
               </div>
             )}
-          </SidebarAccordion>
+    </Section>
+  )
 
-          {isLoggedIn && (
-            <div style={{ paddingTop: 8, borderTop: '1px solid var(--border)', marginTop: 4 }}>
-              {!saveOpen ? (
-                <button
-                  type="button"
-                  onClick={() => { setSaveOpen(true); setSaveName(term) }}
-                  className="op-btn"
-                  style={{ width: '100%', justifyContent: 'center', fontSize: 12, padding: '7px' }}
-                >
-                  {t('search.save.button')}
-                </button>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <input
-                    className="op-input"
-                    value={saveName}
-                    onChange={(e) => setSaveName(e.target.value)}
-                    placeholder={t('search.save.placeholder')}
-                    style={{ fontSize: 12 }}
-                    autoFocus
-                  />
-                  {saveError && (
-                    <div style={{ fontSize: 11, color: 'var(--warn)' }}>{saveError}</div>
-                  )}
-                  {saveSuccess && (
-                    <div style={{ fontSize: 11, color: 'var(--success, #22c55e)' }}>{t('search.save.success')}</div>
-                  )}
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button
-                      type="button"
-                      onClick={() => { setSaveOpen(false); setSaveError(''); setSaveSuccess(false) }}
-                      className="op-btn"
-                      style={{ flex: 1, justifyContent: 'center', fontSize: 11, padding: '6px' }}
-                    >
-                      {t('search.save.cancel')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSaveNetwork}
-                      disabled={isSaving || visibleInteractionIds.length === 0}
-                      className="op-btn primary"
-                      style={{ flex: 1, justifyContent: 'center', fontSize: 11, padding: '6px' }}
-                    >
-                      {isSaving ? '…' : t('search.save.confirm')}
-                    </button>
-                  </div>
-                </div>
-              )}
+  // The name field and its buttons. In the sidebar they unfold under the Save
+  // button; in the ribbon they sit straight inside the Save dropdown, which is
+  // already a panel that opens and shuts on its own.
+  const saveForm = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <input
+        className="op-input"
+        value={saveName}
+        maxLength={NAME_MAX}
+        onChange={(e) => setSaveName(e.target.value)}
+        placeholder={t('search.save.placeholder')}
+        style={{ fontSize: 12 }}
+        autoFocus
+      />
+      {saveError && (
+        <div style={{ fontSize: 11, color: 'var(--warn)' }}>{saveError}</div>
+      )}
+      {saveSuccess && (
+        <div style={{ fontSize: 11, color: 'var(--success, #22c55e)' }}>{t('search.save.success')}</div>
+      )}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {variant === 'sidebar' && (
+          <button
+            type="button"
+            onClick={() => { setSaveOpen(false); setSaveError(''); setSaveSuccess(false) }}
+            className="op-btn"
+            style={{ flex: 1, justifyContent: 'center', fontSize: 11, padding: '6px' }}
+          >
+            {t('search.save.cancel')}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleSaveNetwork}
+          disabled={isSaving || visibleInteractionIds.length === 0}
+          className="op-btn primary"
+          style={{ flex: 1, justifyContent: 'center', fontSize: 11, padding: '6px' }}
+        >
+          {isSaving ? '…' : t('search.save.confirm')}
+        </button>
+      </div>
+    </div>
+  )
+
+  const saveSection = term && isLoggedIn && (
+    variant === 'ribbon' ? (
+      <Section variant={variant} label={t('search.save.button')} width={260}>
+        {saveForm}
+      </Section>
+    ) : (
+      <div style={{ paddingTop: 8, borderTop: '1px solid var(--border)', marginTop: 4 }}>
+        {!saveOpen ? (
+          <button
+            type="button"
+            onClick={() => { setSaveOpen(true); setSaveName(term.slice(0, NAME_MAX)) }}
+            className="op-btn"
+            style={{ width: '100%', justifyContent: 'center', fontSize: 12, padding: '7px' }}
+          >
+            {t('search.save.button')}
+          </button>
+        ) : saveForm}
+      </div>
+    )
+  )
+
+  // In the ribbon it is a heading like the rest of the row, underlining on
+  // hover the way the dropdowns do — it just opens a dialog rather than a
+  // panel. In the sidebar it is a button under Save, like Save.
+  const shareSection = term && isLoggedIn && (
+    variant === 'ribbon' ? (
+      <RibbonHeading label={t('search.share.button')} onClick={() => setShareOpen(true)} />
+    ) : (
+      <div style={{ paddingTop: 6 }}>
+        <button
+          type="button"
+          onClick={() => setShareOpen(true)}
+          className="op-btn"
+          style={{ width: '100%', justifyContent: 'center', fontSize: 12, padding: '7px' }}
+        >
+          {t('search.share.button')}
+        </button>
+      </div>
+    )
+  )
+
+  /* Ribbon: one heading for every filter, rather than four side by side.
+     Sub-headings inside keep the groups apart. */
+  const subLabel: CSSProperties = { ...sectionLabelStyle, fontSize: 11, marginBottom: 6 }
+  // Tissue gets its own column, and only when there is something to tick.
+  const ribbonTissue = term && showTissue && tissueOptions.length > 0
+  const filtersSection = (
+    <Section variant={variant} label={t('search.filter')} width={ribbonTissue ? 520 : 300}>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {term && (
+            <div>
+              <span style={subLabel}>{t('search.sidebar.filterMode')}</span>
+              {filterModeBody}
+            </div>
+          )}
+          <div>
+            <span style={subLabel}>{t('search.sidebar.score')}</span>
+            {scoreBody}
+          </div>
+          {hasCategories && (
+            <div>
+              <span style={subLabel}>{t('search.sidebar.sources')}</span>
+              {sourcesBody}
             </div>
           )}
         </div>
-      )}
+        {ribbonTissue && (
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span style={subLabel}>{tissueLabelText}</span>
+            {tissueBody}
+          </div>
+        )}
+      </div>
+    </Section>
+  )
 
+  const shareDialog = shareOpen && (
+    <ShareDialog
+      savedViewName={term}
+      capture={{ query: term, state: captureViewState() }}
+      onClose={() => setShareOpen(false)}
+    />
+  )
+
+  // A ribbon under the navbar: the same sections, centred in a row, each
+  // opening its panel over the network when pressed.
+  if (variant === 'ribbon') {
+    return (
+      <div style={{
+        flexShrink: 0,
+        background: 'var(--surface)',
+        borderBottom: '1px solid var(--border)',
+        // The panels drop over the network below, not behind it.
+        position: 'relative',
+        zIndex: 30,
+      }}>
+        <div
+          role="group"
+          aria-label={t('search.sidebar.tools')}
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'flex-start',
+            justifyContent: 'flex-start',
+            gap: 10,
+            padding: '6px 12px',
+          }}
+        >
+          {querySection}
+          {summarySection}
+          {filtersSection}
+          {downloadSection}
+          {linksSection}
+          {saveSection}
+          {shareSection}
+        </div>
+        {shareDialog}
+      </div>
+    )
+  }
+
+  return (
+    <aside style={{
+      width: 272,
+      flexShrink: 0,
+      background: 'var(--surface)',
+      borderRight: '1px solid var(--border)',
+      padding: '20px 16px',
+      overflowY: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 24,
+    }}>
+      {querySection}
+      {scoreSection}
+      {foundBlock}
+      {summarySection}
+      {sourcesSection}
+
+      {term && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={sectionLabelStyle}>{t('search.sidebar.tools')}</span>
+          {filterModeSection}
+          {tissueSection}
+          {downloadSection}
+          {linksSection}
+          {saveSection}
+          {shareSection}
+        </div>
+      )}
+      {shareDialog}
     </aside>
   )
 }

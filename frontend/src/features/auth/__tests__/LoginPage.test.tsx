@@ -57,3 +57,33 @@ describe('LoginPage', () => {
     expect(screen.getByText(/invalid username or password/i)).toBeInTheDocument()
   })
 })
+
+describe('LoginPage after signing in', () => {
+  it('goes back to the page the visitor came from', async () => {
+    const { fireEvent } = await import('@testing-library/react')
+    const { Routes, Route } = await import('react-router-dom')
+    const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query')
+    vi.mocked(useLogin).mockReturnValue({
+      mutate: (_vars: unknown, opts: { onSuccess: () => void }) => opts.onSuccess(),
+      isPending: false,
+      error: null,
+    } as unknown as ReturnType<typeof useLogin>)
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter
+          initialEntries={[{ pathname: '/login', state: { from: { pathname: '/search/TP53' } } }]}
+        >
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/search/:term" element={<p>search page</p>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    )
+    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'ada' } })
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'secret123' } })
+    fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+    expect(await screen.findByText('search page')).toBeInTheDocument()
+  })
+})

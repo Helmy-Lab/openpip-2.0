@@ -3,11 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { StatsCounter } from './StatsCounter'
 import { MiniNetworkGraph } from './MiniNetworkGraph'
 import { useSettings } from '../../api/settings'
-import { useGeneAutocomplete } from '../../components/useGeneAutocomplete'
+import {
+  useGeneAutocomplete,
+  useTokenAutocomplete,
+} from '../../components/useGeneAutocomplete'
 import { GeneSuggestionList } from '../../components/GeneSuggestionList'
+import { useAutoGrow } from '../../components/useAutoGrow'
 import { useSearchStore } from '../search/searchStore'
 import { useText } from '../../text'
-import { normalizeExampleType, toFilterMode } from '../../lib/exampleType'
+import { exampleTypeLabel, toFilterMode } from '../../lib/exampleType'
+import { looksLikeGeneList, parseNaturalQuery } from '../../lib/naturalQuery'
+import { searchTissues } from '../../lib/tissues'
 
 interface HeroSectionProps {
   shortTitle: string
@@ -21,8 +27,34 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
   const navigate = useNavigate()
   const { data: settings } = useSettings()
   const setFilterMode = useSearchStore((s) => s.setFilterMode)
-  const ac = useGeneAutocomplete(query, setQuery, 'hero-gene')
+  const setScoreFilter = useSearchStore((s) => s.setScoreFilter)
+  const setTissueFilter = useSearchStore((s) => s.setTissueFilter)
+  const clearTissueFilter = useSearchStore((s) => s.clearTissueFilter)
   const t = useText()
+
+  // Only a gene list gets gene suggestions. Once the input becomes a phrase,
+  // completing "liver" as though it were a gene is noise — the phrase needs
+  // tissue names instead. Both hooks run unconditionally (hooks must), and only
+  // the relevant list is rendered.
+  const isGeneList = looksLikeGeneList(query)
+  const parsed = isGeneList
+    ? null
+    : parseNaturalQuery(query, {
+        tissuesEnabled: settings?.showTissueExpression !== false,
+      })
+
+  const geneAc = useGeneAutocomplete(query, setQuery, 'hero-gene')
+  const lastWord = query.split(/\s+/).pop() ?? ''
+  const tissueAc = useTokenAutocomplete(query, setQuery, 'hero-gene', {
+    suggestions:
+      isGeneList || settings?.showTissueExpression === false
+        ? []
+        : searchTissues(lastWord),
+    separator: ' ',
+    joiner: ' ',
+  })
+  const ac = isGeneList ? geneAc : tissueAc
+  const boxRef = useAutoGrow(query)
 
   const searchExamples = [
     { proteins: settings?.example1, type: settings?.example1Type },
@@ -33,7 +65,20 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     const term = query.trim()
-    if (term) navigate(`/search/${encodeURIComponent(term)}`)
+    if (!term) return
+
+    if (!parsed) {
+      navigate(`/search/${encodeURIComponent(term)}`)
+      return
+    }
+    if (!parsed.term) return
+
+    // Filters are applied to the store the sidebar reads, so the results page
+    // shows exactly what was understood and the user can switch any of it off.
+    clearTissueFilter()
+    parsed.tissues.forEach((tissue) => setTissueFilter(tissue, true))
+    setScoreFilter(parsed.minScore ?? 0)
+    navigate(`/search/${encodeURIComponent(parsed.term)}`)
   }
 
   return (
@@ -80,13 +125,28 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
 
           <form onSubmit={handleSearch} style={{ display: 'flex', marginBottom: 36 }}>
             <div style={{ position: 'relative', flex: 1 }}>
-              <input
-                type="text"
+              <textarea
+                ref={boxRef}
+                rows={1}
                 value={query}
                 {...ac.inputProps}
+                onKeyDown={(e) => {
+                  ac.inputProps.onKeyDown(e)
+                  // Enter searches, as it did when this was one line; a newline
+                  // still separates genes, so shift-enter keeps that available.
+                  if (e.key === 'Enter' && !e.shiftKey && !e.defaultPrevented) handleSearch(e)
+                }}
                 placeholder={t('home.hero.searchPlaceholder')}
                 className="op-input"
-                style={{ borderRadius: '8px 0 0 8px', borderRight: 'none', width: '100%' }}
+                style={{
+                  borderRadius: '8px 0 0 8px',
+                  borderRight: 'none',
+                  width: '100%',
+                  lineHeight: 1.5,
+                  resize: 'none',
+                  overflowY: 'auto',
+                  display: 'block',
+                }}
                 aria-label={t('home.hero.searchLabel')}
               />
               {ac.showList && (
@@ -112,6 +172,67 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
               {t('home.hero.searchButton')}
             </button>
           </form>
+
+          {/* What the phrase was understood to mean, shown before the user
+              commits to it rather than after. A wrong reading is visible here
+              and again as sidebar filters on the results page. */}
+          {parsed && parsed.term && (
+            <div
+              style={{
+                marginTop: -22,
+                marginBottom: 26,
+                fontSize: 13,
+                color: 'var(--text-muted)',
+                lineHeight: 1.6,
+              }}
+              aria-live="polite"
+            >
+              <span>
+                {t('home.hero.willSearch')}{' '}
+                <strong style={{ color: 'var(--text)', fontFamily: 'var(--mono)' }}>
+                  {parsed.term}
+                </strong>
+              </span>
+              {parsed.applied.map((what) => (
+                <span key={what}> · {what}</span>
+              ))}
+              {parsed.ignored.length > 0 && (
+                <div style={{ color: 'var(--warning, var(--text-soft))', marginTop: 4 }}>
+                  {t('home.hero.cannotFilter')} {parsed.ignored.join(', ')}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Phrase examples sit beside the admin-configured gene examples so the
+              capability is discoverable by clicking, not by guessing. Clicking
+              fills the box rather than searching, so the preview above explains
+              what will happen before anything is committed. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-soft)', letterSpacing: '.04em', textTransform: 'uppercase' }}>
+              {t('searchExamples.label')}
+            </span>
+            {[t('searchExamples.phrase1'), t('searchExamples.phrase2'), t('searchExamples.phrase3')]
+              .filter(Boolean)
+              .map((phrase) => (
+                <button
+                  key={phrase}
+                  type="button"
+                  onClick={() => setQuery(phrase)}
+                  style={{
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                    border: '1px dashed var(--border-strong)',
+                    background: 'transparent',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  {phrase}
+                </button>
+              ))}
+          </div>
 
           {searchExamples.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
@@ -152,9 +273,9 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
                     {preview}
                     <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font)' }}>
                       {/* Legacy rows spell the unfiltered case as "all" or
-                          leave it null; the filter is called None everywhere
-                          else in the UI, so the chip says None too. */}
-                      {normalizeExampleType(ex.type)}
+                          leave it null; the filter is called none everywhere
+                          else in the UI, so the chip says none too. */}
+                      {exampleTypeLabel(ex.type)}
                     </span>
                   </button>
                 )

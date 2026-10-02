@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getEdgeColorByOrder, buildElements } from '../cytoscapeElements'
+import { getEdgeColorByOrder, buildElements, expressionNodeSize, specificityColor, specificityRamp } from '../cytoscapeElements'
 import { buildStylesheet } from '../cytoscapeStyles'
 import type { Protein, Interaction } from '../../../../types/api'
 
@@ -194,5 +194,106 @@ describe('buildStylesheet', () => {
       (b) => (b as { selector: string }).selector === 'node'
     ) as { style: { 'background-color': string } }
     expect(nodeRule.style['background-color']).toBe('data(nodeColor)')
+  })
+})
+
+describe('legacy tissue node styling', () => {
+  const proteins = [
+    makeProtein({ protein_id: 1, protein_gene_name: 'Q', tissue_expression_array: { liver: '10', lung: '20' }, tissue_specificity_array: { liver: '11' } }),
+    makeProtein({ protein_id: 2, protein_gene_name: 'A', tissue_expression_array: { liver: '0' }, tissue_specificity_array: { liver: ' -9.5\n' } }),
+    makeProtein({ protein_id: 3, protein_gene_name: 'NONE' }),
+  ]
+
+  it('sizes nodes at expression x 3, the highest selected tissue winning', () => {
+    expect(expressionNodeSize(proteins[0], ['liver'])).toBe(30)
+    expect(expressionNodeSize(proteins[0], ['liver', 'lung'])).toBe(60)
+    // Zero or missing keeps the default size, as in legacy.
+    expect(expressionNodeSize(proteins[1], ['liver'])).toBeNull()
+    expect(expressionNodeSize(proteins[2], ['liver'])).toBeNull()
+  })
+
+  it('steps specificity into legacy blues, reds for query proteins', () => {
+    expect(specificityColor(-11, false)).toBe('#b1c9ef')
+    expect(specificityColor(0, false)).toBe('#3c78d8')
+    expect(specificityColor(11, false)).toBe('#0f274d')
+    expect(specificityColor(0, true)).toBe('#cc0000')
+    expect(specificityColor(11, true)).toBe('#5c0000')
+    // Legacy left exact thresholds uncolored; they fall into the step below.
+    expect(specificityColor(2, false)).toBe('#3c78d8')
+  })
+
+  it('applies only the switched-on display and never touches edges', () => {
+    const interactions = [makeInteraction({ interaction_id: 1, aId: 1, bId: 2, categoryStatus: 'Published' })]
+    const els = buildElements(proteins, interactions, [1], undefined, { tissues: ['liver'], size: false, color: true })
+    const byId = (id: string) => els.find((el) => el.data.id === id)!.data
+    // Shades of the palette's own node colours, at the same steps legacy used.
+    expect(byId('p1').nodeColor).toBe(specificityRamp('#e11d48')[8])
+    expect(byId('p2').nodeColor).toBe(specificityRamp('#2563eb')[1])
+    expect(byId('p3').nodeColor).toBe('#2563eb')
+    expect(byId('p1').size).toBeUndefined()
+    expect(Object.keys(byId('i1'))).not.toContain('expr')
+
+    const sized = buildElements(proteins, [], [1], undefined, { tissues: ['liver'], size: true, color: false })
+    expect(sized.find((el) => el.data.id === 'p1')!.data).toMatchObject({ size: 30, nodeColor: '#e11d48' })
+  })
+
+  it('leaves elements untouched with both switches off', () => {
+    const els = buildElements(proteins, [], [1], undefined, { tissues: ['liver'], size: false, color: false })
+    expect(els.every((el) => el.data.size === undefined)).toBe(true)
+    expect(els.find((el) => el.data.id === 'p2')!.data.nodeColor).toBe('#2563eb')
+  })
+})
+
+describe('tissue specificity colouring', () => {
+  const palette = {
+    queryNode: '#e11d48',
+    interactorNode: '#0f766e',
+    published: '#10b981',
+    validated: '#0f766e',
+    verified: '#e11d48',
+    literature: '#06b6d4',
+  }
+  const proteins = [
+    { protein_id: 1, protein_gene_name: 'A', tissue_specificity_array: { liver: '0' } },
+    { protein_id: 2, protein_gene_name: 'B', tissue_specificity_array: { liver: '0' } },
+  ] as never
+  const interactions = [
+    {
+      interaction_id: 9,
+      interactor_A: { protein_id: 1 },
+      interactor_B: { protein_id: 2 },
+      interaction_category_array: { highest_category_status: 'Published', highest_order: 1 },
+    },
+  ] as never
+
+  it('shades the portal’s own node colours and leaves edges alone', () => {
+    const off = buildElements(proteins, interactions, [1], palette)
+    const on = buildElements(proteins, interactions, [1], palette, {
+      tissues: ['liver'],
+      size: false,
+      color: true,
+    })
+    const edgeColor = (els: typeof on) => els.find((e) => e.data.id === 'i9')?.data.color
+    expect(edgeColor(on)).toBe(edgeColor(off))
+    expect(edgeColor(on)).toBe('#10b981')
+
+    const nodeColor = (id: string) => on.find((e) => e.data.id === id)?.data.nodeColor
+    // A specificity of 0 is the middle step: the configured colour itself.
+    expect(nodeColor('p2')).toBe('#0f766e')
+    expect(nodeColor('p1')).toBe('#e11d48')
+  })
+
+  it('keeps legacy’s exact steps for legacy’s default colours', () => {
+    expect(specificityRamp('#3c78d8')[0]).toBe('#b1c9ef')
+    expect(specificityRamp('#cc0000')[8]).toBe('#5c0000')
+  })
+
+  it('runs light to dark around any colour', () => {
+    const ramp = specificityRamp('#0f766e')
+    expect(ramp).toHaveLength(9)
+    expect(ramp[4]).toBe('#0f766e')
+    const brightness = (hex: string) => parseInt(hex.slice(1), 16) >> 16
+    expect(brightness(ramp[0])).toBeGreaterThan(brightness(ramp[4]))
+    expect(brightness(ramp[8])).toBeLessThan(brightness(ramp[4]))
   })
 })

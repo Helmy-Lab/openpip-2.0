@@ -20,6 +20,7 @@ from interactions.models import InteractionDataset
 from datasets.tests.factories import DatasetFactory
 from interactions.search_service import (
     _safe_float,
+    split_terms,
     execute_search,
     build_result_from_interaction_ids,
 )
@@ -47,6 +48,22 @@ def test_safe_float_returns_none_for_non_numeric_type():
     assert _safe_float([1, 2]) is None
 
 
+# ── split_terms ──────────────────────────────────────────────────────────────
+
+
+def test_split_terms_accepts_commas_spaces_and_newlines():
+    assert split_terms(" TP53, MDM2\nBRCA1 BCL2 ,, ") == [
+        "TP53",
+        "MDM2",
+        "BRCA1",
+        "BCL2",
+    ]
+
+
+def test_split_terms_empty_query():
+    assert split_terms("   ") == []
+
+
 # ── execute_search — edge classification ─────────────────────────────────────
 
 
@@ -57,6 +74,18 @@ def _protein_with_identifier(gene_name, uniprot_id=None):
     ident = IdentifierFactory(identifier=gene_name, naming_convention="gene_name")
     ProteinIdentifierFactory(protein=protein, identifier=ident)
     return protein
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("q", ["", "  ", " , "])
+def test_search_without_terms_returns_nothing(q):
+    """An empty query must not match every identifier and return the whole DB."""
+    p = _protein_with_identifier("BAD")
+    InteractionFactory(interactor_A=p, interactor_B=p, removed="0")
+
+    result = execute_search(q)
+    assert result["all_proteins"] == []
+    assert result["all_interactions"] == []
 
 
 @pytest.mark.django_db
@@ -199,6 +228,7 @@ def test_search_protein_arrays_empty_when_no_annotation():
     protein = result["all_proteins"][0]
     assert protein["subcellular_location_expression_array"] == {}
     assert protein["tissue_expression_array"] == {}
+    assert protein["tissue_specificity_array"] == {}
 
 
 # ── build_result_from_interaction_ids ─────────────────────────────────────────
@@ -293,3 +323,31 @@ def test_build_result_interactor_only_edge():
     assert result["query_protein_id_array"] == []
     # The edge still appears
     assert len(result["all_interactions"]) == 1
+
+
+@pytest.mark.django_db
+def test_search_multi_term_separated_by_space_and_newline():
+    """A pasted list works whatever separates it."""
+    a = _protein_with_identifier("BAD")
+    b = _protein_with_identifier("BCL2L1")
+    InteractionFactory(interactor_A=a, interactor_B=b, removed="0")
+
+    for query in ("BAD,BCL2L1", "BAD BCL2L1", "BAD\nBCL2L1"):
+        result = execute_search(query)
+        assert sorted(result["query_protein_id_array"]) == sorted([a.id, b.id]), query
+        assert result["unfound_protein_summary"] == ""
+
+
+@pytest.mark.django_db
+def test_search_protein_tissue_specificity_array_populated():
+    """tissue_specificity_array is parsed from the JSON annotation."""
+    p = _protein_with_identifier("BAD")
+    ann = Annotation.objects.create(
+        annotation='{"liver":"3.2", "brain_0":"-1.15"}',
+        identifier=p.ensembl_id,
+        type_name="tissue_specificity",
+    )
+    AnnotationProtein.objects.create(annotation=ann, protein=p)
+
+    protein = execute_search("BAD")["all_proteins"][0]
+    assert protein["tissue_specificity_array"] == {"liver": "3.2", "brain_0": "-1.15"}

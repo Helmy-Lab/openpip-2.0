@@ -84,6 +84,9 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
     navStyle = serializers.CharField(
         source="nav_style", allow_null=True, allow_blank=True, required=False
     )
+    navStyleOverrides = serializers.CharField(
+        source="nav_style_overrides", allow_null=True, allow_blank=True, required=False
+    )
     mainColorScheme2 = serializers.CharField(
         source="main_color_scheme_2", allow_null=True, allow_blank=True, required=False
     )
@@ -94,6 +97,21 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
     faq = serializers.CharField(allow_null=True, allow_blank=True, required=False)
     contact = serializers.CharField(allow_null=True, allow_blank=True, required=False)
     download = serializers.CharField(allow_null=True, allow_blank=True, required=False)
+    showTissueExpression = serializers.BooleanField(
+        source="show_tissue_expression", required=False
+    )
+    showSubcellularLocation = serializers.BooleanField(
+        source="show_subcellular_location", required=False
+    )
+    horizontalFilterBar = serializers.BooleanField(
+        source="horizontal_filter_bar", required=False
+    )
+    canvasBackgroundColor = serializers.CharField(
+        source="canvas_background_color",
+        allow_null=True,
+        allow_blank=True,
+        required=False,
+    )
     showDownloads = serializers.BooleanField(source="show_downloads", required=False)
     showDownloadAll = serializers.BooleanField(
         source="show_download_all", required=False
@@ -142,12 +160,17 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
             "version",
             "logoUrl",
             "navStyle",
+            "navStyleOverrides",
             "mainColorScheme2",
             "gradientAngle",
             "about",
             "faq",
             "contact",
             "download",
+            "showTissueExpression",
+            "showSubcellularLocation",
+            "horizontalFilterBar",
+            "canvasBackgroundColor",
             "showDownloads",
             "showDownloadAll",
             "example1",

@@ -126,6 +126,24 @@ body {
 h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
 p { text-wrap: pretty; }
 
+/* Chrome — nav, buttons, tabs, labels — is not worth copying, and selecting
+   it by accident is what makes a drag across a table pick up half the UI.
+   Selection is off by default and switched back on for the content people
+   actually copy: table cells, prose, code, and form fields. Add
+   data-selectable to anything else that should be copyable. */
+body { -webkit-user-select: none; user-select: none; }
+
+td, th, p, li, code, pre, input, textarea, select,
+.op-prose, [data-selectable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+button, [role='button'], .op-btn {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* ─────────────────────────────────────────────────────────
    Design system utilities
    ───────────────────────────────────────────────────────── */
@@ -174,14 +192,15 @@ p { text-wrap: pretty; }
   text-decoration: none;
 }
 .op-btn:hover { background: var(--surface-2); }
+/* --color-button is the admin's "Button color" (lib/theme.ts), defaulting to
+   the primary colour. Hover darkens whatever colour was chosen. */
 .op-btn.primary {
-  background: var(--primary);
+  background: var(--color-button, var(--primary));
   color: #fff;
-  border-color: var(--primary);
+  border-color: var(--color-button, var(--primary));
 }
 .op-btn.primary:hover {
-  background: var(--primary-deep);
-  border-color: var(--primary-deep);
+  filter: brightness(0.88);
 }
 .op-btn.ghost {
   background: transparent;

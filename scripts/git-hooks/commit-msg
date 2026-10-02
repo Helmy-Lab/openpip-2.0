@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Strip AI co-author trailers from commit messages.
+#
+# openPIP's convention is that commits are authored by people. In August 2026
+# a set of Co-Authored-By: Claude trailers reached main and had to be removed
+# by rewriting 215 commits of published history — see CLAUDE.md. This hook
+# exists so that cannot happen twice, whatever tool is driving the commit.
+#
+# It strips rather than rejects: the trailer is noise, not a mistake worth
+# blocking work over. Git removes any trailing blank line left behind during
+# its own message cleanup.
+#
+# To bypass once (there is no good reason to): git commit --no-verify
+
+set -uo pipefail
+
+msg_file="$1"
+
+if grep -qiE '^[[:space:]]*co-authored-by:.*(claude|anthropic)' "$msg_file"; then
+  sed -i -E '/^[[:space:]]*[Cc]o-[Aa]uthored-[Bb]y:.*([Cc]laude|[Aa]nthropic|ANTHROPIC|CLAUDE)/d' "$msg_file"
+  echo "commit-msg: removed AI co-author trailer (openPIP convention)"
+fi
+
+exit 0

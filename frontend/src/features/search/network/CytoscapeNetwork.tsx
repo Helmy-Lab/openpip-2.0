@@ -4,10 +4,18 @@ import cytoscape from 'cytoscape'
 import type { LayoutOptions } from 'cytoscape'
 import cola from 'cytoscape-cola'
 import type { Protein, Interaction } from '../../../types/api'
-import { buildElements, getEdgeColorByOrder } from './cytoscapeElements'
+import { buildElements, getEdgeColorByOrder, specificityRamp } from './cytoscapeElements'
+import { tissueLabel } from '../../../lib/tissues'
 import { buildStylesheet } from './cytoscapeStyles'
+import { useCanvasBackground } from './canvasBackground'
 import { useSettings } from '../../../api/settings'
 import { useSearchStore } from '../searchStore'
+import { LayoutDropdown } from '../toolbar/LayoutDropdown'
+import { FilterDropdown } from '../toolbar/FilterDropdown'
+import { ConfidenceDropdown } from '../toolbar/ConfidenceDropdown'
+import { useText } from '../../../text'
+import cytoscapeLogo from '../../../assets/cytoscape.svg'
+import { CONTROL_BG, CONTROL_HEIGHT } from '../toolbar/LayoutDropdown'
 
 // Register cytoscape-cola extension once at module level.
 // Wrapped in try/catch to silently ignore double-registration errors
@@ -26,6 +34,10 @@ interface CytoscapeNetworkProps {
   queryProteinIds: number[]
   layout: LayoutName
   height?: number
+  /** Off for the homepage preview, which is a picture, not a workspace. */
+  showControls?: boolean
+  /** Filter and Confidence buttons; off under the ribbon, which carries them. */
+  showFilters?: boolean
   onNodeClick?: (protein: Protein) => void
   onEdgeClick?: (interaction: Interaction) => void
 }
@@ -47,6 +59,8 @@ export function CytoscapeNetwork({
   queryProteinIds,
   layout,
   height = 500,
+  showControls = true,
+  showFilters = true,
   onNodeClick,
   onEdgeClick,
 }: CytoscapeNetworkProps) {
@@ -57,6 +71,13 @@ export function CytoscapeNetwork({
   const cyRef = useRef<any>(null)
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
   const { data: settings } = useSettings()
+  const setModal = useSearchStore((s) => s.setModal)
+  const highlight = useSearchStore((s) => s.highlight)
+  const tissues = useSearchStore((s) => s.tissueFilter)
+  const tissueNodeSize = useSearchStore((s) => s.tissueNodeSize)
+  const tissueNodeColor = useSearchStore((s) => s.tissueNodeColor)
+  const background = useCanvasBackground() ?? 'var(--bg)'
+  const t = useText()
 
   const palette = useMemo(() => ({
     queryNode:    settings?.queryNodeColor      ?? '#e11d48',
@@ -75,8 +96,13 @@ export function CytoscapeNetwork({
   ])
 
   const elements = useMemo(
-    () => buildElements(proteins, interactions, queryProteinIds, palette),
-    [proteins, interactions, queryProteinIds, palette]
+    () =>
+      buildElements(proteins, interactions, queryProteinIds, palette, {
+        tissues,
+        size: tissueNodeSize,
+        color: tissueNodeColor,
+      }),
+    [proteins, interactions, queryProteinIds, palette, tissues, tissueNodeSize, tissueNodeColor]
   )
 
   // Re-run layout whenever elements or layout name change.
@@ -127,6 +153,24 @@ export function CytoscapeNetwork({
     }
   }, [proteins, interactions, onNodeClick, onEdgeClick])
 
+  // Selecting an enrichment term dims the network and lights that term's
+  // proteins plus the edges between them — legacy's setEnrichmentRowClickEvent.
+  // Genes with no node (filtered out of the current graph) are skipped rather
+  // than dereferenced, which is what legacy did before it threw.
+  useEffect(() => {
+    const cy = cyRef.current
+    if (!cy) return
+    if (!highlight) {
+      cy.elements().style({ opacity: 1 })
+      return
+    }
+    const genes = new Set(highlight.genes)
+    const lit = cy.nodes().filter((n: { data: (k: string) => string }) => genes.has(n.data('label')))
+    cy.elements().style({ opacity: 0.2 })
+    lit.style({ opacity: 1 })
+    lit.edgesWith(lit).style({ opacity: 1 })
+  }, [highlight, elements])
+
   // Build edge legend from actual category names in the current data so labels
   // match whatever the dataset calls them (e.g. "HI-Union" instead of "Verified").
   const edgeLegendItems = useMemo(() => {
@@ -155,16 +199,16 @@ export function CytoscapeNetwork({
   // changes, but Cytoscape doesn't always re-evaluate canvas styles for
   // data() references when data is mutated via .json() — remounting is
   // the only reliable path.
-  const graphKey = Object.values(palette).join('-')
+  const graphKey = [...Object.values(palette), ...tissues, tissueNodeSize, tissueNodeColor].join('-')
 
   return (
-    <div style={{ position: 'relative', height, background: 'var(--bg)' }}>
+    <div style={{ position: 'relative', height, background }}>
       <CytoscapeComponent
         key={graphKey}
         elements={elements}
         stylesheet={STYLESHEET}
         layout={{ name: layout } as Parameters<typeof CytoscapeComponent>[0]['layout']}
-        style={{ width: '100%', height, background: 'var(--bg)' }}
+        style={{ width: '100%', height, background }}
         cy={(cy) => {
           if (cyRef.current === cy) return
           cyRef.current = cy
@@ -177,7 +221,8 @@ export function CytoscapeNetwork({
         position: 'absolute',
         top: 12,
         right: 12,
-        background: 'var(--surface)',
+        zIndex: 10,
+        background: CONTROL_BG,
         border: '1px solid var(--border)',
         borderRadius: 6,
         padding: '10px 14px',
@@ -185,7 +230,6 @@ export function CytoscapeNetwork({
         flexDirection: 'column',
         gap: 7,
         pointerEvents: 'none',
-        zIndex: 10,
       }}>
         {legendItems.map(({ label, color, shape }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -211,7 +255,65 @@ export function CytoscapeNetwork({
             </span>
           </div>
         ))}
+        {tissues.length > 0 && tissueNodeSize && (
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            Node size: expression in {tissues.map(tissueLabel).join(', ')}
+          </span>
+        )}
+        {tissues.length > 0 && tissueNodeColor && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              width: 16,
+              height: 10,
+              borderRadius: 2,
+              background: `linear-gradient(to right, ${specificityRamp(palette.interactorNode)[0]}, ${specificityRamp(palette.interactorNode)[8]})`,
+              flexShrink: 0,
+            }} />
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              Tissue specificity in {tissues.map(tissueLabel).join(', ')} (low → high)
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* Network controls, bottom right — out of the legend's way and away
+          from the info panels, which anchor top left. Off on the homepage
+          preview, which is a picture rather than a workspace. */}
+      {showControls && (
+      <div style={{
+        position: 'absolute',
+        bottom: 12,
+        right: 12,
+        zIndex: 10,
+        display: 'flex',
+        gap: 6,
+      }}>
+        {showFilters && <FilterDropdown />}
+
+        {showFilters && <ConfidenceDropdown />}
+
+        <LayoutDropdown />
+
+        {/* Hand the network to a desktop Cytoscape over CyREST. Icon-only
+            beside the layout button, matched to its height; the name is on
+            hover. */}
+        <button
+          type="button"
+          className="op-btn"
+          title={t('search.download.cytoscape')}
+          aria-label={t('search.download.cytoscape')}
+          onClick={() => setModal('cyRest')}
+          style={{
+            height: CONTROL_HEIGHT,
+            padding: '0 6px',
+            lineHeight: 0,
+            background: CONTROL_BG,
+          }}
+        >
+          <img src={cytoscapeLogo} alt="" width={22} height={22} />
+        </button>
+      </div>
+      )}
 
       {tooltip && (
         <div

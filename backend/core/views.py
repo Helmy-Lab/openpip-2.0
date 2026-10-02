@@ -1,26 +1,37 @@
 import logging
+import uuid
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.db.models import Q
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.views import TokenRefreshView
+from .throttling import SecurityAnswerAccountThrottle, SecurityAnswerThrottle
 from .tokens import CustomRefreshToken
 
 from .models import User
+from .serializers import ProfileSerializer
 
 logger = logging.getLogger(__name__)
 _token_generator = PasswordResetTokenGenerator()
 
 
 SECURITY_QUESTION_COUNT = 3
+MIN_PASSWORD_LENGTH = 8
+
+
+def _clean_password(request) -> str:
+    """Register, reset and login must agree, or a password set with a stray
+    space could never be typed back in."""
+    return str(request.data.get("password", "")).strip()
 
 
 def _normalize_answer(answer: str) -> str:
@@ -33,7 +44,7 @@ class LoginView(APIView):
 
     def post(self, request):
         username = request.data.get("username", "")
-        password = request.data.get("password", "")
+        password = _clean_password(request)
         user = authenticate(request, username=username, password=password)
         if user is None:
             return Response(
@@ -69,11 +80,18 @@ class RegisterView(APIView):
     def post(self, request):
         username = request.data.get("username", "").strip()
         email = request.data.get("email", "").strip()
-        password = request.data.get("password", "").strip()
+        password = _clean_password(request)
         pairs = request.data.get("security_questions") or []
         if not username or not email or not password:
             return Response(
                 {"detail": "All fields required."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if len(password) < MIN_PASSWORD_LENGTH:
+            return Response(
+                {
+                    "detail": f"Password must be at least {MIN_PASSWORD_LENGTH} characters."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
         if not isinstance(pairs, list) or not all(isinstance(p, dict) for p in pairs):
             pairs = []
@@ -98,6 +116,14 @@ class RegisterView(APIView):
                 {"detail": "Username already taken."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        # Checked here as well as by the database constraint: the reset flow
+        # looks an account up by email, so two accounts sharing one would make
+        # that lookup ambiguous.
+        if User.objects.filter(email__iexact=email).exists():
+            return Response(
+                {"detail": "Email already registered."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         User.objects.create_user(
             username=username,
             email=email,
@@ -112,16 +138,134 @@ class RegisterView(APIView):
         )
 
 
+# The stored extension comes from this map, never from the client's filename:
+# media is served by extension, so "x.html" sent as image/png would come back
+# as same-origin HTML able to read the JWTs in localStorage.
+AVATAR_TYPES = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+}
+AVATAR_MAX_BYTES = 2 * 1024 * 1024
+
+
+def _profile_payload(user):
+    return {
+        "username": user.username,
+        "email": user.email,
+        "is_admin": user.is_staff,
+        # The display name lives in first_name; openPIP asks for one name.
+        "name": user.first_name,
+        "affiliation": user.affiliation,
+        "position": user.position,
+        "website": user.website,
+        "bio": user.bio,
+        "discoverable": user.discoverable,
+        # Relative, like AdminSettings.logoUrl: the page is served from the
+        # same origin, and an absolute URL would name the backend's own host.
+        "avatar": user.avatar.url if user.avatar else None,
+    }
+
+
 class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+
+    def get(self, request):
+        return Response(_profile_payload(request.user))
+
+    def patch(self, request):
+        """Update the optional profile details. Every field is optional, and
+        an omitted field is left alone; an empty string clears one."""
+        user = request.user
+        serializer = ProfileSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        # The avatar arrives as a file on the same PATCH; an empty "avatar"
+        # value clears the current one.
+        if "avatar" in request.FILES:
+            upload = request.FILES["avatar"]
+            if upload.content_type not in AVATAR_TYPES:
+                return Response(
+                    {"detail": "Unsupported image type."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if upload.size > AVATAR_MAX_BYTES:
+                return Response(
+                    {"detail": "Image must be 2 MB or smaller."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if user.avatar:
+                user.avatar.delete(save=False)
+            upload.name = uuid.uuid4().hex + AVATAR_TYPES[upload.content_type]
+            user.avatar = upload
+            user.save(update_fields=["avatar"])
+        elif request.data.get("avatar") == "" and user.avatar:
+            user.avatar.delete(save=False)
+            user.save(update_fields=["avatar"])
+
+        return Response(_profile_payload(user))
+
+
+def user_card(user):
+    """The slice of a profile other users are allowed to see."""
+    return {
+        "username": user.username,
+        "name": user.first_name,
+        "affiliation": user.affiliation,
+        "avatar": user.avatar.url if user.avatar else None,
+    }
+
+
+class UserSearchView(APIView):
+    """Find someone to share a network with, by name, username, lab or email."""
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        user = request.user
+        q = request.query_params.get("q", "").strip()
+        # Two characters is the point where the result list means something;
+        # below it every user in the deployment would match.
+        if len(q) < 2:
+            return Response([])
+        matches = (
+            User.objects.filter(is_active=True, discoverable=True)
+            .filter(
+                Q(username__icontains=q)
+                | Q(first_name__icontains=q)
+                | Q(affiliation__icontains=q)
+                # Exact only: a substring match would turn this into an
+                # address-harvesting endpoint.
+                | Q(email__iexact=q)
+            )
+            .exclude(pk=request.user.pk)
+            .order_by("first_name", "username")[:10]
+        )
+        return Response([user_card(u) for u in matches])
+
+
+class PublicProfileView(APIView):
+    """Whatever a user chose to put on their profile, shown to other users."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, username):
+        user = User.objects.filter(username=username, is_active=True).first()
+        if user is None:
+            return Response(
+                {"detail": "No such user."}, status=status.HTTP_404_NOT_FOUND
+            )
+        # discoverable only governs search and sharing: someone who has already
+        # been given a link to a profile can read it.
         return Response(
             {
-                "username": user.username,
-                "email": user.email,
-                "is_admin": user.is_staff,
+                **user_card(user),
+                "position": user.position,
+                "website": user.website,
+                "bio": user.bio,
+                "joined": user.date_joined,
             }
         )
 
@@ -142,17 +286,13 @@ class SecurityQuestionView(APIView):
         return Response({"questions": [p["question"] for p in user.security_questions]})
 
 
-class _SecurityAnswerThrottle(AnonRateThrottle):
-    # ponytail: LocMemCache means the limit is per worker process; point
-    # CACHES at Redis if that turns out to be too loose.
-    scope = "security_answer"
-
-
 class SecurityAnswerView(APIView):
     """Step 2: a correct answer hands back a normal password-reset token."""
 
     permission_classes = [AllowAny]
-    throttle_classes = [_SecurityAnswerThrottle]
+    # CACHES points at Redis when REDIS_URL is set, so these count across all
+    # gunicorn workers rather than per process.
+    throttle_classes = [SecurityAnswerThrottle, SecurityAnswerAccountThrottle]
 
     def post(self, request):
         email = request.data.get("email", "").strip()
@@ -184,16 +324,18 @@ class PasswordResetConfirmView(APIView):
     def post(self, request):
         uid = request.data.get("uid", "")
         token = request.data.get("token", "")
-        password = request.data.get("password", "").strip()
+        password = _clean_password(request)
 
         if not uid or not token or not password:
             return Response(
                 {"detail": "uid, token, and password are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if len(password) < 8:
+        if len(password) < MIN_PASSWORD_LENGTH:
             return Response(
-                {"detail": "Password must be at least 8 characters."},
+                {
+                    "detail": f"Password must be at least {MIN_PASSWORD_LENGTH} characters."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -211,6 +353,8 @@ class PasswordResetConfirmView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Changing the hash also retires every refresh token issued before it
+        # (see core/tokens.py).
         user.set_password(password)
         user.save()
         logger.info("Password reset completed for user %s", user.username)

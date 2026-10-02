@@ -30,7 +30,6 @@ services:
       DATABASE_URL: postgres://openpip:${DB_PASSWORD:-openpip_dev}@db:5432/openpip
       SECRET_KEY: ${SECRET_KEY:-django-insecure-dev-key-change-me}
       ALLOWED_HOSTS: localhost,127.0.0.1,backend
-      CORS_ALLOWED_ORIGINS: http://localhost:5173,http://frontend:5173
       REDIS_URL: redis://redis:6379/0
     depends_on:
       db:
@@ -64,7 +63,9 @@ services:
     command: celery -A openpip worker -l info -Q celery
 
   frontend:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     profiles: [prod]
     restart: unless-stopped
     ports:

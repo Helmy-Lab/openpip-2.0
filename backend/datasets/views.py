@@ -1,21 +1,27 @@
 import csv
 import io
 import logging
+import os
+import tempfile
 import time
 import zipfile
+from pathlib import Path
 
 from celery.result import AsyncResult
 
-from django.db.models import Count, OuterRef, Subquery
+from django.conf import settings
+from django.db.models import Count, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.http import FileResponse, Http404, StreamingHttpResponse
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
 
-from interactions.models import Interaction, InteractionDataset
-from proteins.models import Identifier
+from interactions.models import Interaction, InteractionCategory, InteractionDataset
+from proteins.models import Protein
 from .models import Dataset
 from .citation_lookup import CitationLookupError, fetch_by_doi, fetch_by_pubmed_id
 from .serializers import (
@@ -31,10 +37,31 @@ from .upload_parser import (
     fast_preview,
     process_line_batch,
     detect_format,
+    known_identifiers,
 )
 from .tasks import import_dataset_task
 
 logger = logging.getLogger(__name__)
+
+
+def as_bool(value) -> bool:
+    """Multipart sends "false" as a string, which bool() reads as True."""
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _category_id(data) -> int | None:
+    raw = data.get("category_id")
+    if raw in (None, ""):
+        return None
+    try:
+        category_id = int(raw)
+    except (TypeError, ValueError):
+        raise ValidationError({"category_id": "Must be a category id."})
+    # The link is a deferred foreign key, so a missing category would only
+    # fail when the whole import commits.
+    if not InteractionCategory.objects.filter(pk=category_id).exists():
+        raise ValidationError({"category_id": "No such category."})
+    return category_id
 
 
 def _reference_url(dataset) -> str | None:
@@ -85,8 +112,22 @@ def _apply_dataset_metadata(dataset_name: str, data) -> dict | None:
     return None
 
 
+def _archive_path() -> Path:
+    # Under MEDIA_ROOT for the persistent volume; not one of the public media
+    # folders, so it is only reachable through DatasetArchiveDownloadView.
+    return Path(settings.MEDIA_ROOT) / "cache" / "datasets.zip"
+
+
+def _invalidate_archive() -> None:
+    _archive_path().unlink(missing_ok=True)
+
+
 def _refresh_dataset_counts() -> None:
     """Update number_of_interactions for all datasets from InteractionDataset records."""
+    # Every import and dataset delete ends here, so it doubles as the point
+    # where the cached all-datasets zip goes stale.
+    _invalidate_archive()
+    _refresh_protein_counts()
     Dataset.objects.update(
         number_of_interactions=Subquery(
             InteractionDataset.objects.filter(dataset_id=OuterRef("pk"))
@@ -94,6 +135,29 @@ def _refresh_dataset_counts() -> None:
             .annotate(c=Count("id"))
             .values("c")
         )
+    )
+
+
+def _refresh_protein_counts() -> None:
+    """Recount every protein's active interactions, as legacy did: each
+    interaction counts once per protein, a self-interaction included.
+
+    Imports create proteins without a count, and the protein list's "has
+    interactions" filter reads this column, so it must follow the data.
+    """
+    per_protein = (
+        Interaction.objects.filter(
+            Q(interactor_A=OuterRef("pk")) | Q(interactor_B=OuterRef("pk")),
+            removed="0",
+        )
+        .order_by()
+        .annotate(group=Value(1))
+        .values("group")
+        .annotate(n=Count("pk"))
+        .values("n")
+    )
+    Protein.objects.update(
+        number_of_interactions_in_database=Coalesce(Subquery(per_protein), 0)
     )
 
 
@@ -118,7 +182,7 @@ class DatasetFileDownloadView(APIView):
             fmt = "tab"
 
         rows = (
-            InteractionDataset.objects.filter(dataset_id=pk)
+            InteractionDataset.objects.filter(dataset_id=pk, interaction__removed="0")
             .select_related(
                 "interaction__interactor_A",
                 "interaction__interactor_B",
@@ -208,13 +272,34 @@ class DatasetFileDownloadView(APIView):
 class DatasetArchiveDownloadView(APIView):
     permission_classes = [AllowAny]
 
+    # Built once and served from disk until data changes, rather than
+    # rebuilding every dataset in memory per anonymous request.
+    # ponytail: a change landing mid-build can leave that build's stale zip in
+    # place until the next import or edit; version the cache if that matters.
     def get(self, request):
+        path = _archive_path()
+        if not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".zip.tmp")
+            try:
+                with os.fdopen(fd, "wb") as f:
+                    self._write_archive(f)
+                os.replace(tmp, path)  # atomic: no reader sees a half-written zip
+            except BaseException:
+                os.unlink(tmp)
+                raise
+        return FileResponse(
+            path.open("rb"), as_attachment=True, filename="datasets.zip"
+        )
+
+    def _write_archive(self, f) -> None:
         datasets = Dataset.objects.all()
-        buf = io.BytesIO()
-        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        with zipfile.ZipFile(f, "w", zipfile.ZIP_DEFLATED) as zf:
             for ds in datasets:
                 rows = (
-                    InteractionDataset.objects.filter(dataset=ds)
+                    InteractionDataset.objects.filter(
+                        dataset=ds, interaction__removed="0"
+                    )
                     .select_related(
                         "interaction__interactor_A", "interaction__interactor_B"
                     )
@@ -250,8 +335,6 @@ class DatasetArchiveDownloadView(APIView):
                     score = f"score:{ix.score}" if ix.score else "-"
                     lines.append(f"{uid_a}\t{uid_b}\t{score}\t{pubmed}\n")
                 zf.writestr(f"{safe_name}.tab", "".join(lines))
-        buf.seek(0)
-        return FileResponse(buf, as_attachment=True, filename="datasets.zip")
 
 
 class UploadView(APIView):
@@ -282,7 +365,7 @@ class ProteinCheckView(APIView):
             (r.split(":", 1)[1].strip() if ":" in r else r.strip()) for r in raw_ids
         ]
         t0 = time.monotonic()
-        existing = Identifier.objects.filter(identifier__in=clean_ids).count()
+        existing = len(known_identifiers(clean_ids))
         elapsed = (time.monotonic() - t0) * 1000
         logger.debug(
             "check-proteins: %d queried → %d existing, %d new  (%.1f ms)",
@@ -336,8 +419,7 @@ class DatasetUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         interaction_status = request.data.get("interaction_status", "published")
-        category_id_raw = request.data.get("category_id")
-        category_id = int(category_id_raw) if category_id_raw else None
+        category_id = _category_id(request.data)
 
         file_bytes = uploaded_file.read()
         result = parse_and_ingest(
@@ -375,9 +457,8 @@ class DatasetUploadRowsView(APIView):
             )
 
         interaction_status = request.data.get("interaction_status", "published")
-        category_id_raw = request.data.get("category_id")
-        category_id = int(category_id_raw) if category_id_raw else None
-        is_last_batch = bool(request.data.get("is_last_batch", False))
+        category_id = _category_id(request.data)
+        is_last_batch = as_bool(request.data.get("is_last_batch", False))
 
         t0 = time.monotonic()
         result = process_line_batch(
@@ -437,6 +518,7 @@ class DatasetDetailView(APIView):
         serializer = DatasetWriteSerializer(dataset, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        _invalidate_archive()  # each file carries its dataset's citation header
 
         logger.debug(
             "dataset %d updated — fields: %s", pk, ", ".join(sorted(request.data))
@@ -533,8 +615,7 @@ class AsyncImportView(APIView):
             )
 
         interaction_status = request.data.get("interaction_status", "published")
-        category_id_raw = request.data.get("category_id")
-        category_id = int(category_id_raw) if category_id_raw else None
+        category_id = _category_id(request.data)
 
         file_bytes = file_obj.read()
         fmt = detect_format(file_obj.name or "", file_bytes)

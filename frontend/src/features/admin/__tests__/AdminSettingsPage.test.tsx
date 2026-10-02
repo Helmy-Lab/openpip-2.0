@@ -8,6 +8,7 @@ import { useAdminDirty } from '../../../store/adminDirty'
 import { useSettings, useUpdateSettings, useUploadLogo, useDeleteLogo } from '../../../api/settings'
 import { useAdminUsers, useSetAdminAccess } from '../../../api/adminUsers'
 import { useProfile } from '../../../api/auth'
+import { useInteractionCategories } from '../../../api/interactionCategories'
 import { seedSiteText, resetSiteText } from '../../../mocks/handlers/siteText'
 
 vi.mock('../../../api/settings', () => ({
@@ -18,11 +19,11 @@ vi.mock('../../../api/settings', () => ({
 }))
 
 vi.mock('react-quill-new', () => ({
-  default: ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) => (
+  default: ({ value, onChange, placeholder }: { value: string; onChange: (v: string, d: unknown, s: string) => void; placeholder?: string }) => (
     <textarea
       data-testid="rich-text-editor"
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => onChange(e.target.value, {}, 'user')}
       placeholder={placeholder}
     />
   ),
@@ -236,7 +237,24 @@ describe('AdminSettingsPage', () => {
     renderLoaded()
     openPanel(/Downloads/)
     expect(screen.getByText('Show Dataset Downloads')).toBeInTheDocument()
-    expect(screen.getByText('Show Download All Datasets')).toBeInTheDocument()
+    expect(screen.getByText('Show Supplementary Files')).toBeInTheDocument()
+  })
+
+  it('shows each category the edge colour its order really gives', () => {
+    ;(useInteractionCategories as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      data: [
+        { id: 1, categoryName: 'Published', order: '1', colorScheme: '#123456', description: '' },
+        { id: 9, categoryName: 'Extra', order: '7', colorScheme: '#654321', description: '' },
+      ],
+      isLoading: false,
+    })
+    renderLoaded()
+    openPanel(/^Search/)
+    // From publishedEdgeColor, not the category's own colorScheme.
+    expect(screen.getByLabelText('Edge colour #38761d')).toBeInTheDocument()
+    // order 7, and the empty new-category row
+    expect(screen.getAllByLabelText('Edge colour #cccccc')).toHaveLength(2)
+    expect(screen.queryByLabelText('Edge colour #123456')).not.toBeInTheDocument()
   })
 
   it('reports unsaved changes and can discard them', () => {
@@ -341,12 +359,12 @@ describe('AdminSettingsPage', () => {
 
   it('filters a long list of copy fields', async () => {
     renderLoaded()
-    openPanel(/Documentation/)
-    const filter = await screen.findByLabelText(/Filter Documentation page text fields/)
+    openPanel(/^Home/)
+    const filter = await screen.findByLabelText(/Filter Home page text fields/)
 
-    fireEvent.change(filter, { target: { value: 'network' } })
-    expect(screen.getByRole('heading', { name: 'Network visualization' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Filtering results' })).not.toBeInTheDocument()
+    fireEvent.change(filter, { target: { value: 'bibtex' } })
+    expect(screen.getByRole('heading', { name: 'Cite openPIP' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Three ways to start' })).not.toBeInTheDocument()
 
     fireEvent.change(filter, { target: { value: 'zzzz-no-such-copy' } })
     expect(screen.getByText(/Nothing matches/)).toBeInTheDocument()
@@ -505,5 +523,21 @@ describe('AdminSettingsPage', () => {
       .find((b) => !b.hasAttribute('disabled'))
     fireEvent.click(revoke!)
     expect(await screen.findByRole('status')).toHaveTextContent('Admin access removed')
+  })
+})
+
+describe('search panel copy', () => {
+  it('offers the phrase examples beside the gene examples', async () => {
+    // TAB_CONFIG declaring a text group is not enough: rendering is a separate
+    // pageText(tab) call in the panel's JSX, so a declared group with no call
+    // compiles, type-checks, and simply never appears. That is exactly how the
+    // phrase examples first shipped — configured onto this panel, invisible.
+    renderLoaded()
+    openPanel(/search/i)
+
+    expect(await screen.findByLabelText(/Phrase example 1/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Phrase example 2/i)).toBeInTheDocument()
+    // The gene examples they were moved to sit beside.
+    expect(screen.getByText(/Example 1/)).toBeInTheDocument()
   })
 })

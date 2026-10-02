@@ -15,7 +15,7 @@
  * brain_0/1/2 are the reason this exists. They are YARN's PCoA clusters, not an
  * ordering anyone chose by hand, so underscore-prettifying them produced
  * "Brain 0 / 1 / 2" on screen — meaningless to a biologist. See
- * docs/DATA_PROVENANCE_QUESTIONS.md §5.
+ * docs/project/DATA_PROVENANCE_QUESTIONS.md §5.
  */
 export const TISSUE_LABELS: Record<string, string> = {
   adipose_subcutaneous: 'Adipose Subcutaneous',
@@ -64,4 +64,36 @@ export function tissueLabel(key: string): string {
   return (
     TISSUE_LABELS[key] ?? key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
   )
+}
+
+/**
+ * Tissue labels matching a typed prefix, for suggesting in the search box.
+ *
+ * Typing "in liver" only works if you already know "liver" is a tissue openPIP
+ * holds. Offering the list as you type is what makes the phrase search
+ * discoverable rather than a syntax to memorise — and it keeps the user to
+ * names that exist, so the parser will recognise whatever they pick.
+ */
+export function searchTissues(prefix: string, limit = 6): string[] {
+  const needle = prefix.trim().toLowerCase()
+  if (needle.length < 2) return []
+  const labels = Object.keys(TISSUE_LABELS).map(tissueLabel)
+  const starts = labels.filter((l) => l.toLowerCase().startsWith(needle))
+  const contains = labels.filter(
+    (l) => !l.toLowerCase().startsWith(needle) && l.toLowerCase().includes(needle)
+  )
+  return [...starts, ...contains].slice(0, limit)
+}
+
+// Legacy saves the tissue filter in interaction_network.tissue_expression_array.
+const SAVED_TISSUES_MAX = 100
+
+/** As many of the selected tissues as fit legacy's 100-character column. */
+export function tissuesThatFit(tissues: string[]): string {
+  const kept: string[] = []
+  for (const tissue of tissues) {
+    if ([...kept, tissue].join(',').length > SAVED_TISSUES_MAX) break
+    kept.push(tissue)
+  }
+  return kept.join(',')
 }

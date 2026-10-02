@@ -9,6 +9,10 @@ export function resetNetworkStore() {
   store = []
 }
 
+export function seedNetworks(networks: SavedNetwork[]) {
+  store = networks
+}
+
 export const networksHandlers = [
   http.get('/api/networks', ({ request }) => {
     const auth = request.headers.get('Authorization')

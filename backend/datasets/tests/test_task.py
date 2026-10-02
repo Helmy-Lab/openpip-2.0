@@ -2,9 +2,14 @@
 
 from unittest.mock import patch
 
+import pytest
+
 from django.test import override_settings
 
 from datasets.tasks import import_dataset_task
+
+# The task refreshes dataset counts after every import.
+pytestmark = pytest.mark.django_db
 
 
 def _make_batch_result(
@@ -208,3 +213,22 @@ def test_task_emits_warn_stage_when_enrichment_has_error():
 
     stages_emitted = [c.kwargs["meta"]["stage"] for c in mock_us.call_args_list]
     assert "enriching_uniprot_warn" in stages_emitted
+
+
+@EAGER
+def test_task_refreshes_dataset_interaction_counts():
+    """The sync upload views refresh counts; the async path used to leave them
+    stale, so a dataset credited by an overlap showed its old number."""
+    from datasets.models import Dataset
+
+    lines = ["uniprotkb:P00001\tuniprotkb:P00002", "uniprotkb:P00003\tuniprotkb:P00004"]
+    with patch(
+        "datasets.tasks.enrich_proteins_from_uniprot", return_value=(0, False)
+    ), patch(
+        "datasets.tasks.enrich_proteins_from_ensembl", return_value=(0, False)
+    ), patch(
+        "datasets.tasks.enrich_organisms_from_ncbi", return_value=(0, False)
+    ):
+        import_dataset_task.apply(args=[lines, "AsyncDS", "published", None]).get()
+
+    assert str(Dataset.objects.get(name="AsyncDS").number_of_interactions) == "2"

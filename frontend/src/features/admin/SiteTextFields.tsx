@@ -244,7 +244,7 @@ export function SiteTextFields({
         </span>
         {group.route && (
           <a
-            href={group.route}
+            href={import.meta.env.BASE_URL.replace(/\/$/, '') + group.route}
             target="_blank"
             rel="noreferrer"
             style={{

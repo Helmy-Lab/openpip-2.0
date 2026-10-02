@@ -70,7 +70,7 @@ describe('TissueExpressionTable', () => {
   })
 
   // The 36-tissue set is GTEx v6.0 put through YARN and inherited from HuRI,
-  // not a raw GTEx download — see docs/DATA_PROVENANCE_QUESTIONS.md. Losing the
+  // not a raw GTEx download — see docs/project/DATA_PROVENANCE_QUESTIONS.md. Losing the
   // processing citation would leave the release alone on screen, implying the
   // values are raw GTEx units when they are qsmooth-normalized.
   it('cites the YARN processing step, not just the release', () => {

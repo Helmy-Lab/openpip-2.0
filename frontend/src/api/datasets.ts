@@ -20,20 +20,12 @@ export interface DatasetPreviewResult {
 
 export function useInteractionCategories() {
   return useQuery<InteractionCategory[]>({
-    queryKey: ['interaction-categories'],
+    // Not the admin list's key: that endpoint returns camelCase fields, and a
+    // shared key let whichever loaded first be shown here with blank names.
+    // The prefix still matches, so the admin mutations' invalidation reaches it.
+    queryKey: ['interaction-categories', 'public'],
     queryFn: () => apiClient.get('/interactions/categories').then((r) => r.data),
     staleTime: 10 * 60 * 1000,
-  })
-}
-
-export function useDatasetPreview() {
-  return useMutation<DatasetPreviewResult, Error, FormData>({
-    mutationFn: (formData) =>
-      apiClient
-        .post('/datasets/preview', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-        .then((r) => r.data),
   })
 }
 
@@ -41,22 +33,6 @@ export function useDatasetDelete() {
   const queryClient = useQueryClient()
   return useMutation<void, Error, number>({
     mutationFn: (id) => apiClient.delete(`/datasets/${id}`).then(() => {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['datasets'] })
-      queryClient.invalidateQueries({ queryKey: ['counts'] })
-    },
-  })
-}
-
-export function useDatasetUpload() {
-  const queryClient = useQueryClient()
-  return useMutation<DatasetPreviewResult, Error, FormData>({
-    mutationFn: (formData) =>
-      apiClient
-        .post('/datasets/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-        .then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['datasets'] })
       queryClient.invalidateQueries({ queryKey: ['counts'] })

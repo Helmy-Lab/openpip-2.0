@@ -1,0 +1,12 @@
+/* openPIP brand colours, from frontend/src/index.css (--primary, --primary-deep, --accent). */
+:root {
+  --md-primary-fg-color: #2563eb;
+  --md-primary-fg-color--light: #dbeafe;
+  --md-primary-fg-color--dark: #1e40af;
+  --md-accent-fg-color: #0ea5e9;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #1e40af;
+  --md-accent-fg-color: #38bdf8;
+}

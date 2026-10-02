@@ -9,6 +9,7 @@ Filter modes (filter_parameter):
 """
 
 import json
+import re
 from typing import Optional
 
 from django.db.models import Q
@@ -25,6 +26,14 @@ from .models import (
     InteractionDataset,
     InteractionInteractionCategory,
 )
+
+
+def split_terms(q: str) -> list[str]:
+    """Split a query into gene terms on commas, spaces, or newlines.
+
+    Lists get pasted out of spreadsheets and papers, so all three turn up.
+    """
+    return [t for t in re.split(r"[,\s]+", q.strip()) if t]
 
 
 def _safe_float(value) -> Optional[float]:
@@ -60,6 +69,9 @@ def _build_protein_dict(protein: Protein, annotations_by_protein: dict) -> dict:
         ),
         "subcellular_location_expression_array": _parse_json_annotation(
             ann.get("subcellular_location", "")
+        ),
+        "tissue_specificity_array": _parse_json_annotation(
+            ann.get("tissue_specificity", "")
         ),
     }
 
@@ -138,7 +150,7 @@ def execute_search(q: str, filter_parameter: str = "None") -> dict:
     Returns unfiltered search results. Score and category filtering happen
     client-side in the frontend. Only filter_parameter changes the SQL query shape.
     """
-    terms = [t.strip() for t in q.split(",") if t.strip()]
+    terms = split_terms(q)
 
     # Step 1: Resolve query proteins via identifier table.
     # Single query: JOIN through ProteinIdentifier to get protein_ids AND the
@@ -148,12 +160,18 @@ def execute_search(q: str, filter_parameter: str = "None") -> dict:
     for term in terms:
         q_filter |= Q(identifier__iexact=term)
 
-    matched_pairs = list(
-        ProteinIdentifier.objects.filter(
-            identifier__in=Identifier.objects.filter(q_filter)
+    # No terms leaves q_filter as an empty Q(), which matches every identifier
+    # and would return the whole database as one network.
+    matched_pairs = (
+        list(
+            ProteinIdentifier.objects.filter(
+                identifier__in=Identifier.objects.filter(q_filter)
+            )
+            .values("protein_id", "identifier__identifier")
+            .distinct()
         )
-        .values("protein_id", "identifier__identifier")
-        .distinct()
+        if terms
+        else []
     )
 
     query_protein_id_set = {row["protein_id"] for row in matched_pairs}
@@ -369,7 +387,7 @@ def build_result_from_interaction_ids(interaction_ids: list, query: str) -> dict
         protein_id_set.add(ix.interactor_B_id)
     protein_ids = list(protein_id_set)
 
-    terms = {t.strip().upper() for t in query.split(",") if t.strip()}
+    terms = {t.upper() for t in split_terms(query)}
     protein_map = {p.id: p for p in Protein.objects.filter(id__in=protein_ids)}
     query_protein_id_set = {
         pid

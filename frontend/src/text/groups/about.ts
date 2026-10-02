@@ -317,7 +317,7 @@ export const aboutGroup: TextGroup = {
       label: 'Interaction status: body',
       kind: 'multiline',
       default:
-        'The results can also be restricted to either only show PPIs from CCSB or from the literature. The user can choose to display tissue expression levels and levels of tissue specific expression of nodes in the network in combination with the selection of a tissue (see below).',
+        'The results can also be restricted by interaction category, for example to show only screening data or only literature-curated interactions. The user can choose to display tissue expression levels and levels of tissue specific expression of nodes in the network in combination with the selection of a tissue (see below).',
     },
     {
       key: 'about.tissueExpression.heading',
@@ -331,7 +331,7 @@ export const aboutGroup: TextGroup = {
       label: 'Tissue expression: body',
       kind: 'multiline',
       default:
-        'One or multiple tissues can be selected to filter the protein interaction data for proteins that are expressed in at least one of the selected tissues. Only interactions between the expressed proteins will be displayed. By default, expression abundance levels will be represented on the network by increasing the node size. Specificity of expression is indicated by varying the intensity of the color of the nodes (only applicable to cases where a single tissue has been selected). The tissue gene expression data has been extracted from the GTEx portal and has been processed and normalized as described in Paulson et al BMC Bioinformatics 2017. The preferential expression of a given gene in a given tissue was calculated as described in Sonawane et al Cell Reports 2017. More details are also provided in the HuRI paper.',
+        'One or multiple tissues can be selected to filter the protein interaction data for proteins that are expressed in all of the selected tissues. Only interactions between the expressed proteins will be displayed. Optionally, expression abundance levels can be represented on the network by increasing the node size. Specificity of expression is indicated by varying the intensity of the color of the nodes (only applicable to cases where a single tissue has been selected). The tissue gene expression data has been extracted from the GTEx portal and has been processed and normalized as described in Paulson et al BMC Bioinformatics 2017. The preferential expression of a given gene in a given tissue was calculated as described in Sonawane et al Cell Reports 2017. More details are also provided in the HuRI paper.',
     },
     {
       key: 'about.exportOptions.heading',
@@ -345,7 +345,7 @@ export const aboutGroup: TextGroup = {
       label: 'Export options: body',
       kind: 'multiline',
       default:
-        'The network can be exported to Cytoscape by clicking the little orange network icon in the bottom left corner of the network browser, if Cytoscape is installed and running. The proteins displayed in the network can directly be exported as list into a variety of external resources to calculate functional enrichments and perform other network-related searches.',
+        'The network can be exported to Cytoscape by clicking the little orange network icon in the bottom right corner of the network browser, if Cytoscape is installed and running. The proteins displayed in the network can directly be exported as list into a variety of external resources to calculate functional enrichments and perform other network-related searches.',
     },
     {
       key: 'about.saveOptions.heading',
@@ -359,7 +359,7 @@ export const aboutGroup: TextGroup = {
       label: 'Save options: body',
       kind: 'multiline',
       default:
-        'The search results can be saved as image (if a network was displayed) or in various text file formats as lists of proteins and interactions. Furthermore, the web portal offers to users the possibility to create an account. If the user is logged in, an extra Save button will appear on the results page allowing the user to save the search result and the exact network representation or session that the user generated. Later, the user can select a saved network/session and reload it into the network browser for further manipulation. Of note, users need to login first prior to performing a search or the search results will be lost.',
+        'The search results can be saved as image (if a network was displayed) or in various text file formats as lists of proteins and interactions. Furthermore, the web portal offers to users the possibility to create an account. If the user is logged in, an extra Save button will appear on the results page allowing the user to save the search result and the exact network representation or session that the user generated. Later, the user can select a saved network/session and reload it into the network browser for further manipulation. Signing in from the results page brings the user straight back to the same search.',
     },
     {
       key: 'about.requirements.heading',
@@ -403,7 +403,7 @@ export const aboutGroup: TextGroup = {
       label: 'REST API: body',
       kind: 'html',
       default:
-        'A full REST API is available at <a href="/v2/api/docs/">/v2/api/docs/</a>. Endpoints cover protein search, protein detail, interaction data, dataset listings, and file downloads. All responses are JSON and CORS-enabled for use from any browser or server.',
+        'A full REST API is available at <a href="{base}/api/docs/">{base}/api/docs/</a>. Endpoints cover protein search, protein detail, interaction data, dataset listings, and file downloads. All responses are JSON and CORS-enabled for use from any browser or server.',
     },
     {
       key: 'about.deepLinks.heading',
@@ -423,7 +423,7 @@ export const aboutGroup: TextGroup = {
       section: 'Programmatic access',
       label: 'Deep links: example URLs',
       kind: 'multiline',
-      default: '/v2/search/BRCA1\n/v2/search/BRCA1,TP53\n/v2/protein/BRCA1\n/v2/protein/P38398',
+      default: '{base}/search/BRCA1\n{base}/search/BRCA1,TP53\n{base}/protein/BRCA1\n{base}/protein/P38398',
       hint: 'One URL per line. Rendered as a monospaced block.',
     },
     {
@@ -438,7 +438,7 @@ export const aboutGroup: TextGroup = {
       label: 'Python SDK: body',
       kind: 'html',
       default:
-        'A Python package (<code>openpip</code>) provides a typed SDK for use in scripts and Jupyter notebooks, as well as a command-line interface for searching, downloading, and exporting interaction networks.',
+        'For scripts and notebooks, call the REST API or PSICQUIC service directly from any language. A Python client package is not currently published.',
     },
     {
       key: 'about.psicquic.heading',
@@ -452,7 +452,7 @@ export const aboutGroup: TextGroup = {
       label: 'PSICQUIC: body',
       kind: 'html',
       default:
-        'openPIP implements the <a href="https://psicquic.github.io/">PSICQUIC standard</a>, the same protocol used by BioGRID and IntAct. Any tool or script written for those databases can query openPIP at <a href="/v2/psicquic/rest/query?q=BRCA1&amp;format=tab25">/v2/psicquic/rest/query</a> using identical MIQL syntax.',
+        'openPIP implements the <a href="https://psicquic.github.io/">PSICQUIC standard</a>, the same protocol used by BioGRID and IntAct. Tools and scripts written for those databases can query openPIP at <a href="{base}/psicquic/rest/query?q=BRCA1&amp;format=tab25">{base}/psicquic/rest/query</a> with the same MIQL syntax, for the fields openPIP supports.',
     },
     {
       key: 'about.programmatic.footer',
@@ -504,7 +504,7 @@ export const aboutGroup: TextGroup = {
       key: 'about.links.docs.desc',
       section: 'Useful links',
       label: 'Link: Documentation description',
-      default: 'How to use the web interface',
+      default: 'User, admin and API guides',
     },
     {
       key: 'about.links.developer.label',
@@ -516,7 +516,7 @@ export const aboutGroup: TextGroup = {
       key: 'about.links.developer.desc',
       section: 'Useful links',
       label: 'Link: API access description',
-      default: 'REST API, SDK, PSICQUIC, code examples',
+      default: 'REST API, PSICQUIC, code examples',
     },
     {
       key: 'about.links.swagger.label',

@@ -13,6 +13,20 @@ class AdminSettings(models.Model):
     contact = models.TextField(null=True)
     show_downloads = models.BooleanField(default=False)
     show_download_all = models.BooleanField(default=False)
+    # Annotation features that only mean something for a multicellular organism.
+    # The paper records that these "had to be manually removed from the code"
+    # to host the yeast YeRI dataset; openPIP is software other labs install, so
+    # editing source to hide a tab is not a reasonable ask. Default on, because
+    # the reference deployment is human.
+    show_tissue_expression = models.BooleanField(default=True)
+    show_subcellular_location = models.BooleanField(default=True)
+    # Search controls as a ribbon under the navbar rather than a left
+    # sidebar. A deployment-wide choice: whoever installs openPIP decides
+    # which shape its search page has, the same way they pick its colours.
+    horizontal_filter_bar = models.BooleanField(default=False)
+    # Network canvas background. Null follows the light/dark theme; viewers
+    # can still override it for themselves in the browser.
+    canvas_background_color = models.CharField(max_length=20, null=True, blank=True)
     footer = models.TextField(null=True)
     main_color_scheme = models.CharField(max_length=10, null=True)
     header_color_scheme = models.CharField(max_length=10, null=True)
@@ -20,6 +34,10 @@ class AdminSettings(models.Model):
     button_color_scheme = models.CharField(max_length=10, null=True)
     logo = models.FileField(upload_to="logos/", null=True, blank=True)
     nav_style = models.CharField(max_length=20, default="solid", null=True, blank=True)
+    # Per-page navbar style, as "home:gradient,search:solid". Pages absent
+    # from the list follow nav_style, so one deployment-wide choice still
+    # works and an override is only stored where an admin set one.
+    nav_style_overrides = models.TextField(null=True, blank=True)
     main_color_scheme_2 = models.CharField(max_length=20, null=True, blank=True)
     gradient_angle = models.IntegerField(default=135, null=True, blank=True)
     example_1 = models.TextField(null=True)

@@ -23,7 +23,9 @@ class InteractionCategoryListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        categories = InteractionCategory.objects.all().order_by("order")
+        categories = sorted(
+            InteractionCategory.objects.all(), key=InteractionCategory.sort_key
+        )
         data = [
             {"id": cat.id, "category_name": cat.category_name, "order": cat.order}
             for cat in categories
@@ -99,7 +101,7 @@ class SavedNetworkListView(APIView):
 
         network = InteractionNetwork.objects.create(
             name=data["name"],
-            query=data["query"],
+            query=data["query"][:100],
             interactor_query_string=data["query"],
             score_parameter=data["score_parameter"],
             category_array=data["category_array"],
@@ -147,14 +149,16 @@ class SavedNetworkDetailView(APIView):
         interaction_ids = list(
             network.network_interactions.values_list("interaction_id", flat=True)
         )
-        result = build_result_from_interaction_ids(interaction_ids, network.query or "")
+        query = network.interactor_query_string or network.query or ""
+        result = build_result_from_interaction_ids(interaction_ids, query)
         return Response(
             {
                 "id": network.id,
                 "name": network.name,
-                "query": network.query,
+                "query": query,
                 "score_parameter": network.score_parameter,
                 "category_array": network.category_array,
+                "tissue_expression_array": network.tissue_expression_array or "",
                 **result,
             }
         )

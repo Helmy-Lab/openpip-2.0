@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from './client'
 import { useAuthStore } from '../store/authStore'
 
@@ -56,15 +56,45 @@ export function useResetPassword() {
   })
 }
 
+export interface Profile {
+  username: string
+  email: string
+  is_admin: boolean
+  /** Optional display name; falls back to the username on screen. */
+  name: string
+  affiliation: string
+  position: string
+  website: string
+  bio: string
+  avatar: string | null
+  /** Off hides you from people search and stops others sharing networks with you. */
+  discoverable: boolean
+}
+
 export function useProfile() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   return useQuery({
     queryKey: ['profile'],
-    queryFn: () =>
-      apiClient
-        .get('/auth/me')
-        .then((r) => r.data as { username: string; email: string; is_admin: boolean }),
+    queryFn: () => apiClient.get('/auth/me').then((r) => r.data as Profile),
     enabled: isLoggedIn,
     staleTime: 2 * 60 * 1000,
+  })
+}
+
+/**
+ * Every profile detail is optional. Sent as multipart so the avatar file rides
+ * along with the text fields; an empty `avatar` clears the current picture.
+ */
+export function useUpdateProfile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (changes: Partial<Omit<Profile, 'avatar'>> & { avatar?: File | '' }) => {
+      const form = new FormData()
+      Object.entries(changes).forEach(([key, value]) => {
+        if (value !== undefined) form.append(key, value as string | Blob)
+      })
+      return apiClient.patch('/auth/me', form).then((r) => r.data as Profile)
+    },
+    onSuccess: (data) => queryClient.setQueryData(['profile'], data),
   })
 }

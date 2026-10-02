@@ -87,6 +87,18 @@ export const searchGroup: TextGroup = {
       default: 'All tissues',
     },
     {
+      key: 'search.sidebar.tissueNodeSize',
+      label: 'Tissue expression node-size switch',
+      section: 'Sidebar',
+      default: 'Show tissue expression',
+    },
+    {
+      key: 'search.sidebar.tissueNodeColor',
+      label: 'Tissue specificity node-color switch',
+      section: 'Sidebar',
+      default: 'Reflect tissue specificity',
+    },
+    {
       key: 'search.sidebar.noTissueData',
       label: 'Tissue section empty state',
       section: 'Sidebar',
@@ -160,12 +172,24 @@ export const searchGroup: TextGroup = {
       section: 'Layout options',
       default: 'Grid',
     },
+    {
+      key: 'search.layout.background',
+      label: 'Canvas background',
+      section: 'Layout options',
+      default: 'Background',
+    },
+    {
+      key: 'search.layout.backgroundReset',
+      label: 'Reset canvas background',
+      section: 'Layout options',
+      default: 'Reset to default',
+    },
 
     {
       key: 'search.filterMode.none',
-      label: 'None',
+      label: 'No Filter',
       section: 'Filter modes',
-      default: 'None',
+      default: 'No Filter',
     },
     {
       key: 'search.filterMode.queryQuery',
@@ -211,10 +235,22 @@ export const searchGroup: TextGroup = {
       default: 'PSI-MI',
     },
     {
-      key: 'search.download.direct',
-      label: 'Direct GZ',
+      key: 'search.download.png',
+      label: 'Network image PNG',
       section: 'Download menu',
-      default: 'Direct Download (GZ)',
+      default: 'Network image (PNG)',
+    },
+    {
+      key: 'search.download.jpg',
+      label: 'Network image JPG',
+      section: 'Download menu',
+      default: 'Network image (JPG)',
+    },
+    {
+      key: 'search.download.direct',
+      label: 'All datasets ZIP',
+      section: 'Download menu',
+      default: 'All datasets (ZIP)',
     },
     {
       key: 'search.download.cytoscape',
@@ -234,6 +270,13 @@ export const searchGroup: TextGroup = {
       label: 'Confirm button',
       section: 'Save network',
       default: 'Save',
+    },
+
+    {
+      key: 'search.share.button',
+      label: 'Share button',
+      section: 'Share network',
+      default: 'Share Network',
     },
 
     {
@@ -509,7 +552,37 @@ export const searchGroup: TextGroup = {
     {
       key: 'search.resizeHint',
       label: 'Resize handle tooltip',
-      default: 'Drag to resize',
+      default: 'Drag to resize, click to reset',
+    },
+    {
+      key: 'search.resizeTall',
+      label: 'Taller network tooltip',
+      default: 'Taller network',
+    },
+    {
+      key: 'search.resizeShort',
+      label: 'Shorter network tooltip',
+      default: 'Shorter network',
+    },
+    {
+      key: 'search.filter',
+      label: 'Canvas filter button',
+      default: 'Filter',
+    },
+    {
+      key: 'search.confidence',
+      label: 'Canvas confidence button',
+      default: 'Confidence',
+    },
+    {
+      key: 'search.fullscreen',
+      label: 'Fullscreen button tooltip',
+      default: 'Fullscreen',
+    },
+    {
+      key: 'search.fullscreenExit',
+      label: 'Exit fullscreen tooltip',
+      default: 'Exit fullscreen',
     },
   ],
 }

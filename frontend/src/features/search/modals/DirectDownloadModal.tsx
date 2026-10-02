@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Modal } from './Modal'
 import { useAuthStore } from '../../../store/authStore'
 import { BASE_URL } from '../../../api/client'
+import { saveBlob } from '../../../lib/download'
 
 export function DirectDownloadModal({ onClose }: { onClose: () => void }) {
   const token = useAuthStore((s) => s.token)
@@ -19,16 +20,7 @@ export function DirectDownloadModal({ onClose }: { onClose: () => void }) {
         setError(`Download failed (${res.status}). Please try again.`)
         return
       }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'datasets.zip'
-      a.style.display = 'none'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      saveBlob(await res.blob(), 'datasets.zip')
       onClose()
     } catch {
       setError('Network error. Please check your connection and try again.')

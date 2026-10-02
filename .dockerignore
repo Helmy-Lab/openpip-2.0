@@ -1,0 +1,10 @@
+# Only the frontend image builds from the repository root (it bundles the
+# documentation site). Let in what it needs and nothing else — in particular
+# not the host's node_modules or build output, which would overwrite the
+# image's own `npm ci`.
+*
+!mkdocs.yml
+!docs/
+!frontend/
+frontend/node_modules
+frontend/dist

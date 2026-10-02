@@ -1,70 +1,74 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useSearchStore } from './searchStore'
-import type { SearchResult } from '../../types/search'
-import type { Protein } from '../../types/api'
+import { useSearchStore, captureViewState } from './searchStore'
 
-const mockProtein = (id: number, gene: string): Protein => ({
-  protein_id: id,
-  protein_uniprot_id: `P${id}`,
-  protein_ensembl_id: `ENSG${id}`,
-  protein_entrez_id: `${id}`,
-  protein_gene_name: gene,
-  protein_protein_name: gene,
-  protein_description: `${gene} protein`,
-  protein_sequence: 'MSEQ',
-  number_of_interactions_in_database: 5,
-  annotation_array: {},
-  tissue_expression_array: {},
-  subcellular_location_expression_array: {},
-})
+describe('view state', () => {
+  beforeEach(() => useSearchStore.getState().reset())
 
-const mockResult: SearchResult = {
-  all_proteins: [mockProtein(1, 'BAD'), mockProtein(2, 'BCL2L1'), mockProtein(3, 'BAK1')],
-  all_interactions: [],
-  domains: '',
-  complexes: '',
-  query_protein_id_array: [1, 2],
-  search_term: 'BAD,BCL2L1',
-  found_protein_summary: 'BAD<br>BCL2L1',
-  unfound_protein_summary: '',
-}
+  it('round-trips the filters and layout through capture and apply', () => {
+    const store = useSearchStore.getState()
+    store.setScoreFilter(0.7)
+    store.setLayout('grid')
+    store.setTissueFilter('liver', true)
+    store.setFilterMode('query_query')
+    store.setCategoryFilter('Published', false)
+    store.setHighlight({ term: 'apoptosis', genes: ['TP53'] })
+    store.setTableTab('interactors')
 
-describe('searchStore', () => {
-  beforeEach(() => useSearchStore.setState(useSearchStore.getInitialState()))
+    const saved = captureViewState()
+    useSearchStore.getState().reset()
+    expect(useSearchStore.getState().scoreFilter).toBe(0)
 
-  it('starts with empty proteins and interactions', () => {
-    expect(useSearchStore.getState().allProteins).toHaveLength(0)
-    expect(useSearchStore.getState().allInteractions).toHaveLength(0)
+    useSearchStore.getState().applyViewState(saved)
+    const restored = useSearchStore.getState()
+    expect(restored.scoreFilter).toBe(0.7)
+    expect(restored.selectedLayout).toBe('grid')
+    expect(restored.tissueFilter).toEqual(['liver'])
+    expect(restored.filterMode).toBe('query_query')
+    expect(restored.categoryFilter.Published).toBe(false)
+    expect(restored.highlight).toEqual({ term: 'apoptosis', genes: ['TP53'] })
+    expect(restored.activeTableTab).toBe('interactors')
   })
 
-  it('setSearchData populates all fields', () => {
-    useSearchStore.getState().setSearchData(mockResult)
-    expect(useSearchStore.getState().allProteins).toHaveLength(3)
-    expect(useSearchStore.getState().queryProteinIds).toEqual([1, 2])
-    expect(useSearchStore.getState().searchTerm).toBe('BAD,BCL2L1')
+  it('leaves the loaded network alone', () => {
+    useSearchStore.setState({
+      allProteins: [{ id: 1 }] as never,
+      searchTerm: 'TP53',
+    })
+    // A saved payload carrying stray keys must not replace search results.
+    useSearchStore
+      .getState()
+      .applyViewState({ scoreFilter: 0.3, allProteins: [], searchTerm: 'other' } as never)
+
+    const state = useSearchStore.getState()
+    expect(state.scoreFilter).toBe(0.3)
+    expect(state.allProteins).toHaveLength(1)
+    expect(state.searchTerm).toBe('TP53')
   })
 
-  it('setScoreFilter updates scoreFilter', () => {
-    useSearchStore.getState().setScoreFilter(0.5)
-    expect(useSearchStore.getState().scoreFilter).toBe(0.5)
-  })
-
-  it('setModal opens and closes', () => {
-    useSearchStore.getState().setModal('download')
-    expect(useSearchStore.getState().activeModal).toBe('download')
-    useSearchStore.getState().setModal(null)
-    expect(useSearchStore.getState().activeModal).toBeNull()
-  })
-
-  it('setLayout updates selectedLayout', () => {
+  it('ignores keys the saved view does not carry', () => {
     useSearchStore.getState().setLayout('circle')
+    useSearchStore.getState().applyViewState({ scoreFilter: 0.5 })
     expect(useSearchStore.getState().selectedLayout).toBe('circle')
   })
+})
 
-  it('reset clears all data', () => {
-    useSearchStore.getState().setSearchData(mockResult)
-    useSearchStore.getState().reset()
-    expect(useSearchStore.getState().allProteins).toHaveLength(0)
-    expect(useSearchStore.getState().searchTerm).toBe('')
+describe('tissue display switches', () => {
+  beforeEach(() => useSearchStore.getState().reset())
+
+  it('clears a multi-tissue selection when one is switched on, then picks one tissue at a time', () => {
+    const s = useSearchStore.getState()
+    s.setTissueFilter('liver', true)
+    s.setTissueFilter('lung', true)
+    s.setTissueDisplay('tissueNodeColor', true)
+    expect(useSearchStore.getState().tissueFilter).toEqual([])
+    useSearchStore.getState().setTissueFilter('liver', true)
+    useSearchStore.getState().setTissueFilter('lung', true)
+    expect(useSearchStore.getState().tissueFilter).toEqual(['lung'])
+  })
+
+  it('still allows several tissues with both switches off', () => {
+    useSearchStore.getState().setTissueFilter('liver', true)
+    useSearchStore.getState().setTissueFilter('lung', true)
+    expect(useSearchStore.getState().tissueFilter).toEqual(['liver', 'lung'])
   })
 })

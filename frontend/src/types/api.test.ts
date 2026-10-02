@@ -25,7 +25,10 @@ describe('Types compile', () => {
       url: 'https://openpip.usask.ca/',
       version: '1.0',
       about: '', faq: '', contact: '', download: '',
-      showDownloads: true, showDownloadAll: true,
+      showTissueExpression: true,
+  showSubcellularLocation: true,
+  horizontalFilterBar: false,
+  showDownloads: true, showDownloadAll: true,
       example1: '', example2: '', example3: '',
       example1Type: '', example2Type: '', example3Type: '',
     }

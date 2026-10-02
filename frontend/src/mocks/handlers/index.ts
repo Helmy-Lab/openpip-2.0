@@ -11,6 +11,7 @@ import { networksHandlers } from './networks'
 import { filesHandlers } from './files'
 import { rcsbHandlers } from './rcsb'
 import { interactionCategoryHandlers } from './interactionCategories'
+import { sharingHandlers } from './sharing'
 
 export const handlers = [
   ...settingsHandlers,
@@ -26,4 +27,5 @@ export const handlers = [
   ...filesHandlers,
   ...rcsbHandlers,
   ...interactionCategoryHandlers,
+  ...sharingHandlers,
 ]

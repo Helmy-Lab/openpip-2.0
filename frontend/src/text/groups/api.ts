@@ -24,7 +24,7 @@ export const apiGroup: TextGroup = {
       section: 'Page header',
       kind: 'multiline',
       default:
-        'openPIP is fully open, no API key required. Use deep links, the REST API, the Python SDK, or the PSICQUIC protocol.',
+        'openPIP is fully open, no API key required. Use deep links, the REST API, or the PSICQUIC protocol.',
     },
 
     {
@@ -59,7 +59,7 @@ export const apiGroup: TextGroup = {
       section: 'REST API',
       kind: 'multiline',
       default:
-        'All read endpoints are public and CORS-enabled, callable from any browser or server. Interactive docs with a live try-it-out console:',
+        'Public data (search, proteins, datasets and downloads) needs no login; personal and admin endpoints take a login token. All endpoints accept requests from any browser or server. Interactive docs with a live try-it-out console:',
     },
     {
       key: 'api.rest.endpointsHeading',
@@ -96,7 +96,7 @@ export const apiGroup: TextGroup = {
       key: 'api.rest.datasetDownloadDesc',
       label: 'Endpoint: dataset download',
       section: 'REST API',
-      default: 'Download a dataset file (PSI-MI TAB format).',
+      default: 'Download a dataset: tab-separated with its citation (default), or SIF or CSV with ?fmt=sif or ?fmt=csv.',
     },
     {
       key: 'api.rest.announcementsDesc',
@@ -109,14 +109,14 @@ export const apiGroup: TextGroup = {
       key: 'api.sdk.heading',
       label: 'Heading',
       section: 'Python SDK',
-      default: '3. Python SDK',
+      default: '3. Python',
     },
     {
       key: 'api.sdk.body',
       label: 'Body',
       section: 'Python SDK',
       kind: 'multiline',
-      default: 'A typed Python SDK for use in scripts, Jupyter notebooks, and pipelines.',
+      default: 'No openPIP package is needed: call the REST API with the requests library, in scripts or notebooks.',
     },
 
     {
@@ -131,7 +131,7 @@ export const apiGroup: TextGroup = {
       section: 'PSICQUIC',
       kind: 'html',
       default:
-        'openPIP implements the <a href="https://psicquic.github.io/">PSICQUIC standard</a>, the same protocol used by BioGRID, IntAct, and STRING. Any tool written for those databases works with openPIP using the same syntax.',
+        'openPIP implements the <a href="https://psicquic.github.io/">PSICQUIC standard</a>, the same protocol used by BioGRID, IntAct, and STRING. Tools written for those databases can query openPIP with the same requests, for the MIQL fields openPIP supports.',
     },
     {
       key: 'api.psicquic.miqlHeading',

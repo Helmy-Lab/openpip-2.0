@@ -8,6 +8,8 @@ from .views import (
     PasswordResetConfirmView,
     SecurityQuestionView,
     SecurityAnswerView,
+    UserSearchView,
+    PublicProfileView,
 )
 
 urlpatterns = [
@@ -19,4 +21,6 @@ urlpatterns = [
     path("auth/password-reset-confirm", PasswordResetConfirmView.as_view()),
     path("auth/security-question", SecurityQuestionView.as_view()),
     path("auth/security-answer", SecurityAnswerView.as_view()),
+    path("users/search", UserSearchView.as_view()),
+    path("users/<str:username>", PublicProfileView.as_view()),
 ]

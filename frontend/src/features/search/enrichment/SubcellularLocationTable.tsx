@@ -1,4 +1,5 @@
 import type { Protein } from '../../../types/api'
+import { HighlightRow } from './HighlightRow'
 import { HpaSourceNote } from './SourceNote'
 import { ReliabilityBadge } from './ReliabilityBadge'
 
@@ -7,6 +8,10 @@ interface SubcellularLocationTableProps {
 }
 
 const TH: React.CSSProperties = {
+  // Frozen while the results scroll under it.
+  position: 'sticky',
+  top: 0,
+  zIndex: 1,
   padding: '10px 16px',
   textAlign: 'left',
   fontSize: 11,
@@ -57,7 +62,7 @@ export function SubcellularLocationTable({ proteins }: SubcellularLocationTableP
   }
 
   return (
-    <div style={{ overflowX: 'auto', background: 'var(--bg)' }}>
+    <div style={{ background: 'var(--bg)' }}>
       <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
         <thead>
           <tr>
@@ -73,11 +78,10 @@ export function SubcellularLocationTable({ proteins }: SubcellularLocationTableP
               (a, b) => rank(a.level) - rank(b.level) || a.gene.localeCompare(b.gene)
             )
             return (
-              <tr
+              <HighlightRow
                 key={location}
-                style={{ borderBottom: '1px solid var(--border)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                term={location}
+                genes={entries.map((e) => e.gene)}
               >
                 <td style={{ padding: '8px 16px', color: 'var(--text)', textTransform: 'capitalize' }}>
                   {location.replace(/_/g, ' ')}
@@ -93,7 +97,7 @@ export function SubcellularLocationTable({ proteins }: SubcellularLocationTableP
                     <ReliabilityBadge key={e.gene} level={e.level} title={`${e.gene}: ${e.level}`} />
                   ))}
                 </td>
-              </tr>
+              </HighlightRow>
             )
           })}
         </tbody>

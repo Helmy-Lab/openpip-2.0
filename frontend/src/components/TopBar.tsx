@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useTheme } from './useTheme'
+import { mediaUrl } from '../api/client'
 
 interface TopBarProps {
   shortTitle: string
@@ -48,7 +49,7 @@ export function TopBar({ shortTitle }: TopBarProps) {
     >
       {theme?.logoUrl ? (
         <img
-          src={theme.logoUrl}
+          src={mediaUrl(theme.logoUrl)}
           alt={`${word} logo`}
           style={{ height: 28, width: 'auto', objectFit: 'contain' }}
         />

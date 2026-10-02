@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, act, fireEvent } from '@testing-library/react'
 import type { Protein, Interaction } from '../../../../types/api'
 
 // ------------------------------------------------------------------
@@ -13,6 +13,14 @@ vi.mock('../../../../api/settings', () => ({
 // Mock cytoscape-cola — no real DOM canvas needed
 // ------------------------------------------------------------------
 vi.mock('cytoscape-cola', () => ({ default: {} }))
+
+// ------------------------------------------------------------------
+// The in-canvas layout picker reads editable site text; stub it so this
+// test needs no QueryClient
+// ------------------------------------------------------------------
+vi.mock('../../../../text', () => ({
+  useText: () => (key: string) => key,
+}))
 
 // ------------------------------------------------------------------
 // Mock cytoscape itself so .use() doesn't blow up in jsdom
@@ -31,6 +39,25 @@ type HandlerFn = (e: unknown) => void
 
 const handlers: Record<string, HandlerFn[]> = {}
 
+// Collections record the opacity they were given, so a test can read back what
+// the highlight did without a real Cytoscape instance.
+type MockNode = { data: (k: string) => string; opacity?: number }
+const mockNodes: MockNode[] = [
+  { data: (k: string) => (k === 'label' ? 'BAD' : 'n1') },
+  { data: (k: string) => (k === 'label' ? 'BCL2L1' : 'n2') },
+]
+const styled: { target: string; opacity: number }[] = []
+
+function collection(target: string, nodes: MockNode[] = []) {
+  return {
+    style: vi.fn(({ opacity }: { opacity: number }) => styled.push({ target, opacity })),
+    filter: (fn: (n: MockNode) => boolean) => collection('lit', nodes.filter(fn)),
+    edgesWith: () => collection('litEdges'),
+    length: nodes.length,
+    nodes,
+  }
+}
+
 const mockCy = {
   on: vi.fn((event: string, selector: string, cb: HandlerFn) => {
     const key = `${event}:${selector}`
@@ -39,6 +66,8 @@ const mockCy = {
   }),
   removeAllListeners: vi.fn(),
   layout: vi.fn(() => ({ run: vi.fn() })),
+  elements: vi.fn(() => collection('all')),
+  nodes: vi.fn(() => collection('nodes', mockNodes)),
 }
 
 // ------------------------------------------------------------------
@@ -55,6 +84,7 @@ vi.mock('react-cytoscapejs', () => ({
 // Import component AFTER mocks are set up
 // ------------------------------------------------------------------
 import { CytoscapeNetwork } from '../CytoscapeNetwork'
+import { useSearchStore } from '../../searchStore'
 
 // ------------------------------------------------------------------
 // Fixtures
@@ -240,5 +270,49 @@ describe('CytoscapeNetwork', () => {
     })
 
     expect(onEdgeClick).toHaveBeenCalledWith(interactions[0])
+  })
+
+
+  it('hands the network to Cytoscape and names the button on hover', () => {
+    render(
+      <CytoscapeNetwork
+        proteins={proteins}
+        interactions={interactions}
+        queryProteinIds={[1]}
+        layout="cola"
+      />
+    )
+    const button = screen.getByRole('button', { name: 'search.download.cytoscape' })
+    expect(button).toHaveAttribute('title', 'search.download.cytoscape')
+
+    fireEvent.click(button)
+    expect(useSearchStore.getState().activeModal).toBe('cyRest')
+  })
+
+  it('dims the network and lights the highlighted term', async () => {
+    render(
+      <CytoscapeNetwork
+        proteins={proteins}
+        interactions={interactions}
+        queryProteinIds={[1]}
+        layout="cola"
+      />
+    )
+
+    styled.length = 0
+    await act(async () => {
+      useSearchStore.getState().setHighlight({ term: 'GO:0006915', genes: ['BAD'] })
+    })
+    expect(styled).toEqual([
+      { target: 'all', opacity: 0.2 },
+      { target: 'lit', opacity: 1 },
+      { target: 'litEdges', opacity: 1 },
+    ])
+
+    styled.length = 0
+    await act(async () => {
+      useSearchStore.getState().setHighlight(null)
+    })
+    expect(styled).toEqual([{ target: 'all', opacity: 1 }])
   })
 })

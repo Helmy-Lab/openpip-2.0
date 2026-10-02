@@ -214,7 +214,12 @@ class AnnouncementListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        qs = Announcement.objects.filter(show_on_home_page=True).order_by("-date")
+        # Legacy split these: the home page read show_on_home_page and a separate
+        # announcements page read show. 2.0 has only the home page, so both must
+        # hold, or the admin panel's Hide (show=False) hid nothing.
+        qs = Announcement.objects.filter(show=True, show_on_home_page=True).order_by(
+            "-date"
+        )
         return Response(AnnouncementSerializer(qs, many=True).data)
 
 
@@ -278,7 +283,10 @@ class InteractionCategoryListView(APIView):
         return [AllowAny()]
 
     def get(self, request):
-        qs = InteractionCategory.objects.filter(admin_settings_id=1).order_by("order")
+        qs = sorted(
+            InteractionCategory.objects.filter(admin_settings_id=1),
+            key=InteractionCategory.sort_key,
+        )
         return Response(InteractionCategorySerializer(qs, many=True).data)
 
     def post(self, request):

@@ -141,6 +141,7 @@ def test_csv_returns_new_protein_ids():
 # ── task integration — fmt parameter ─────────────────────────────────────────
 
 
+@pytest.mark.django_db
 def test_task_accepts_fmt_parameter():
     """import_dataset_task should accept a fmt kwarg without error."""
     from unittest.mock import patch
@@ -205,3 +206,11 @@ def test_async_import_view_detects_csv_format(auth_client):
     call_args = mock_delay.call_args[0]
     # fmt should be passed — either as positional arg index 4 or kwarg
     assert "csv" in str(call_args) or call_kwargs.get("fmt") == "csv"
+
+
+@pytest.mark.django_db
+def test_csv_header_names_ignore_case_and_spaces():
+    from datasets.upload_parser import parse_and_ingest_csv
+
+    result = parse_and_ingest_csv(b"Protein_A, PROTEIN_B ,Score\nTP53,MDM2,0.9\n", "DS")
+    assert result["interactions_created"] == 1

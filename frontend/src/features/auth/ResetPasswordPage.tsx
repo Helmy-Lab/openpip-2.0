@@ -19,7 +19,7 @@ export function ResetPasswordPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setValidationError('')
-    if (password.length < 8) {
+    if (password.trim().length < 8) {
       setValidationError(t('auth.reset.tooShort'))
       return
     }
