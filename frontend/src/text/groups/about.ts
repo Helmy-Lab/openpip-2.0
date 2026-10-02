@@ -359,7 +359,7 @@ export const aboutGroup: TextGroup = {
       label: 'Save options: body',
       kind: 'multiline',
       default:
-        'The search results can be saved as image (if a network was displayed) or in various text file formats as lists of proteins and interactions. Furthermore, the web portal offers to users the possibility to create an account. If the user is logged in, an extra Save button will appear on the results page allowing the user to save the search result and the exact network representation or session that the user generated. Later, the user can select a saved network/session and reload it into the network browser for further manipulation. Of note, users need to login first prior to performing a search or the search results will be lost.',
+        'The search results can be saved as image (if a network was displayed) or in various text file formats as lists of proteins and interactions. Furthermore, the web portal offers to users the possibility to create an account. If the user is logged in, an extra Save button will appear on the results page allowing the user to save the search result and the exact network representation or session that the user generated. Later, the user can select a saved network/session and reload it into the network browser for further manipulation. Signing in from the results page brings the user straight back to the same search.',
     },
     {
       key: 'about.requirements.heading',

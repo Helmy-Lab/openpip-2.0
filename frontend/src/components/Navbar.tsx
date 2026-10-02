@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useLogout } from '../api/auth'
 import { useAuthStore } from '../store/authStore'
 import { useDarkMode } from '../store/darkModeStore'
@@ -34,6 +34,7 @@ const linkStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => 
 })
 
 export function Navbar({ isLoggedIn }: NavbarProps) {
+  const location = useLocation()
   const logout = useLogout()
   const isAdmin = useAuthStore((s) => s.isAdmin)
   const { dark, toggle } = useDarkMode()
@@ -124,7 +125,7 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
           </>
         ) : (
           <>
-            <NavLink to="/login" style={linkStyle}>
+            <NavLink to="/login" state={{ from: location }} style={linkStyle}>
               {t('nav.login')}
             </NavLink>
             <NavLink

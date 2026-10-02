@@ -18,8 +18,8 @@ the only way to recover your account if you forget your password.
 
 ## Signing in and out
 
-Sign in with your username and password. After signing in you return to the
-home page, so sign in before you start a search you want to keep.
+Sign in with your username and password. You return to the page you were on,
+so signing in from the results page brings you back to the same search.
 **Sign out** is on your profile page.
 
 ## Forgotten password
