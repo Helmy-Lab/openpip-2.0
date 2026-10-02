@@ -183,6 +183,11 @@ hand; the rest come from code-reading inventories and still need confirming.
   the data only `tissue_expression` has it, and 2.0 implements that as the
   tissue filter. The empty `annotationFilter` in the store is a leftover hook,
   left in place because saved views already store it.
+- [x] **BUG-049 — A removed protein's interactions were still saved
+  (verified).** "Remove … From Network" dropped the node, but its interactions
+  stayed in the page's visible list: Cytoscape skipped them with console
+  errors, and Save Network stored them. _Fixed: removed proteins take their
+  interactions with them._
 - [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The

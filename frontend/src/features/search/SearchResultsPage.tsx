@@ -147,7 +147,7 @@ export function SearchResultsPage({ term: termProp, viewState, banner, result }:
     if (viewState) applyViewState(viewState)
   }, [data, setSearchData, viewState, applyViewState])
 
-const { proteins: filteredProteins, interactions } = filterProteinsAndInteractions(
+const { proteins: filteredProteins, interactions: filteredInteractions } = filterProteinsAndInteractions(
     allProteins,
     allInteractions,
     { scoreFilter, categoryFilter, annotationFilter, filterMode, tissueFilter },
@@ -156,6 +156,15 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
   const proteins = removedProteinIds.length
     ? filteredProteins.filter((p) => !removedProteinIds.includes(p.protein_id))
     : filteredProteins
+  // A removed protein takes its interactions with it, so the network, Save
+  // Network and the downloads all agree on what is shown.
+  const interactions = removedProteinIds.length
+    ? filteredInteractions.filter(
+        (i) =>
+          !removedProteinIds.includes(i.interactor_A.protein_id) &&
+          !removedProteinIds.includes(i.interactor_B.protein_id)
+      )
+    : filteredInteractions
 
   const visibleInteractionIds = interactions.map((ix) => ix.interaction_id)
 
