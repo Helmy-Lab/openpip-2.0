@@ -1,3 +1,7 @@
+> **Superseded.** This working note is out of date in places and is not part of
+> the published documentation. For current, verified behaviour see the
+> documentation site (`docs/`, built with `mkdocs.yml`): the API reference in `docs/developer/api/`, configuration in `docs/operator-guide/configuration.md` and deployment in `docs/operator-guide/installation.md`.
+
 # openPIP 2.0 — Backend Documentation
 
 > **Purpose:** A complete, implementation-grade reference for recreating the Django 5 + DRF backend, derived from the legacy PHP/Symfony codebase (`~/openPIP/`) and the live frontend TypeScript contracts (`~/openpip-2.0/frontend/src/`).

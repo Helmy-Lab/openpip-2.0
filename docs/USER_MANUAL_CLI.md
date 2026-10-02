@@ -1,3 +1,7 @@
+> **Superseded.** This working note is out of date in places and is not part of
+> the published documentation. For current, verified behaviour see the
+> documentation site (`docs/`, built with `mkdocs.yml`): the CLI and SDK are shelved and unmaintained (`cli/src/openpip/sdk.py`); use the REST API in `docs/developer/api/`.
+
 # openPIP CLI — User Manual
 
 The openPIP CLI (`openpip`) is a Python package that gives you two things in one:

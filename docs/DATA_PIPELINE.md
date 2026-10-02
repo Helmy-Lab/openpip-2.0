@@ -1,3 +1,7 @@
+> **Superseded.** This working note is out of date in places and is not part of
+> the published documentation. For current, verified behaviour see the
+> documentation site (`docs/`, built with `mkdocs.yml`): upload formats and behaviour in `docs/operator-guide/data-formats.md`.
+
 # Data Pipeline — Current State & Improvement Plan
 
 openPIP stores protein–protein interaction data sourced from PSI-MI TAB files.
