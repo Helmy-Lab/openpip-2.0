@@ -19,6 +19,13 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 DATABASES["default"]["CONN_MAX_AGE"] = 60  # noqa: F405
 
+# Rate limits identify anonymous callers by IP. Requests arrive through the
+# host's HTTPS proxy, which sets X-Forwarded-For, then the frontend nginx,
+# which leaves it alone — so only the last address in that header is trusted.
+# Without this DRF keyed on the whole client-supplied header, and a caller could
+# get a fresh limit by sending a different value each time.
+REST_FRAMEWORK = {**REST_FRAMEWORK, "NUM_PROXIES": 1}  # noqa: F405
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

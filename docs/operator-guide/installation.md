@@ -134,10 +134,10 @@ location /v2/ {
 - **`X-Forwarded-Proto` is required.** Production settings redirect any
   request they believe arrived over plain HTTP to HTTPS, and they learn the
   original scheme from this header. Without it, every page redirects in a loop.
-- **`X-Forwarded-For $remote_addr`** gives the backend the visitor's real
-  address for rate limiting. Setting it to `$remote_addr`, rather than
-  appending to whatever the client sent, stops visitors from choosing their own
-  address.
+- **`X-Forwarded-For`** gives the backend the visitor's real address for rate
+  limiting. Production settings trust only the **last** address in this
+  header, the one your proxy adds. If your proxy does not set the header,
+  visitors can choose their own address and get around rate limits.
 - **`client_max_body_size`** must allow your largest dataset file. The
   frontend container itself accepts up to 500 MB.
 

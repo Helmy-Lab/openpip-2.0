@@ -124,7 +124,10 @@ hand; the rest come from code-reading inventories and still need confirming.
   requests. Registration is open, so anyone can sign in and guess another
   account's security answers (all that recovery needs) without limit.
   Throttle by target email/account, not only by caller.
-- [ ] **BUG-033 — Throttle identity is spoofable (verified in code).**
+- [x] **BUG-033 — Throttle identity is spoofable (verified in code).** _Fixed:
+  prod sets `NUM_PROXIES = 1`, trusting only the address the host proxy adds.
+  The host nginx must set `X-Forwarded-For`; its config is outside the repo
+  and unverified._
   `NUM_PROXIES` is unset, so DRF keys anonymous throttles on the entire
   client-supplied `X-Forwarded-For` header; a new value per request gets a
   fresh bucket. The frontend nginx sets only `X-Real-IP`, which DRF ignores.

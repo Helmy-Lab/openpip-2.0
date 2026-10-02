@@ -66,6 +66,7 @@ These are set in code, not by environment variables.
 | Rate limits | anonymous 600/min, signed-in 1200/min, PSICQUIC 60/min, security-question answers 10/hour per caller and 10/hour per email address | `settings/base.py` `DEFAULT_THROTTLE_RATES` |
 | URL prefix (production) | `/v2` | `settings/prod.py` `FORCE_SCRIPT_NAME` |
 | HTTPS (production) | HTTPS redirect, secure cookies, HSTS 1 hour; trusts `X-Forwarded-Proto: https` from the proxy | `settings/prod.py` |
+| Client address (production) | the last address in `X-Forwarded-For`, which your HTTPS proxy must set | `settings/prod.py` `NUM_PROXIES` |
 | Upload size limit | 500 MB per request | `frontend/nginx.conf` `client_max_body_size` |
 | Media files | `backend/mediafiles/` (development); the `media` volume (production) | `settings/base.py` `MEDIA_ROOT` |
 
