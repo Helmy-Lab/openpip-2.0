@@ -96,7 +96,7 @@ class Comment(models.Model):
 
 
 class Notification(models.Model):
-    """In-site only. openPIP sends no mail — see docs/specs."""
+    """In-site only. openPIP sends no mail — see docs/project/specs."""
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

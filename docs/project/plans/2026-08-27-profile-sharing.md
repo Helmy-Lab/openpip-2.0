@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Saved network views, in-site sharing with notes/comments/notifications, people search, and public profiles — per `docs/specs/2026-08-27-profile-sharing-design.md`.
+**Goal:** Saved network views, in-site sharing with notes/comments/notifications, people search, and public profiles — per `docs/project/specs/2026-08-27-profile-sharing-design.md`.
 
 **Architecture:** New Django app `sharing` (SavedView, Share, Comment, Notification) plus small `core` changes (email uniqueness, `discoverable`, people search, public profile). Frontend: new `api/sharing.ts` + `api/users.ts` hooks, `applyViewState`/`captureViewState` on the existing searchStore, a Save-view/Share dialog pair, profile tabs, a TopBar notification bell polling via TanStack Query, and a `/shared/:id` page that re-runs the saved query live and hydrates the store.
 

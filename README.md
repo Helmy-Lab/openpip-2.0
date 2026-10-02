@@ -77,9 +77,8 @@ documentation site.
 ```text
 backend/     Django project: API, PSICQUIC service, data import
 frontend/    React web interface (its Docker image also serves the docs)
-docs/        Documentation site sources (mkdocs.yml at the root)
+docs/        Documentation site sources (mkdocs.yml at the root); project notes in docs/project/
 migration/   One-off migration from an original openPIP MySQL database
-cli/         Python CLI and SDK — shelved, not maintained
 ```
 
 ## Citing

@@ -154,7 +154,7 @@ curl '${BASE}/api/counts'
       </Section>
 
       {/* ── 3. Python ── */}
-      {/* The Python package in cli/ is shelved and unpublished, so this shows
+      {/* No openPIP Python package is published (one was started and shelved), so this shows
           the REST API from plain Python rather than an SDK no one can install. */}
       <Section title={t('api.sdk.heading')}>
         <p className="text-gray-600 mb-3 text-sm">{t('api.sdk.body')}</p>

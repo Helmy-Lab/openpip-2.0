@@ -45,7 +45,7 @@ function Ext({ href, children }: { href: string; children: React.ReactNode }) {
  * The values are qsmooth-normalized, so the >= 5.0 threshold is NOT convertible
  * to TPM — do not describe it in TPM terms. Whether a log2 step followed qsmooth
  * is the one part still unconfirmed, which is why the note states the threshold
- * without interpreting it. See docs/DATA_PROVENANCE_QUESTIONS.md.
+ * without interpreting it. See docs/project/DATA_PROVENANCE_QUESTIONS.md.
  */
 export function GtexSourceNote() {
   return (

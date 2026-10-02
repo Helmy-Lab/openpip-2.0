@@ -11,7 +11,7 @@ import type { EnrichmentSource } from '../../../api/enrichment'
  *     with YARN (Paulson et al. 2017) and inherited from HuRI, which is why
  *     there are 36 tissues rather than 54 and why brain is three PCoA clusters
  *     (brain_0/1/2 = basal ganglia / cerebellum / other).
- *     See docs/DATA_PROVENANCE_QUESTIONS.md.
+ *     See docs/project/DATA_PROVENANCE_QUESTIONS.md.
  *   - `subcellular_location` uses HPA Cell Atlas compartments and carries the
  *     HPA reliability score per compartment (approved/supported/validated).
  */

@@ -15,7 +15,7 @@
  * brain_0/1/2 are the reason this exists. They are YARN's PCoA clusters, not an
  * ordering anyone chose by hand, so underscore-prettifying them produced
  * "Brain 0 / 1 / 2" on screen — meaningless to a biologist. See
- * docs/DATA_PROVENANCE_QUESTIONS.md §5.
+ * docs/project/DATA_PROVENANCE_QUESTIONS.md §5.
  */
 export const TISSUE_LABELS: Record<string, string> = {
   adipose_subcutaneous: 'Adipose Subcutaneous',
