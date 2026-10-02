@@ -92,6 +92,12 @@ validation:
 
 nav:
   - Home: index.md
+  - User guide:
+      - Overview: user-guide/index.md
+      - Searching and exploring networks: user-guide/searching.md
+      - Browsing proteins: user-guide/proteins.md
+      - Downloading data: user-guide/downloading.md
+      - Accounts, saving and sharing: user-guide/accounts.md
   - Operator guide:
       - Installation: operator-guide/installation.md
       - Configuration reference: operator-guide/configuration.md

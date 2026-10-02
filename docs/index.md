@@ -13,6 +13,13 @@ platform on Django, PostgreSQL and React.
 
 <div class="grid cards" markdown>
 
+-   **Using a portal**
+
+    Search proteins, explore networks, download data, and save and share
+    your work.
+
+    [User guide](user-guide/index.md)
+
 -   **Running a portal**
 
     Install openPIP on your own server, load your data and keep it running.
