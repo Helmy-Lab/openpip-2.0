@@ -99,9 +99,40 @@ From the October 2026 audit (see `docs/BUGS.md` for details):
 - The all-datasets download is built once and cached instead of being rebuilt
   on every request.
 
+From the documentation review (October 2026):
+
+- The production compose file no longer publishes the database or Redis, and
+  the web and API containers listen on 127.0.0.1 only.
+- Security-question answers and PSICQUIC are rate-limited for signed-in
+  callers too, answers are also limited per account, and rate limits trust
+  only the address the HTTPS proxy sets.
+- Uploads load rows with bare gene names, accept CSV headers in any case, match
+  existing proteins by their own UniProt, Ensembl and Entrez fields (no more
+  duplicate proteins), add the chosen category to reused interactions and CSV
+  rows, and keep protein interaction counts current. The upload preview counts
+  existing proteins the way the import does.
+- The Django admin and its styles work in production. The URL prefix is
+  configurable (`URL_PREFIX`), no longer fixed at `/v2`.
+- The search page can export the network as PNG or JPG again, and its
+  downloads now contain what the filters show.
+- Saved networks open as the snapshot they were saved as. Saved and shared
+  views reopen on their result tab.
+- Hidden announcements stay off the home page, the upload wizard's category
+  list no longer shows blank names, the sharing buttons are styled, and the
+  Button color setting applies.
+- Interface text no longer describes features openPIP does not have, such as
+  a personal API key or an installable Python SDK.
+
+### Removed
+
+- Interface code that was never displayed: a second search toolbar with five
+  menus, an export dialog, a loading overlay and several home-page components.
+- The `CORS_ALLOWED_ORIGINS` setting, which had no effect: browser access is
+  deliberately open to every origin.
+
 ### Known issues
 
-Open issues are tracked in `docs/BUGS.md`. Two need attention before
-release: the production compose file leaves the database and Redis ports
-published (BUG-020), and security-question answers can be guessed without a
-rate limit by signed-in users (BUG-032).
+Open issues are tracked in `docs/BUGS.md`. Uploads before this fix created
+empty duplicates of about 8,200 proteins, and the HuRI dataset is attached to
+those duplicates rather than to the original proteins (BUG-034). Repairing the
+data is pending a decision.
