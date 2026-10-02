@@ -122,6 +122,15 @@ From the documentation review (October 2026):
   Button color setting applies.
 - Interface text no longer describes features openPIP does not have, such as
   a personal API key or an installable Python SDK.
+- Tissue specificity is shaded in the portal's own node colours instead of
+  fixed blue and red.
+- The sidebar summary and the tissue and subcellular tabs follow the filters.
+- Saved networks keep their tissue filter and categories, and reopen with
+  them.
+- The profile asks before deleting a saved view or network.
+- Signing in returns you to the page you were on.
+- The About page links to the documentation site, and the old in-app guide's
+  address redirects there.
 
 ### Removed
 
