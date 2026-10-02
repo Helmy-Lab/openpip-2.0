@@ -11,7 +11,7 @@ openPIP runs as five containers, defined in `docker-compose.yml` and
 
 | Service | Image | Role |
 |---|---|---|
-| `frontend` | built from `frontend/Dockerfile` | nginx serving the web interface and this documentation, and passing `/api/`, `/psicquic/` and public media to the backend. Listens on **127.0.0.1:8080**. |
+| `frontend` | built from `frontend/Dockerfile` | nginx serving the web interface and this documentation, and passing `/api/`, `/psicquic/`, `/django-admin/`, `/static/` and public media to the backend. Listens on **127.0.0.1:8080**. |
 | `backend` | built from `backend/Dockerfile` | Django REST API, run by Gunicorn with 3 workers. Listens on 127.0.0.1:8001 for local checks. |
 | `celery` | same image as `backend` | Background worker for dataset imports and UniProt enrichment. |
 | `db` | `postgres:16` | The database, stored in the `postgres_data` volume. |

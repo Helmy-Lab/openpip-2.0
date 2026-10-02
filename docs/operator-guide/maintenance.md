@@ -117,6 +117,12 @@ dc exec backend python manage.py changepassword <username>
 
 Changing the password signs that account out of every browser within an hour.
 
+## The Django admin
+
+Superusers can also manage the database directly at `/django-admin/` (on the
+reference deployment, `https://openpip.usask.ca/v2/django-admin/`). Use it with
+care: it edits tables directly, without the checks the admin panel makes.
+
 ## Changing the database password
 
 `DB_PASSWORD` in `.env` is only read when the database volume is first

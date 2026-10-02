@@ -81,7 +81,9 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "/static/"
+# Relative, so Django prefixes it with FORCE_SCRIPT_NAME (/v2 in production);
+# "/static/" would send the browser outside the app's path.
+STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"

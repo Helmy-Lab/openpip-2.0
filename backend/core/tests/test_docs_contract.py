@@ -81,7 +81,9 @@ def _served_endpoints() -> set[tuple[str, str]]:
             methods = [m for m in HTTP_METHODS if hasattr(view, m)]
         else:
             methods = []
-        found |= {(m.upper(), path) for m in methods}
+        # DRF adds "head" to a viewset's actions on its first request, so
+        # only the methods the reference documents are compared.
+        found |= {(m.upper(), path) for m in methods if m.lower() in HTTP_METHODS}
     return found - UNDOCUMENTED_ROUTES
 
 

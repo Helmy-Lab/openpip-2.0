@@ -41,5 +41,16 @@ urlpatterns += [
     re_path(r"^media/(?P<path>(avatars|logos)/[^/]+)$", _serve_public_media)
 ]
 
+
+# Static files are the Django admin's CSS and scripts — /django-admin/ is the
+# fallback route into the site, and unstyled it is barely usable. Nothing else
+# serves collectstatic's output in production, so Django does, as for media.
+# Everything under STATIC_ROOT is public, and serve() keeps paths inside it.
+def _serve_static(request, path):
+    return serve(request, path, document_root=settings.STATIC_ROOT)
+
+
+urlpatterns += [re_path(r"^static/(?P<path>.+)$", _serve_static)]
+
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

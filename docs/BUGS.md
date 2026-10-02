@@ -167,7 +167,9 @@ hand; the rest come from code-reading inventories and still need confirming.
   Removing a category from an interaction still has no UI._
   Interactions that already existed (overlaps) get no category, and the CSV
   parser ignores `category_id`. No way to re-categorise afterwards.
-- [ ] **BUG-027 — `/django-admin/` and `/static/` unreachable in production.**
+- [x] **BUG-027 — `/django-admin/` and `/static/` unreachable in production.**
+  _Fixed: relative `STATIC_URL`, Django serves `/static/`, and the frontend
+  nginx forwards both paths._
   The frontend nginx does not proxy them and nothing serves `collectstatic`
   output, yet `admin_panel/views.py` names `/django-admin/` as a fallback.
 - [x] **BUG-028 — No `frontend/.dockerignore`.** `COPY . .` after `npm ci`
