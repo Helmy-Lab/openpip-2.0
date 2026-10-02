@@ -1,11 +1,15 @@
 import csv
 import io
 import logging
+import os
+import tempfile
 import time
 import zipfile
+from pathlib import Path
 
 from celery.result import AsyncResult
 
+from django.conf import settings
 from django.db.models import Count, OuterRef, Subquery
 from django.http import FileResponse, Http404, StreamingHttpResponse
 from rest_framework import status
@@ -106,8 +110,21 @@ def _apply_dataset_metadata(dataset_name: str, data) -> dict | None:
     return None
 
 
+def _archive_path() -> Path:
+    # Under MEDIA_ROOT for the persistent volume; not one of the public media
+    # folders, so it is only reachable through DatasetArchiveDownloadView.
+    return Path(settings.MEDIA_ROOT) / "cache" / "datasets.zip"
+
+
+def _invalidate_archive() -> None:
+    _archive_path().unlink(missing_ok=True)
+
+
 def _refresh_dataset_counts() -> None:
     """Update number_of_interactions for all datasets from InteractionDataset records."""
+    # Every import and dataset delete ends here, so it doubles as the point
+    # where the cached all-datasets zip goes stale.
+    _invalidate_archive()
     Dataset.objects.update(
         number_of_interactions=Subquery(
             InteractionDataset.objects.filter(dataset_id=OuterRef("pk"))
@@ -229,10 +246,29 @@ class DatasetFileDownloadView(APIView):
 class DatasetArchiveDownloadView(APIView):
     permission_classes = [AllowAny]
 
+    # Built once and served from disk until data changes, rather than
+    # rebuilding every dataset in memory per anonymous request.
+    # ponytail: a change landing mid-build can leave that build's stale zip in
+    # place until the next import or edit; version the cache if that matters.
     def get(self, request):
+        path = _archive_path()
+        if not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".zip.tmp")
+            try:
+                with os.fdopen(fd, "wb") as f:
+                    self._write_archive(f)
+                os.replace(tmp, path)  # atomic: no reader sees a half-written zip
+            except BaseException:
+                os.unlink(tmp)
+                raise
+        return FileResponse(
+            path.open("rb"), as_attachment=True, filename="datasets.zip"
+        )
+
+    def _write_archive(self, f) -> None:
         datasets = Dataset.objects.all()
-        buf = io.BytesIO()
-        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        with zipfile.ZipFile(f, "w", zipfile.ZIP_DEFLATED) as zf:
             for ds in datasets:
                 rows = (
                     InteractionDataset.objects.filter(
@@ -273,8 +309,6 @@ class DatasetArchiveDownloadView(APIView):
                     score = f"score:{ix.score}" if ix.score else "-"
                     lines.append(f"{uid_a}\t{uid_b}\t{score}\t{pubmed}\n")
                 zf.writestr(f"{safe_name}.tab", "".join(lines))
-        buf.seek(0)
-        return FileResponse(buf, as_attachment=True, filename="datasets.zip")
 
 
 class UploadView(APIView):
@@ -458,6 +492,7 @@ class DatasetDetailView(APIView):
         serializer = DatasetWriteSerializer(dataset, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        _invalidate_archive()  # each file carries its dataset's citation header
 
         logger.debug(
             "dataset %d updated — fields: %s", pk, ", ".join(sorted(request.data))

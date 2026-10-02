@@ -72,8 +72,11 @@ Each fix gets a regression test.
   refused once it changes. Access tokens still live out their 1 h. Tokens
   issued before the deploy have no fingerprint, so everyone is logged out
   once more when it ships._
-- [ ] **BUG-013 — Dataset archive built in memory per anonymous request.**
+- [x] **BUG-013 — Dataset archive built in memory per anonymous request.**
   `DatasetArchiveDownloadView` rebuilds the full zip every call.
+  _Fixed: built once to `MEDIA_ROOT/cache/datasets.zip` (atomic replace) and
+  served from disk; deleted after every import, dataset delete and dataset
+  edit. A change landing mid-build can leave that stale zip until the next one._
 
 ### Low
 
