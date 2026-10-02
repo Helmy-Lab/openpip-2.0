@@ -12,15 +12,17 @@ BioGRID and other interaction databases.
 
 ## Base URL
 
-All paths in this reference are relative to the deployment's root URL. On the
-reference deployment that is `https://openpip.usask.ca/v2`, so `GET
-/api/search` means:
+All paths in this reference are relative to the portal's address, so on this
+portal `GET /api/search` means:
 
 ```text
-https://openpip.usask.ca/v2/api/search?q=TP53
+{{ portal_url }}/api/search?q=TP53
 ```
 
-A deployment served at the root of its domain has no prefix.
+Example responses are real, taken from the
+**reference portal** at [openpip.usask.ca/v2](https://openpip.usask.ca/v2),
+which hosts the Human Reference Interactome datasets. Another portal returns
+its own data in the same shape.
 
 ## Trailing slashes
 

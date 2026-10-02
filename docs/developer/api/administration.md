@@ -12,7 +12,7 @@ Every change requires an administrator account.
 The portal's configuration: titles, colours, page content and feature
 switches. Returns `{}` on a portal that has never been configured.
 
-From the reference deployment (long values shortened):
+From the reference portal (long values shortened):
 
 ```json
 {
@@ -187,7 +187,7 @@ either. The admin panel shows each category the edge colour its order gives.
 
 ### GET /api/interaction-categories
 
-No authentication. From the reference deployment:
+No authentication. From the reference portal:
 
 ```json
 [

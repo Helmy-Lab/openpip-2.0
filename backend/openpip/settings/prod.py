@@ -7,15 +7,20 @@ from .base import *  # noqa: F401, F403
 if SECRET_KEY.startswith("django-insecure"):  # noqa: F405
     raise ImproperlyConfigured("Set a real SECRET_KEY in .env for production.")
 
-# The path the site is served under (the reference deployment is /v2), so
-# reverse() and STATIC_URL generate URLs with it. Empty for a site at the root
-# of its domain. Must match the frontend's VITE_BASE.
-FORCE_SCRIPT_NAME = env("URL_PREFIX", default="/v2").rstrip("/")  # noqa: F405
+# The path the site is served under, taken from PUBLIC_URL (e.g. "/v2"), so
+# reverse() and STATIC_URL generate URLs with it. Empty at the root of a domain.
+# The frontend image derives its VITE_BASE from the same PUBLIC_URL.
+_parts = PUBLIC_URL_PARTS  # noqa: F405
+FORCE_SCRIPT_NAME = (_parts.path if _parts else "").rstrip("/")
 
-SECURE_HSTS_SECONDS = 3600
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# Enforce HTTPS only when the public address is https. Unset or http:// is a
+# local install (http://localhost:8080), where a redirect to https would leave
+# the site unreachable.
+_HTTPS = PUBLIC_URL.startswith("https://")  # noqa: F405
+SECURE_HSTS_SECONDS = 3600 if _HTTPS else 0
+SECURE_SSL_REDIRECT = _HTTPS
+SESSION_COOKIE_SECURE = _HTTPS
+CSRF_COOKIE_SECURE = _HTTPS
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 DATABASES["default"]["CONN_MAX_AGE"] = 60  # noqa: F405

@@ -90,7 +90,11 @@ def fetch_by_doi(doi: str) -> dict:
         resp = requests.get(
             f"{CROSSREF_WORKS}/{doi}",
             timeout=TIMEOUT,
-            headers={"User-Agent": "openPIP/2.0 (https://openpip.usask.ca)"},
+            # Crossref asks clients to identify themselves; this names the
+            # project rather than any one deployment.
+            headers={
+                "User-Agent": "openPIP/2.0 (+https://github.com/Helmy-Lab/openpip-2.0)"
+            },
         )
         if resp.status_code == 404:
             raise CitationLookupError(f"No Crossref record found for {doi}.")

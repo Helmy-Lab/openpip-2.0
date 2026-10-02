@@ -82,7 +82,7 @@ portal loaded.
 
 #### Interaction object
 
-An interaction from the reference deployment (`GET /api/search?q=TP53`):
+An interaction from the reference portal (`GET /api/search?q=TP53`):
 
 ```json
 {
@@ -145,7 +145,7 @@ These endpoints accept an identifier in `{identifier}`, ignoring
 capitalisation. It is looked up first in the identifier table, then in each
 protein's own gene name, UniProt, Ensembl and Entrez fields, and the first match
 wins. As with search, a UniProt accession can reach an empty duplicate record
-on the reference deployment (BUG-034).
+on the reference portal (BUG-034).
 
 ### GET /api/proteins
 
@@ -164,7 +164,7 @@ Browse and filter all proteins. This is the only paginated endpoint.
 
 Boolean parameters accept `1`, `true`, `yes` or `on`.
 
-`GET /api/proteins?limit=1` on the reference deployment:
+`GET /api/proteins?limit=1` on the reference portal:
 
 ```json
 {
@@ -221,7 +221,7 @@ each partner to it.
 |---|---|
 | `limit` | How many partners to return. Default 10, maximum 100. |
 
-`GET /api/proteins/TP53/interactors?limit=1` on the reference deployment:
+`GET /api/proteins/TP53/interactors?limit=1` on the reference portal:
 
 ```json
 {
@@ -253,7 +253,7 @@ Suggestions for a search box.
 Returns up to 20 identifier strings of any kind: those starting with `q`
 first, then those containing it, each group alphabetical.
 
-`GET /api/proteins/autocomplete?q=TP53` on the reference deployment:
+`GET /api/proteins/autocomplete?q=TP53` on the reference portal:
 
 ```json
 ["TP53", "TP53BP1", "TP53BP2", "TP53I13", "TP53I3", "TP53INP1", "TP53INP2", "TP53RK"]

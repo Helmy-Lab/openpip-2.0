@@ -70,8 +70,9 @@ No version has been tagged yet. Everything below is in development towards
 
 **Documentation**
 
-- This documentation site, served at `/v2/docs/`, with an operator guide and a
-  complete API reference that tests keep in step with the code.
+- This documentation site, served at `/docs/` on every portal, with an
+  operator guide and a complete API reference that tests keep in step with the
+  code. Its examples show the portal's own address.
 
 ### Fixed
 
@@ -111,8 +112,7 @@ From the documentation review (October 2026):
   duplicate proteins), add the chosen category to reused interactions and CSV
   rows, and keep protein interaction counts current. The upload preview counts
   existing proteins the way the import does.
-- The Django admin and its styles work in production. The URL prefix is
-  configurable (`URL_PREFIX`), no longer fixed at `/v2`.
+- The Django admin and its styles work in production, under any URL prefix.
 - The search page can export the network as PNG or JPG again, and its
   downloads now contain what the filters show.
 - Saved networks open as the snapshot they were saved as. Saved and shared
@@ -131,6 +131,15 @@ From the documentation review (October 2026):
 - Signing in returns you to the page you were on.
 - The About page links to the documentation site, and the old in-app guide's
   address redirects there.
+
+### Changed
+
+- A deployment is configured by one setting, `PUBLIC_URL`, its public address.
+  The allowed host, trusted origin, URL prefix, HTTPS enforcement, the
+  documentation's address and the first Site URL follow from it. Left empty,
+  openPIP runs on the local machine at `http://localhost:8080`. A fresh copy no
+  longer defaults to the reference portal's domain and `/v2` path.
+- The repository moved to [Helmy-Lab/openpip-2.0](https://github.com/Helmy-Lab/openpip-2.0).
 
 ### Removed
 

@@ -264,9 +264,10 @@ hand; the rest come from code-reading inventories and still need confirming.
   export's Negative column. Downloads stay as they are; PSICQUIC column 36
   carries the flag._ Negative interactions are
   exported in tab/sif/csv with nothing marking them negative.
-- [x] **BUG-031 — `/v2` hard-coded.** _Fixed: `URL_PREFIX` (default `/v2`)
-  drives `FORCE_SCRIPT_NAME` and the frontend build's `VITE_BASE`;
-  `DOCS_SITE_URL` sets the docs site URL._ `FORCE_SCRIPT_NAME = "/v2"` in
+- [x] **BUG-031 — `/v2` hard-coded.** _Fixed: first by `URL_PREFIX`, then
+  replaced by `PUBLIC_URL`, from which `FORCE_SCRIPT_NAME`, the frontend
+  build's base path, hosts, origins, HTTPS and the docs address are derived;
+  empty means a local install with no prefix._ `FORCE_SCRIPT_NAME = "/v2"` in
   `prod.py` and `VITE_BASE=/v2/` in `.env.production`; any other mount path
   needs code edits and a rebuild.
 

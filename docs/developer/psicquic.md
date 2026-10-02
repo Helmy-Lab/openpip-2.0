@@ -6,10 +6,10 @@ IntAct, BioGRID, MINT and other interaction databases. Tools that already
 query those services can query an openPIP portal with the same requests: a
 query in MIQL (Molecular Interaction Query Language), results in PSI-MI TAB.
 
-On the reference deployment the service is at:
+On this portal the service is at:
 
 ```text
-https://openpip.usask.ca/v2/psicquic/rest/
+{{ portal_url }}/psicquic/rest/
 ```
 
 All requests are `GET`, need no authentication, and are limited to 60 per
@@ -33,14 +33,14 @@ Results come in a fixed order, by interaction ID, so paging with
 removed are never returned.
 
 ```bash
-curl 'https://openpip.usask.ca/v2/psicquic/rest/query?q=id:TP53%20AND%20id:MDM2&maxResults=1'
+curl '{{ portal_url }}/psicquic/rest/query?q=id:TP53%20AND%20id:MDM2&maxResults=1'
 ```
 
 **PSI-MI TAB formats** (`tab25` to `tab28`) are tab-separated text, one
 interaction per line, after a `#` header line naming the columns. `tab25` has
 15 columns, `tab26` 36, `tab27` 42 and `tab28` 46. Each version adds columns to
 the previous one. The first 15 columns of the row above, from the reference
-deployment:
+portal:
 
 | # | Column | Value |
 |---|---|---|

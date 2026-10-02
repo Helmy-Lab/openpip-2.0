@@ -1,5 +1,5 @@
 interface FooterProps {
-  html: string
+  html: string;
 }
 
 export function Footer({ html }: FooterProps) {
@@ -7,17 +7,18 @@ export function Footer({ html }: FooterProps) {
     <footer
       className="py-6 px-6 text-sm"
       style={{
-        color: 'var(--text-muted)',
-        borderTop: '1px solid var(--border)',
-        backgroundColor: 'var(--surface-alt)',
+        color: "var(--text-muted)",
+        borderTop: "1px solid var(--border)",
+        backgroundColor: "var(--surface-alt)",
       }}
     >
       <div dangerouslySetInnerHTML={{ __html: html }} />
-      {/* Hardcoded on purpose: not in the site-text registry, not admin-editable. */}
+      {/* Hardcoded on purpose: not in the site-text registry, not admin-editable.
+          Every deployment credits the project's reference portal. */}
       <div className="mt-4 text-xs" style={{ opacity: 0.7 }}>
-        Powered by{' '}
+        Powered by{" "}
         <a
-          href="https://openpip.usask.ca"
+          href="https://openpip.usask.ca/v2"
           target="_blank"
           rel="noreferrer"
           className="underline"
@@ -26,5 +27,5 @@ export function Footer({ html }: FooterProps) {
         </a>
       </div>
     </footer>
-  )
+  );
 }

@@ -14,7 +14,7 @@ The upload file formats are described in
 
 Every dataset, ordered by ID. No authentication, no pagination.
 
-A dataset from the reference deployment:
+A dataset from the reference portal:
 
 ```json
 {
