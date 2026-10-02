@@ -28,3 +28,16 @@ describe('ResultTablePanel enrichment prefetch', () => {
     expect(genes.length).toBeGreaterThan(0)
   })
 })
+
+describe('ResultTablePanel tab', () => {
+  it('opens on the tab a saved view recorded, and records the one picked', async () => {
+    const { screen, fireEvent } = await import('@testing-library/react')
+    useSearchStore.getState().setSearchData(searchFixture)
+    useSearchStore.getState().applyViewState({ activeTableTab: 'interactors' })
+    renderWithProviders(<ResultTablePanel />)
+
+    expect(screen.getByRole('button', { name: /interactors/i, pressed: true })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^interactions/i }))
+    expect(useSearchStore.getState().activeTableTab).toBe('interactions')
+  })
+})

@@ -166,6 +166,9 @@ hand; the rest come from code-reading inventories and still need confirming.
   exported every result, while legacy's export endpoint applied the category,
   filter-mode and score settings. _Fixed: SIF, CSVs, FASTA and PSI-MI hold the
   visible proteins and the interactions between them._
+- [x] **BUG-045 — Saved and shared views did not reopen on their result tab
+  (verified).** The tab was saved in the view state but the table panel kept
+  its own local copy. _Fixed: the panel reads and writes the store._
 - [ ] **BUG-034 — UniProt accessions reach empty duplicate proteins
   (verified on the live /v2 site).** Two protein rows carry `P04637`: id 5319
   (TP53, 113 interactions) and id 11911 (no gene name, no interactions). The

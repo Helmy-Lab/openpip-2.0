@@ -79,7 +79,10 @@ export function ResultTablePanel({ selectedProtein }: Props) {
     tissueFilter,
   } = useSearchStore()
 
-  const [activeTab, setActiveTab] = useState<Tab>('interactions')
+  // In the store, not local state, so a saved or shared view restores the tab
+  // it was saved on (captureViewState already records activeTableTab).
+  const activeTab = useSearchStore((s) => s.activeTableTab) as Tab
+  const setActiveTab = useSearchStore((s) => s.setTableTab)
   const { data: settings } = useSettings()
   const [prevProtein, setPrevProtein] = useState(selectedProtein)
   const t = useText()
@@ -145,6 +148,7 @@ export function ResultTablePanel({ selectedProtein }: Props) {
             <button
               key={tab.id}
               type="button"
+              aria-pressed={isActive}
               onClick={() => setActiveTab(tab.id)}
               style={TAB_BTN(isActive)}
             >
