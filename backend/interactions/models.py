@@ -23,6 +23,12 @@ class InteractionCategory(models.Model):
     def __str__(self):
         return self.category_name or str(self.pk)
 
+    def sort_key(self) -> tuple:
+        """`order` is a text column but holds numbers; sort them as numbers
+        ("2" before "10"), as legacy's ksort did. Anything else goes last."""
+        order = (self.order or "").strip()
+        return (0, int(order), "") if order.isdigit() else (1, 0, order)
+
 
 class Interaction(models.Model):
     interactor_A = models.ForeignKey(

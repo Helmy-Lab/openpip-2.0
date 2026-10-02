@@ -265,3 +265,14 @@ def test_home_network_empty_db_returns_empty_result(api_client):
     data = response.json()
     assert data["all_proteins"] == []
     assert data["all_interactions"] == []
+
+
+@pytest.mark.django_db
+def test_categories_sort_by_number_not_text(api_client):
+    for name, order in [("Ten", "10"), ("Two", "2"), ("Blank", None), ("One", "1")]:
+        InteractionCategoryFactory(category_name=name, order=order)
+    names = [
+        c["category_name"]
+        for c in api_client.get("/api/interactions/categories").json()
+    ]
+    assert names == ["One", "Two", "Ten", "Blank"]

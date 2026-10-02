@@ -278,7 +278,10 @@ class InteractionCategoryListView(APIView):
         return [AllowAny()]
 
     def get(self, request):
-        qs = InteractionCategory.objects.filter(admin_settings_id=1).order_by("order")
+        qs = sorted(
+            InteractionCategory.objects.filter(admin_settings_id=1),
+            key=InteractionCategory.sort_key,
+        )
         return Response(InteractionCategorySerializer(qs, many=True).data)
 
     def post(self, request):

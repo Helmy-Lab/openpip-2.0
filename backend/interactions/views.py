@@ -23,7 +23,9 @@ class InteractionCategoryListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        categories = InteractionCategory.objects.all().order_by("order")
+        categories = sorted(
+            InteractionCategory.objects.all(), key=InteractionCategory.sort_key
+        )
         data = [
             {"id": cat.id, "category_name": cat.category_name, "order": cat.order}
             for cat in categories
