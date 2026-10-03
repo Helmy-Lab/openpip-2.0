@@ -191,6 +191,6 @@ migrations.AddConstraint(
 - [ ] Backend: `pytest`, `ruff check --no-cache .`, `black --check .`
 - [ ] Frontend: `npm run test`, `npm run lint` (0 errors), `npm run build`
 - [ ] Fresh-DB migration check (`migrate` on empty sqlite/postgres per check-migration skill).
-- [ ] Commit per task, conventional messages, no co-author trailers.
+- [ ] Commit per task, conventional messages.
 
 **Deliberately skipped:** email verification (no mail by design), share re-invite/duplicate guard (duplicate share = new notification, allowed), comment threading, websockets (poll), pagination on shares/views (cap + ordering suffice at this scale).

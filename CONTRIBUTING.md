@@ -23,8 +23,7 @@ cd frontend && npm ci && npm run dev    # http://localhost:5173
 suite and `manage.py`, reach the Postgres container. Without it, they silently
 fall back to a local SQLite file.
 
-Turn on the repository's git hooks, which lint staged files and strip AI
-co-author trailers from commit messages:
+Turn on the repository's git hook, which lints staged files:
 
 ```bash
 git config core.hooksPath scripts/git-hooks
@@ -93,14 +92,6 @@ running portal, and use real responses in examples.
 - **Commits** follow [Conventional Commits](https://www.conventionalcommits.org/):
   `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `migrate:`, in the
   imperative mood (`fix: keep the score when an interaction is reused`).
-- **No AI co-author trailers.** Commits are authored by people. The
-  `commit-msg` hook removes them; before pushing, still check the whole branch,
-  not just your own commits:
-
-    ```bash
-    git log main..HEAD --format='%b' | grep -ci co-authored-by    # must print 0
-    ```
-
 - **Tests**: a bug fix comes with a test that fails without the fix. Tests live
   next to the code they cover. Keep test fixtures under 1 MB.
 - **Migrations** are never edited once merged. Fix a mistake with a new
