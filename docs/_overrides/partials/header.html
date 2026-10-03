@@ -1,0 +1,92 @@
+{#-
+  The portal's own navbar (frontend/src/components/Navbar.tsx, TopBar.tsx) in
+  place of Material's header, so the docs look like part of the site. The docs
+  are served at <portal>/docs/, so the portal's pages are one level above
+  base_url. The colour theme toggle and search are the docs' own. The script
+  applies the portal's branding settings as frontend/src/lib/theme.ts does.
+-#}
+{% set app = base_url ~ "/../" %}
+<header class="md-header app-navbar" data-md-component="header">
+  <nav class="md-header__inner" aria-label="Main navigation">
+    <label class="md-header__button md-icon app-navbar__drawer" for="__drawer">
+      {% include ".icons/material/menu.svg" %}
+    </label>
+    <a href="{{ app }}" class="app-navbar__brand" aria-label="openPIP home">
+      <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="4" fill="rgba(255,255,255,0.9)" />
+        <circle cx="5" cy="8" r="2.2" fill="var(--color-logo, rgba(255,255,255,0.75))" />
+        <circle cx="27" cy="9" r="2.2" fill="var(--color-logo, rgba(255,255,255,0.75))" />
+        <circle cx="6" cy="25" r="2.2" fill="var(--color-logo, rgba(255,255,255,0.75))" />
+        <circle cx="26" cy="25" r="2.2" fill="var(--color-logo, rgba(255,255,255,0.75))" />
+        <path d="M16 16 L5 8 M16 16 L27 9 M16 16 L6 25 M16 16 L26 25" stroke="var(--color-header, #ffffff)" stroke-width="1" stroke-linecap="round" opacity=".4" />
+      </svg>
+      <span class="app-navbar__title">openPIP</span>
+    </a>
+    <div class="app-navbar__links">
+      <a href="{{ app }}">Home</a>
+      <a href="{{ app }}search">Search</a>
+      <a href="{{ app }}proteins">Proteins</a>
+      <a href="{{ app }}download">Downloads</a>
+      <a href="{{ app }}developer">API</a>
+      <a href="{{ app }}about">About</a>
+      <a href="{{ app }}faq">FAQ</a>
+      <a href="{{ app }}contact">Contact</a>
+      <a href="{{ base_url }}/" class="active">Docs</a>
+    </div>
+    {% include "partials/palette.html" %}
+    {% include "partials/javascripts/palette.html" %}
+    <label class="md-header__button md-icon" for="__search">
+      {% include ".icons/material/magnify.svg" %}
+    </label>
+    {% include "partials/search.html" %}
+    <div class="app-navbar__account">
+      <a href="{{ app }}login">Login</a>
+      <a href="{{ app }}register" class="app-navbar__register">Register</a>
+    </div>
+  </nav>
+</header>
+<script>
+  (function () {
+    var app = "{{ app }}";
+    var header = document.currentScript.previousElementSibling;
+
+    function brand(s) {
+      var root = document.documentElement.style;
+      var primary = s.mainColorScheme || "#2563eb";
+      var style = s.navStyle || "solid";
+      root.setProperty("--md-primary-fg-color", primary);
+      root.setProperty("--nav-bg", style === "gradient"
+        ? "linear-gradient(" + (s.gradientAngle == null ? 135 : s.gradientAngle) + "deg, " + primary + ", " + (s.mainColorScheme2 || "#0ea5e9") + ")"
+        : style === "light" ? "var(--md-default-bg-color)" : primary);
+      root.setProperty("--color-header", style === "light" ? "var(--md-default-fg-color)" : s.headerColorScheme || "#ffffff");
+      root.setProperty("--color-logo", s.logoColorScheme || "#ffffff");
+      var word = s.shortTitle || "openPIP";
+      header.querySelector(".app-navbar__title").textContent = word;
+      if (s.logoUrl) {
+        var img = document.createElement("img");
+        img.src = /^https?:/.test(s.logoUrl) ? s.logoUrl : app + s.logoUrl.replace(/^\//, "");
+        img.alt = word + " logo";
+        header.querySelector(".app-navbar__brand > :first-child").replaceWith(img);
+      }
+    }
+
+    // The last settings seen, so the colours are right before the fetch returns.
+    try { brand(JSON.parse(localStorage.getItem("openpip_docs_brand")) || {}); } catch (e) {}
+    fetch(app + "api/settings").then(function (r) { return r.ok ? r.json() : null; }).then(function (s) {
+      if (!s) return;
+      try { localStorage.setItem("openpip_docs_brand", JSON.stringify(s)); } catch (e) {}
+      brand(s);
+    }).catch(function () {});
+
+    // Signed in to the portal (same check as frontend/src/store/authStore.ts):
+    // offer Admin and Profile in place of Login and Register.
+    var token;
+    try { token = localStorage.getItem("openpip_access_token"); } catch (e) {}
+    if (!token) return;
+    var admin = false;
+    try { admin = !!JSON.parse(atob(token.split(".")[1])).is_admin; } catch (e) {}
+    header.querySelector(".app-navbar__account").innerHTML =
+      (admin ? '<a href="' + app + 'admin">Admin</a>' : "") +
+      '<a href="' + app + 'profile">Profile</a>';
+  })();
+</script>

@@ -10,3 +10,157 @@
   --md-primary-fg-color: #1e40af;
   --md-accent-fg-color: #38bdf8;
 }
+
+/* Help layout for the user and admin guides (docs/_hooks/help_layout.py),
+   after the help page at wiseflu.usask.ca/help. */
+.help-header {
+  background: linear-gradient(135deg, var(--md-primary-fg-color), color-mix(in srgb, var(--md-primary-fg-color), #000 35%));
+  border-radius: 4px;
+  color: #fff;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem 1rem;
+  text-align: center;
+}
+.md-typeset .help-header p { margin: 0; }
+.md-typeset .help-header .help-title { font-size: 1.6em; font-weight: 600; }
+.md-typeset .help-header .help-subtitle { font-size: 0.95em; margin-top: 0.4rem; opacity: 0.9; }
+
+.help-tabs {
+  border-bottom: 2px solid var(--md-default-fg-color--lightest);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.md-typeset .help-tab {
+  border-bottom: 3px solid transparent;
+  color: var(--md-default-fg-color--light);
+  font-weight: 500;
+  margin-bottom: -2px;
+  padding: 0.6rem 1rem;
+}
+.md-typeset .help-tab:hover { color: var(--md-primary-fg-color); }
+.md-typeset .help-tab.active {
+  border-bottom-color: var(--md-primary-fg-color);
+  color: var(--md-primary-fg-color);
+}
+
+.md-typeset .help-hint { color: var(--md-default-fg-color--light); font-size: 0.85em; }
+
+/* Cards: undo Material's admonition styling of <details>. */
+.md-typeset details.help-card {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 6px;
+  box-shadow: none;
+  font-size: inherit;
+  margin: 0 0 0.9rem;
+  overflow: hidden;
+  padding: 0;
+  transition: box-shadow 0.3s ease;
+}
+.md-typeset details.help-card:hover { box-shadow: 0 2px 8px #3b82f61a; }
+.md-typeset details.help-card > summary {
+  background: var(--md-code-bg-color);
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  font-weight: normal;
+  margin: 0;
+  padding: 0.9rem 2.6rem 0.9rem 1rem;
+}
+.md-typeset details.help-card > summary::before { display: none; }
+.md-typeset details.help-card > summary::after {
+  background: none;
+  color: var(--md-primary-fg-color);
+  content: "+";
+  font-size: 1.3em;
+  font-weight: 700;
+  height: auto;
+  line-height: 1;
+  -webkit-mask-image: none;
+  mask-image: none;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: auto;
+}
+.md-typeset details.help-card[open] > summary::after { content: "−"; transform: translateY(-50%); }
+.md-typeset details.help-card[open] > summary { border-bottom: 1px solid var(--md-default-fg-color--lightest); }
+.md-typeset details.help-card > summary :is(h2, h3) {
+  display: inline;
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 0;
+}
+.md-typeset details.help-card > summary .headerlink { display: none; }
+.md-typeset details.help-card > summary .help-desc {
+  color: var(--md-default-fg-color--light);
+  font-size: 0.85em;
+  margin: 0.25rem 0 0;
+}
+.md-typeset .help-body { padding: 0.25rem 1rem 0.75rem; }
+
+/* A ### inside a card: a lighter, smaller card. */
+.md-typeset details.help-h3 { border-radius: 4px; margin: 0.75rem 0; }
+.md-typeset details.help-h3 > summary { padding: 0.6rem 2.4rem 0.6rem 0.8rem; }
+.md-typeset details.help-h3 > summary h3 { font-size: 1em; font-weight: 500; }
+
+/* Bullets as arrows, as on the reference page. */
+.md-typeset .help-body ul { list-style: none; }
+.md-typeset .help-body ul > li::before {
+  color: var(--md-primary-fg-color);
+  content: "→";
+  font-weight: 600;
+  margin-left: -1.3em;
+  position: absolute;
+}
+
+/* The portal's navbar (docs/_overrides/partials/header.html), styled as in
+   frontend/src/components/Navbar.tsx. */
+.app-navbar { background: var(--nav-bg, #2563eb); box-shadow: none; color: var(--color-header, #fff); }
+.app-navbar .md-header__inner { gap: 2px; height: 56px; padding: 0 1rem 0 0; }
+.app-navbar__brand {
+  align-items: center;
+  color: var(--color-header, #fff);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 600;
+  gap: 10px;
+  letter-spacing: -0.015em;
+  padding: 0 28px;
+}
+.app-navbar__brand:hover { color: var(--color-header, #fff); }
+.app-navbar__brand img { height: 28px; object-fit: contain; width: auto; }
+.app-navbar__links { display: flex; flex: 1; flex-wrap: wrap; gap: 2px; padding: 0 8px; }
+.app-navbar__links a,
+.app-navbar__account a {
+  border-radius: 6px;
+  color: var(--color-header, #fff);
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.72;
+  padding: 6px 12px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.app-navbar__links a:hover,
+.app-navbar__account a:hover { color: var(--color-header, #fff); opacity: 1; }
+.app-navbar__links a.active { background: rgba(255, 255, 255, 0.15); opacity: 1; }
+.app-navbar__account { align-items: center; display: flex; gap: 6px; padding-left: 8px; }
+.app-navbar__account a.app-navbar__register {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 1;
+  padding: 7px 14px;
+}
+/* Below Material's tablet breakpoint the drawer (menu button) takes over. */
+.app-navbar__drawer { display: none; }
+@media screen and (max-width: 76.234375em) {
+  .app-navbar__drawer { display: inline-block; }
+  .app-navbar__brand { margin-right: auto; padding: 0 12px; }
+  .app-navbar__links, .app-navbar__account { display: none; }
+}

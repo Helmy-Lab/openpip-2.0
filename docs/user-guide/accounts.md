@@ -3,7 +3,7 @@
 Searching and downloading need no account. An account lets you keep networks,
 share them with colleagues and discuss them.
 
-## Creating an account
+## Creating an account { data-desc="Username, email, password and three security questions." }
 
 **Register** asks for a username, an email address, a password and three
 **security questions**.
@@ -16,13 +16,13 @@ share them with colleagues and discuss them.
 **Keep your answers.** openPIP sends no email, so the security questions are
 the only way to recover your account if you forget your password.
 
-## Signing in and out
+## Signing in and out { data-desc="Signing in returns you to the page you were on." }
 
 Sign in with your username and password. You return to the page you were on,
 so signing in from the results page brings you back to the same search.
 **Sign out** is on your profile page.
 
-## Forgotten password
+## Forgotten password { data-desc="Reset it with your security questions. No email is sent." }
 
 1. Choose **Forgot?** on the sign-in page and enter your email address.
 2. Answer all three of your security questions.
@@ -32,7 +32,7 @@ Changing your password signs you out on every other device within the hour.
 Accounts created before security questions existed cannot use this. Ask the
 portal's administrator to reset your password.
 
-## Your profile
+## Your profile { data-desc="Your details, picture, and whether colleagues can find you." }
 
 **Profile** shows your account. **Edit profile** adds an optional name,
 position, affiliation, website, short bio and picture (PNG, JPEG, GIF or WebP,
@@ -45,7 +45,7 @@ you networks. Anyone who has your username can still open your profile.
 Profiles are visible only to signed-in users. A profile also lists the
 networks you and that person have shared with each other.
 
-## Keeping a network
+## Keeping a network { data-desc="Saved views and saved networks, and how they differ." }
 
 There are two ways to keep a search, and both appear under **Saved Views** on
 your profile:
@@ -67,7 +67,7 @@ notes and manage its public link, and **Share**. The **×** on any row deletes
 it after asking. Deleting a saved view also removes it from everyone you
 shared it with, along with its discussion.
 
-## Sharing with colleagues
+## Sharing with colleagues { data-desc="Send a view to other users and discuss it." }
 
 **Share Network**, beside the results, sends what you are looking at to other
 users:
@@ -87,13 +87,13 @@ your own comments. Someone who received a view can **Save a copy** to keep it
 as their own. The **×** dismisses a share you received, or revokes one you
 sent. Either way the discussion is deleted.
 
-## Public links
+## Public links { data-desc="An address anyone can open without an account." }
 
 In a saved view's **Details**, **Create public link** makes an address anyone
 can open without an account. They see the network, not your notes. **Turn off
 link** stops it working.
 
-## Notifications
+## Notifications { data-desc="The bell in the top bar: new shares and comments." }
 
 The bell in the top bar counts unread notifications. You get one when someone
 shares a view with you or comments on a share you are part of. The list checks

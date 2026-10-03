@@ -2,7 +2,7 @@
 
 Everything in a portal can be downloaded without an account.
 
-## Whole datasets
+## Whole datasets { data-desc="The .tab, .sif and .csv files on the Downloads page." }
 
 The **Downloads** page lists every dataset with its year, description and
 citation. Each has three download buttons:
@@ -23,7 +23,7 @@ For standard PSI-MI TAB with all columns, or to fetch data from a script, use
 the [PSICQUIC service](../developer/psicquic.md) or the
 [REST API](../developer/api/datasets.md).
 
-## The results of a search
+## The results of a search { data-desc="What the network shows, as SIF, CSV, FASTA, PSI-MI or an image." }
 
 Open **Download** beside the network. Files contain **what the network
 shows**: your filters apply, and proteins you removed are left out.

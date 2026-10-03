@@ -21,13 +21,16 @@ exclude_docs: |
   /requirements.txt
   /project/
   /_hooks/
+  /_overrides/
 
 # Fills {{ portal_url }} in the pages and sets site_url from PUBLIC_URL.
 hooks:
   - docs/_hooks/portal.py
+  - docs/_hooks/help_layout.py
 
 theme:
   name: material
+  custom_dir: docs/_overrides
   logo: assets/logo.svg
   favicon: assets/logo.svg
   font:
@@ -62,6 +65,9 @@ theme:
 
 extra_css:
   - assets/extra.css
+
+extra_javascript:
+  - assets/help.js
 
 markdown_extensions:
   - admonition

@@ -1,6 +1,6 @@
 # News, datasets and files
 
-## News
+## News { data-desc="Announcements in the home page's news panel." }
 
 **Admin → News** manages the announcements in the home page's news panel.
 
@@ -15,7 +15,7 @@
 An announcement appears on the home page only while it is active and **Show
 on home page** is ticked. Newest announcements come first.
 
-## Datasets
+## Datasets { data-desc="Import, edit and delete interaction datasets." }
 
 **Admin → Datasets** shows how many proteins, interactions and datasets the
 portal holds, lists every dataset, and imports new ones.
@@ -84,7 +84,7 @@ interaction that belongs to no other dataset**. Interactions shared with
 another dataset stay. Proteins are never deleted. This cannot be undone, so
 take a [backup](../operator-guide/maintenance.md#backups) first if in doubt.
 
-## Files
+## Files { data-desc="Supplementary files on the Downloads page." }
 
 **Admin → Files** publishes extra downloads, such as sequence files or
 supplementary tables, in the **Supplementary Files** section of the Downloads

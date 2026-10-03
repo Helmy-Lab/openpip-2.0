@@ -5,7 +5,7 @@ write its pages and set its look, all from the **Admin** area in the browser.
 Installing and running the server is covered in the
 [Operator guide](../operator-guide/installation.md).
 
-## Getting access
+## Getting access { data-desc="Who sees the Admin area, and how access is granted." }
 
 **Admin** appears in the top bar for administrator accounts only. Accounts
 registered on the site are never administrators. An existing administrator
@@ -14,7 +14,7 @@ grants access in **Admin → Accounts** (see
 on the server (see
 [Installation](../operator-guide/installation.md#create-the-first-administrator)).
 
-## Finding your way
+## Finding your way { data-desc="The admin screens, grouped as in the sidebar." }
 
 The sidebar groups every admin screen:
 
@@ -28,7 +28,7 @@ The **Site** and **Pages** screens are settings, described in
 [Settings](settings.md). **News**, **Datasets** and **Files** manage content,
 and are described in [News, datasets and files](content.md).
 
-## Saving settings
+## Saving settings { data-desc="The save bar: save, discard and reset colours." }
 
 All settings screens share one save bar at the bottom:
 
@@ -49,7 +49,7 @@ make them, and undone if you leave without saving.
 The logo is the exception: uploading or removing it takes effect straight
 away, without the save bar.
 
-## Changing the site's wording
+## Changing the site's wording { data-desc="Reword headings, labels and buttons on any page." }
 
 Nearly every heading, paragraph, label and button in the portal can be
 reworded. Each **Pages** screen lists the text for that page, grouped the way
