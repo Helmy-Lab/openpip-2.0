@@ -140,6 +140,12 @@ From the documentation review (October 2026):
   openPIP runs on the local machine at `http://localhost:8080`. A fresh copy no
   longer defaults to the reference portal's domain and `/v2` path.
 - The repository moved to [Helmy-Lab/openpip-2.0](https://github.com/Helmy-Lab/openpip-2.0).
+- The reference portal moved from `openpip.usask.ca/v2` to
+  [openpip.usask.ca](https://openpip.usask.ca), and the original PHP openPIP
+  to `openpip.usask.ca/legacy/`. The parity tests use the new legacy address.
+- The user and admin guides are laid out as help pages: a tab per page and a
+  card per section that opens on click. Every documentation page uses the
+  portal's own navigation bar and colours.
 
 ### Removed
 

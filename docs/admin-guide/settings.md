@@ -3,7 +3,7 @@
 Every screen under **Site** and **Pages** in the admin sidebar. Changes are
 saved with the save bar; see [Saving settings](index.md#saving-settings).
 
-## Site Identity
+## Site Identity { data-desc="Titles, site URL, logo, footer and top-bar labels." }
 
 - **Site Title** and **Short Title**: the portal's full and short names. The
   full title is the browser tab's name. The short title appears on the home
@@ -15,7 +15,7 @@ saved with the save bar; see [Saving settings](index.md#saving-settings).
 - **Footer HTML**: the footer shown on every page.
 - **Navigation & chrome text**: the top bar's link labels.
 
-## Appearance
+## Appearance { data-desc="Themes, the top bar's style, and button, protein and interaction colours." }
 
 - **Themes**: ready-made colour sets (openPIP Blue, Crimson, Forest, Purple,
   Ocean, Midnight, Sunset, Light). Choosing one fills in the colours below,
@@ -38,13 +38,13 @@ saved with the save bar; see [Saving settings](index.md#saving-settings).
 
 Previews of the top bar and of a small network update as you change colours.
 
-## Home
+## Home { data-desc="The home page's headline, blocks, cards and citation." }
 
 The home page's wording: the opening headline and search box, the mission
 and methods blocks, the three starting cards, the news panel and the citation
 block, including the BibTeX that **Copy BibTeX** copies.
 
-## Search
+## Search { data-desc="Example searches, interaction categories, annotation tabs and filter layout." }
 
 - **Search examples**: up to three example searches offered on the home and
   search pages. Write one protein per line, and choose how each is filtered:
@@ -69,7 +69,7 @@ block, including the BibTeX that **Copy BibTeX** copies.
 - **Phrase examples text**: the example phrases offered under the home page
   search box.
 
-## Downloads
+## Downloads { data-desc="Which parts of the Downloads page are shown." }
 
 - **Show Dataset Downloads** shows the table of datasets on the Downloads page.
 - **Show Supplementary Files** shows the files published under **Files**.
@@ -78,18 +78,18 @@ block, including the BibTeX that **Copy BibTeX** copies.
 These switches hide parts of the page only. The files can still be
 downloaded through the [API](../developer/api/datasets.md).
 
-## About
+## About { data-desc="Your introduction at the top of the About page." }
 
 **About page content**: your own introduction at the top of the About page.
 Each dataset's section on the About page is written in its
 [dataset entry](content.md#editing-a-dataset), not here.
 
-## FAQs and Contact
+## FAQs and Contact { data-desc="The text of the FAQ and Contact pages." }
 
 **FAQ page content** and the **Contact** page's text. Both are rich text. The
 Contact page shows only what you write here. There is no contact form.
 
-## Accounts
+## Accounts { data-desc="Grant or revoke admin access, and the sign-in pages' wording." }
 
 **Admin access** grants or revokes administrator access on existing
 accounts:

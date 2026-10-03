@@ -91,7 +91,7 @@ seconds. After an upgrade, check:
 ```bash
 dc ps
 dc exec backend printenv DJANGO_SETTINGS_MODULE    # must be openpip.settings.prod
-curl -s https://openpip.example.org/v2/api/counts
+curl -s https://openpip.example.org/api/counts
 ```
 
 ## Managing users

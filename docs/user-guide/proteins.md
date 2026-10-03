@@ -4,7 +4,7 @@
 its full record. The address `…/proteins/<identifier>` opens a protein
 directly.
 
-## The list
+## The list { data-desc="Search, sort and filter every protein in the portal." }
 
 - **Search proteins…** matches part of a gene name, protein name or
   identifier. An exact gene-name match comes first.
@@ -20,7 +20,7 @@ directly.
   search box, <kbd>↑</kbd>/<kbd>↓</kbd> to move, <kbd>Enter</kbd> to open, and
   <kbd>Esc</kbd> to clear the search.
 
-## A protein's record
+## A protein's record { data-desc="Structure, sequence, interactors, annotations and links for one protein." }
 
 - **View interaction network →** opens a search for this protein.
 - **Interactions, residues, molecular weight and isoelectric point.** Weight

@@ -1,6 +1,6 @@
 # Searching and exploring networks
 
-## Starting a search
+## Starting a search { data-desc="What to type, phrases, suggestions and example searches." }
 
 Type one or more proteins into the search box on the home page, or the
 **Query** box beside the results, then press **Search** or <kbd>Enter</kbd>.
@@ -43,7 +43,7 @@ Beside the results, **Found** lists the terms that matched and **Not found**
 the ones that did not. If nothing matched, the network area says so. Check
 the spelling, or try the protein's gene name.
 
-## The results page
+## The results page { data-desc="Filters, the network and the result tables." }
 
 The page has three parts: the controls, the network, and the result tables
 underneath. The administrator chooses whether the controls sit in a column
@@ -123,14 +123,14 @@ The enrichment tables are calculated by g:Profiler, an outside service, so
 they need an internet connection. A portal can turn off the location and
 tissue tabs if its organism has no such data.
 
-## External tools
+## External tools { data-desc="Send the network's proteins to g:Profiler, STRING, Reactome and more." }
 
 **External links** sends the proteins in the network to g:Profiler, Reactome,
 GeneMANIA, Pathway Commons, DAVID, STRING, cBioPortal, Complex Portal,
 Drugst.One or Genelist. Links to IntAct, BioGRID, KEGG and UniProt use only
 the proteins you searched for.
 
-## Keeping and sharing a search
+## Keeping and sharing a search { data-desc="Where saving, sharing and downloading are covered." }
 
 See [Accounts, saving and sharing](accounts.md). Downloads are covered in
 [Downloading data](downloading.md).

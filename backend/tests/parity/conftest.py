@@ -5,7 +5,8 @@ Run parity tests with:
     pytest -m parity --no-header -q
 
 They require:
-  1. Network access to openpip.usask.ca
+  1. Network access to the legacy portal (LEGACY_BASE, default
+     https://openpip.usask.ca/legacy)
   2. The live openpip database running (docker compose up -d db)
 
 These tests bypass the pytest-django test database and query the live
@@ -20,7 +21,7 @@ import re
 import pytest
 import requests
 
-LEGACY_BASE = os.environ.get("LEGACY_BASE", "https://openpip.usask.ca")
+LEGACY_BASE = os.environ.get("LEGACY_BASE", "https://openpip.usask.ca/legacy")
 
 
 @pytest.fixture(scope="session")

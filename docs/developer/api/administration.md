@@ -18,7 +18,7 @@ From the reference portal (long values shortened):
 {
   "title": "openPIP: Protein Interaction Portal",
   "shortTitle": "openPIP",
-  "url": "https://openpip.usask.ca/v2/",
+  "url": "https://openpip.usask.ca/",
   "version": "2.0",
   "mainColorScheme": "#0f766e",
   "mainColorScheme2": "#06b6d4",

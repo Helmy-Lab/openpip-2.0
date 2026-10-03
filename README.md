@@ -11,8 +11,8 @@ This repository is **openPIP 2.0**, a rebuild of the
 [original platform](https://github.com/BaderLab/openPIP) on Django,
 PostgreSQL and React.
 
-**Reference portal:** <https://openpip.usask.ca/v2> (the Human Reference
-Interactome) · **Documentation:** <https://openpip.usask.ca/v2/docs/>
+**Reference portal:** <https://openpip.usask.ca> (the Human Reference
+Interactome) · **Documentation:** <https://openpip.usask.ca/docs/>
 
 ## Features
 
@@ -35,7 +35,7 @@ Interactome) · **Documentation:** <https://openpip.usask.ca/v2/docs/>
 ## Running a portal
 
 openPIP runs as a set of Docker containers. The
-[installation guide](https://openpip.usask.ca/v2/docs/operator-guide/installation/)
+[installation guide](https://openpip.usask.ca/docs/operator-guide/installation/)
 covers configuration, HTTPS and the first administrator. In short:
 
 ```bash

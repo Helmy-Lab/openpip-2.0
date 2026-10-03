@@ -20,7 +20,7 @@ portal `GET /api/search` means:
 ```
 
 Example responses are real, taken from the
-**reference portal** at [openpip.usask.ca/v2](https://openpip.usask.ca/v2),
+**reference portal** at [openpip.usask.ca](https://openpip.usask.ca),
 which hosts the Human Reference Interactome datasets. Another portal returns
 its own data in the same shape.
 
