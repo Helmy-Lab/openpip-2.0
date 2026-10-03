@@ -9,7 +9,7 @@ which answers them for real.
 
 import os
 
-REFERENCE_PORTAL = "https://openpip.usask.ca/v2"
+REFERENCE_PORTAL = "https://openpip.usask.ca"
 
 
 def on_config(config):

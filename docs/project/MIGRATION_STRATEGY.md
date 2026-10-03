@@ -37,7 +37,7 @@ seems missing or improvable, flag it for Phase 2. Resist the urge to
 Phase 1 changes must be verifiable against legacy behavior.
 
 1. Pick a flow (e.g., search for `BRCA1`).
-2. Run it against legacy openPIP at openpip.usask.ca.
+2. Run it against legacy openPIP at openpip.usask.ca/legacy.
 3. Run the equivalent flow against the 2.0 instance.
 4. Compare results: same proteins, same interactions, same scores, same
    network shape.

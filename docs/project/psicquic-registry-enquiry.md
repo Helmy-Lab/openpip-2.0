@@ -22,8 +22,8 @@ analysing protein interaction data (Helmy et al., *J Mol Biol* 434, 167603,
 a dataset it has produced. We are preparing to register our reference
 deployment, which currently serves 122,933 human binary protein interactions:
 
-- REST endpoint: `https://openpip.usask.ca/v2/psicquic/rest/`
-- Example query: `https://openpip.usask.ca/v2/psicquic/rest/query?q=brca1`
+- REST endpoint: `https://openpip.usask.ca/psicquic/rest/`
+- Example query: `https://openpip.usask.ca/psicquic/rest/query?q=brca1`
 - Supported formats: `tab25`, `tab26`, `tab27`, `tab28`, `count` (plus a
   non-standard `json` for browser clients)
 - `/formats` and `/version` are implemented

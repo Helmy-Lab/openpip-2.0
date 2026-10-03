@@ -18,7 +18,7 @@ export function Footer({ html }: FooterProps) {
       <div className="mt-4 text-xs" style={{ opacity: 0.7 }}>
         Powered by{" "}
         <a
-          href="https://openpip.usask.ca/v2"
+          href="https://openpip.usask.ca"
           target="_blank"
           rel="noreferrer"
           className="underline"

@@ -2,7 +2,7 @@
 Parity tests: search endpoint.
 
 Compares GET /api/search?q=...&filter=... against the legacy
-POST /search_results_interactions endpoint at openpip.usask.ca.
+POST /search_results_interactions endpoint of the legacy portal (LEGACY_BASE).
 
 Run with:
     pytest -m parity --no-header -q

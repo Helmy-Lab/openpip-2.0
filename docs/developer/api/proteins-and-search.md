@@ -169,7 +169,7 @@ Boolean parameters accept `1`, `true`, `yes` or `on`.
 ```json
 {
   "count": 11602,
-  "next": "https://openpip.usask.ca/v2/api/proteins?limit=1&offset=1",
+  "next": "https://openpip.usask.ca/api/proteins?limit=1&offset=1",
   "previous": null,
   "results": [
     {"protein_id": 5945, "protein_gene_name": "A1CF",
