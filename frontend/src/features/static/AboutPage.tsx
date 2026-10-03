@@ -188,6 +188,7 @@ export function AboutPage() {
     // The documentation site is built into the same image and served beside
     // the app at <base>/docs/, so it is a plain link, not a client route.
     { labelKey: 'about.links.docs.label', descKey: 'about.links.docs.desc', href: `${base}/docs/` },
+    { labelKey: 'about.links.devNotes.label', descKey: 'about.links.devNotes.desc', href: `${base}/docs/dev-notes/` },
     { labelKey: 'about.links.developer.label', descKey: 'about.links.developer.desc', to: '/developer' },
     { labelKey: 'about.links.swagger.label', descKey: 'about.links.swagger.desc', href: `${base}/api/docs/` },
     { labelKey: 'about.links.schema.label', descKey: 'about.links.schema.desc', href: `${base}/api/schema/` },
