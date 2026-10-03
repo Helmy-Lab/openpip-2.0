@@ -39,6 +39,12 @@ describe('AboutPage', () => {
     expect(link).toHaveAttribute('href', '/docs/')
   })
 
+  it('links Dev notes to the blog on the documentation site', () => {
+    renderWithProviders(<AboutPage />)
+    const link = screen.getByRole('link', { name: 'Dev notes' })
+    expect(link).toHaveAttribute('href', '/docs/dev-notes/')
+  })
+
   it('renders static about content', () => {
     renderWithProviders(<AboutPage />)
     expect(screen.getByText('CCSB Proteome-scale efforts')).toBeInTheDocument()

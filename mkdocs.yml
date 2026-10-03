@@ -63,6 +63,18 @@ theme:
     - content.tabs.link
     - toc.follow
 
+# Dev notes: a blog of project write-ups (the GSoC report first). It is linked
+# from the portal's About page rather than the docs' tabs.
+plugins:
+  - search
+  - blog:
+      blog_dir: dev-notes
+      blog_toc: true
+      post_url_format: "{slug}"
+
+not_in_nav: |
+  /dev-notes/
+
 extra_css:
   - assets/extra.css
 

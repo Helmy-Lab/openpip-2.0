@@ -507,6 +507,18 @@ export const aboutGroup: TextGroup = {
       default: 'User, admin and API guides',
     },
     {
+      key: 'about.links.devNotes.label',
+      section: 'Useful links',
+      label: 'Link: Dev notes',
+      default: 'Dev notes',
+    },
+    {
+      key: 'about.links.devNotes.desc',
+      section: 'Useful links',
+      label: 'Link: Dev notes description',
+      default: 'Write-ups from building openPIP 2.0',
+    },
+    {
       key: 'about.links.developer.label',
       section: 'Useful links',
       label: 'Link: API access',
