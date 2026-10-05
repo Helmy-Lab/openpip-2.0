@@ -41,11 +41,12 @@ The project set out to:
 
 ## What I did
 
-All the work is in one repository, which I created for this project. I wrote
-every commit:
-[222 commits from 10 May to 3 October 2026](https://github.com/Helmy-Lab/openpip-2.0/commits/main/),
-or [the full diff from the first commit](https://github.com/Helmy-Lab/openpip-2.0/compare/6fcf2a4...main).
-`CHANGELOG.md` lists every user-visible change.
+The work ran in four phases: parity with legacy openPIP, the planned
+enhancements, performance and mentor feedback, then programmatic access,
+sharing and documentation. The
+[commit history](https://github.com/Helmy-Lab/openpip-2.0/commits/main/) and
+[full diff](https://github.com/Helmy-Lab/openpip-2.0/compare/6fcf2a4...main)
+show everything, and `CHANGELOG.md` lists each user-visible change.
 
 ### Phase 1: parity with legacy openPIP (May)
 
