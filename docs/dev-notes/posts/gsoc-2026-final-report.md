@@ -50,16 +50,26 @@ show everything, and `CHANGELOG.md` lists each user-visible change.
 
 ```mermaid
 flowchart TD
-    L["Legacy openPIP<br/>PHP 5.6 · Symfony 2.8 · MySQL"]
-    N["openPIP 2.0<br/>Django · PostgreSQL · React"]
-    P(["Parity suite<br/>same searches and exports"])
-    E["Phases 2–4<br/>uploads, API, PSICQUIC,<br/>sharing, docs"]
-    H["Audit and hardening<br/>49 bugs fixed"]
-    D["Production<br/>openpip.usask.ca<br/>3 October 2026"]
-    L -->|"schema translation,<br/>data migration"| N
-    L -.-> P
-    N -.-> P
-    P -->|passes| E --> H --> D
+    L["<b>Legacy openPIP</b><br/>PHP 5.6 · Symfony 2.8 · MySQL"]
+    N["<b>1 · Migrate → openPIP 2.0</b><br/>Django · PostgreSQL · React"]
+    P(["<b>2 · Verify parity</b><br/>same searches and exports<br/>on both live sites"])
+    E["<b>3 · Extend</b><br/>uploads · REST API · PSICQUIC · sharing · docs"]
+    H["<b>4 · Harden</b><br/>full audit, 49 bugs fixed"]
+    D(["<b>5 · Ship</b><br/>openpip.usask.ca<br/>3 October 2026"])
+
+    L ==>|schema translation and data migration| N
+    L -. compared against .-> P
+    N --> P
+    P ==>|passes| E ==> H ==> D
+
+    classDef legacy fill:#64748b1a,stroke:#64748b,stroke-width:1.5px,stroke-dasharray:5 3
+    classDef step fill:#2563eb1a,stroke:#2563eb,stroke-width:1.5px
+    classDef check fill:#0ea5e929,stroke:#0ea5e9,stroke-width:2px
+    classDef ship fill:#2563eb38,stroke:#1e40af,stroke-width:2.5px
+    class L legacy
+    class N,E,H step
+    class P check
+    class D ship
 ```
 
 ### Phase 1: parity with legacy openPIP (May)
