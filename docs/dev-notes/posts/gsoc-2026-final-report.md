@@ -48,6 +48,20 @@ sharing and documentation. The
 [full diff](https://github.com/Helmy-Lab/openpip-2.0/compare/6fcf2a4...main)
 show everything, and `CHANGELOG.md` lists each user-visible change.
 
+```mermaid
+flowchart TD
+    L["Legacy openPIP<br/>PHP 5.6 · Symfony 2.8 · MySQL"]
+    N["openPIP 2.0<br/>Django · PostgreSQL · React"]
+    P(["Parity suite<br/>same searches and exports"])
+    E["Phases 2–4<br/>uploads, API, PSICQUIC,<br/>sharing, docs"]
+    H["Audit and hardening<br/>49 bugs fixed"]
+    D["Production<br/>openpip.usask.ca<br/>3 October 2026"]
+    L -->|"schema translation,<br/>data migration"| N
+    L -.-> P
+    N -.-> P
+    P -->|passes| E --> H --> D
+```
+
 ### Phase 1: parity with legacy openPIP (May)
 
 - Translated the legacy MySQL schema to PostgreSQL as Django models, and wrote
@@ -61,6 +75,15 @@ show everything, and `CHANGELOG.md` lists each user-visible change.
   and exports) that queries the legacy portal and the 2.0 API and compares
   proteins, interactions, scores and output files. On 3 October 2026 it passed
   79 checks against the legacy site at its new address.
+
+The same search (CFTR) on the legacy site and on openPIP 2.0 returns the same
+six interactors, shown in the new interface.
+
+![The CFTR network on legacy openPIP](images/network-legacy.png)
+*Before: legacy openPIP.*
+
+![The CFTR network on openPIP 2.0](images/network-2.0.png)
+*After: openPIP 2.0, with the interaction table and enrichment tabs below the network.*
 
 ### Phase 2: planned enhancements (May)
 
