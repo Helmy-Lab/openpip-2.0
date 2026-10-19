@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, it, expect } from 'vitest'
@@ -27,5 +27,19 @@ describe('Navbar', () => {
     wrap(<Navbar isLoggedIn={true} />)
     expect(screen.getByRole('link', { name: /profile/i })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /login/i })).not.toBeInTheDocument()
+  })
+
+  it('opens the small-screen menu from its button and closes it on navigation', () => {
+    wrap(<Navbar isLoggedIn={false} />)
+    const toggle = screen.getByRole('button', { name: 'Menu' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(document.getElementById('op-nav-menu')).toHaveClass('open')
+
+    fireEvent.click(screen.getByRole('link', { name: /about/i }))
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(document.getElementById('op-nav-menu')).not.toHaveClass('open')
   })
 })

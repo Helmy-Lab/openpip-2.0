@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useLogout } from '../api/auth'
 import { useAuthStore } from '../store/authStore'
@@ -39,12 +40,29 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
   const isAdmin = useAuthStore((s) => s.isAdmin)
   const { dark, toggle } = useDarkMode()
   const t = useText()
+  // The page the small-screen menu was opened on: moving to another page
+  // closes it without an effect to watch the route.
+  const [openOn, setOpenOn] = useState<string | null>(null)
+  const open = openOn === location.pathname
 
   return (
     <nav
       style={{ display: 'flex', alignItems: 'center', flex: 1, flexWrap: 'wrap' }}
       aria-label={t('nav.ariaLabel')}
     >
+      {/* Shown only on small screens (index.css), where the links fold away. */}
+      <button
+        type="button"
+        className="op-nav-toggle"
+        aria-label={t('nav.menu')}
+        aria-expanded={open}
+        aria-controls="op-nav-menu"
+        onClick={() => setOpenOn(open ? null : location.pathname)}
+      >
+        {open ? '✕' : '☰'}
+      </button>
+
+      <div id="op-nav-menu" className={open ? 'op-nav-menu open' : 'op-nav-menu'}>
       <div
         style={{
           display: 'flex',
@@ -147,6 +165,7 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
             </NavLink>
           </>
         )}
+      </div>
       </div>
     </nav>
   )
