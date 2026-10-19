@@ -48,6 +48,30 @@ sharing and documentation. The
 [full diff](https://github.com/Helmy-Lab/openpip-2.0/compare/6fcf2a4...main)
 show everything, and `CHANGELOG.md` lists each user-visible change.
 
+```mermaid
+flowchart TD
+    L["<b>Legacy openPIP</b><br/>PHP 5.6 · Symfony 2.8 · MySQL"]
+    N["<b>1 · Migrate → openPIP 2.0</b><br/>Django · PostgreSQL · React"]
+    P(["<b>2 · Verify parity</b><br/>same searches and exports<br/>on both live sites"])
+    E["<b>3 · Extend</b><br/>uploads · REST API · PSICQUIC · sharing · docs"]
+    H["<b>4 · Harden</b><br/>full audit, 49 bugs fixed"]
+    D(["<b>5 · Ship</b><br/>openpip.usask.ca<br/>3 October 2026"])
+
+    L ==>|schema translation and data migration| N
+    L -. compared against .-> P
+    N --> P
+    P ==>|passes| E ==> H ==> D
+
+    classDef legacy fill:#64748b1a,stroke:#64748b,stroke-width:1.5px,stroke-dasharray:5 3
+    classDef step fill:#2563eb1a,stroke:#2563eb,stroke-width:1.5px
+    classDef check fill:#0ea5e929,stroke:#0ea5e9,stroke-width:2px
+    classDef ship fill:#2563eb38,stroke:#1e40af,stroke-width:2.5px
+    class L legacy
+    class N,E,H step
+    class P check
+    class D ship
+```
+
 ### Phase 1: parity with legacy openPIP (May)
 
 - Translated the legacy MySQL schema to PostgreSQL as Django models, and wrote
@@ -61,6 +85,15 @@ show everything, and `CHANGELOG.md` lists each user-visible change.
   and exports) that queries the legacy portal and the 2.0 API and compares
   proteins, interactions, scores and output files. On 3 October 2026 it passed
   79 checks against the legacy site at its new address.
+
+The same search (CFTR) on the legacy site and on openPIP 2.0 returns the same
+six interactors, shown in the new interface.
+
+![The CFTR network on legacy openPIP](images/network-legacy.png)
+*Before: legacy openPIP.*
+
+![The CFTR network on openPIP 2.0](images/network-2.0.png)
+*After: openPIP 2.0, with the interaction table and enrichment tabs below the network.*
 
 ### Phase 2: planned enhancements (May)
 
