@@ -52,6 +52,8 @@ interface SearchSidebarProps {
    * way — the deployment picks the shape in Admin → Settings → Search.
    */
   variant?: Variant
+  /** No result loaded: everything but the query box is inert. */
+  disabled?: boolean
 }
 
 // Section headings carry the deployment's theme colour, so the sidebar reads
@@ -145,6 +147,7 @@ export function SearchSidebar({
   visibleInteractionIds,
   visibleProteinIds,
   variant = 'sidebar',
+  disabled = false,
 }: SearchSidebarProps) {
   const t = useText()
 
@@ -704,12 +707,17 @@ export function SearchSidebar({
           }}
         >
           {querySection}
-          {summarySection}
-          {filtersSection}
-          {downloadSection}
-          {linksSection}
-          {saveSection}
-          {shareSection}
+          <div
+            inert={disabled}
+            style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10, minWidth: 0, opacity: disabled ? 0.5 : undefined }}
+          >
+            {summarySection}
+            {filtersSection}
+            {downloadSection}
+            {linksSection}
+            {saveSection}
+            {shareSection}
+          </div>
         </div>
         {shareDialog}
       </div>
@@ -729,6 +737,10 @@ export function SearchSidebar({
       gap: 24,
     }}>
       {querySection}
+      <div
+        inert={disabled}
+        style={{ display: 'flex', flexDirection: 'column', gap: 24, opacity: disabled ? 0.5 : undefined }}
+      >
       {scoreSection}
       {foundBlock}
       {summarySection}
@@ -745,6 +757,7 @@ export function SearchSidebar({
           {shareSection}
         </div>
       )}
+      </div>
       {shareDialog}
     </aside>
   )
