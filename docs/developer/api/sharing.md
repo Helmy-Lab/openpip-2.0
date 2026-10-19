@@ -38,7 +38,7 @@ Your saved views.
 |---|---|
 | `query` | The search to run. |
 | `state` | How to display the result. The server stores any JSON object here. The web interface writes these keys: `scoreFilter` (number), `categoryFilter` and `annotationFilter` (objects of name → boolean), `filterMode` (`None`, `query_query` or `query_interactor`), `tissueFilter` (list), `selectedLayout`, `highlight` (`{"term", "genes"}` or `null`) and `activeTableTab`. |
-| `note` | Your private note. People you share the view with do not see it. |
+| `note` | Your private note, plain text, at most 2000 characters (longer is a 400). People you share the view with do not see it. |
 | `public_token` | The public link's token, or `null` when there is none. |
 
 ### POST /api/saved-views/

@@ -322,6 +322,48 @@ def test_owner_can_keep_notes_on_a_saved_view(user_auth_client, saved_view):
 
 
 @pytest.mark.django_db
+def test_note_round_trips_from_save_to_edit(user_auth_client):
+    created = user_auth_client.post(
+        "/api/saved-views/",
+        {"name": "Liver view", "query": "TP53", "note": "First look"},
+        format="json",
+    )
+    assert created.status_code == 201
+    body = created.json()
+    assert body["note"] == "First look"
+    assert body["created_at"] and body["updated_at"]
+
+    edited = user_auth_client.patch(
+        f"/api/saved-views/{body['id']}/", {"note": "<b>Second</b>"}, format="json"
+    )
+    assert edited.json()["note"] == "<b>Second</b>"
+    assert edited.json()["created_at"] == body["created_at"]
+    assert edited.json()["updated_at"] > body["updated_at"]
+    listed = user_auth_client.get("/api/saved-views/").json()
+    assert listed[0]["note"] == "<b>Second</b>"
+
+
+@pytest.mark.django_db
+def test_note_is_capped_at_2000_characters(user_auth_client, saved_view):
+    url = f"/api/saved-views/{saved_view.pk}/"
+    ok = user_auth_client.patch(url, {"note": "x" * 2000}, format="json")
+    assert ok.status_code == 200
+    too_long = user_auth_client.patch(url, {"note": "x" * 2001}, format="json")
+    assert too_long.status_code == 400
+
+
+@pytest.mark.django_db
+def test_only_the_owner_can_edit_the_note(user_auth_client, other_user, saved_view):
+    bearer(user_auth_client, other_user)
+    response = user_auth_client.patch(
+        f"/api/saved-views/{saved_view.pk}/", {"note": "hijacked"}, format="json"
+    )
+    assert response.status_code == 404
+    saved_view.refresh_from_db()
+    assert saved_view.note == ""
+
+
+@pytest.mark.django_db
 def test_share_recipient_does_not_see_owner_note_or_token(
     user_auth_client, other_user, saved_view
 ):

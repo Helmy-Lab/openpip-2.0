@@ -301,6 +301,54 @@ button, [role='button'], .op-btn {
   transform-box: fill-box;
 }
 
+/* Navbar: the links sit in a row, and fold behind a menu button on small
+   screens, where they open as a column under the header. */
+.op-nav-menu {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.op-nav-toggle {
+  display: none;
+}
+@media (max-width: 767px) {
+  .op-nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin: 0 12px 0 auto;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--color-header, #ffffff);
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .op-nav-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px 0 12px;
+    background: var(--nav-bg, var(--color-main));
+    box-shadow: var(--shadow-md);
+  }
+  .op-nav-menu.open {
+    display: flex;
+  }
+  .op-nav-menu > div {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

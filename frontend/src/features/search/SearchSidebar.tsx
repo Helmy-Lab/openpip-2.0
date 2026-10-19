@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 import { buildLinks, LINK_ICON_STYLE } from './externalLinks'
 import { CanvasDropdown, RibbonHeading } from './toolbar/CanvasDropdown'
+import { CanvasBackgroundPicker } from './toolbar/LayoutDropdown'
 import { QueryPanel } from './QueryPanel'
 import { useSearchStore, captureViewState } from './searchStore'
 import { ShareDialog } from '../sharing/ShareDialog'
@@ -52,6 +53,8 @@ interface SearchSidebarProps {
    * way — the deployment picks the shape in Admin → Settings → Search.
    */
   variant?: Variant
+  /** No result loaded: everything but the query box is inert. */
+  disabled?: boolean
 }
 
 // Section headings carry the deployment's theme colour, so the sidebar reads
@@ -145,6 +148,7 @@ export function SearchSidebar({
   visibleInteractionIds,
   visibleProteinIds,
   variant = 'sidebar',
+  disabled = false,
 }: SearchSidebarProps) {
   const t = useText()
 
@@ -409,7 +413,7 @@ export function SearchSidebar({
       : t('search.sidebar.tissue')
 
   const tissueBody = (
-            <div role="group" aria-label={t('search.sidebar.tissue')}>
+            <div role="group" aria-label={t('search.sidebar.tissue')} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             {tissueOptions.length === 0 ? (
               <p style={{ fontSize: 12, color: 'var(--text-soft)', margin: '4px 0 0' }}>
                 {t('search.sidebar.noTissueData')}
@@ -435,7 +439,12 @@ export function SearchSidebar({
                     {t(textKey)}
                   </label>
                 ))}
-                <div style={{ maxHeight: 168, overflowY: 'auto', paddingRight: 4, marginTop: 6, borderTop: '1px solid var(--border)', paddingTop: 4 }}>
+                {/* In the ribbon the list fills its column down to the panel's
+                    bottom; `contain: size` keeps it from growing the panel. */}
+                <div style={{
+                  ...(variant === 'ribbon' ? { flex: 1, minHeight: 168, contain: 'size' } : { maxHeight: 168 }),
+                  overflowY: 'auto', paddingRight: 4, marginTop: 6, borderTop: '1px solid var(--border)', paddingTop: 4,
+                }}>
                   {tissueOptions.map((key) => (
                     <label
                       key={key}
@@ -507,6 +516,12 @@ export function SearchSidebar({
                 {label}
               </button>
             ))}
+    </Section>
+  )
+
+  const canvasSection = term && (
+    <Section variant={variant} label={t('search.sidebar.canvas')} collapsible defaultOpen={false}>
+      <CanvasBackgroundPicker />
     </Section>
   )
 
@@ -637,7 +652,7 @@ export function SearchSidebar({
   const ribbonTissue = term && showTissue && tissueOptions.length > 0
   const filtersSection = (
     <Section variant={variant} label={t('search.filter')} width={ribbonTissue ? 520 : 300}>
-      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'stretch' }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {term && (
             <div>
@@ -657,7 +672,7 @@ export function SearchSidebar({
           )}
         </div>
         {ribbonTissue && (
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
             <span style={subLabel}>{tissueLabelText}</span>
             {tissueBody}
           </div>
@@ -699,12 +714,18 @@ export function SearchSidebar({
           }}
         >
           {querySection}
-          {summarySection}
-          {filtersSection}
-          {downloadSection}
-          {linksSection}
-          {saveSection}
-          {shareSection}
+          <div
+            inert={disabled}
+            style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10, minWidth: 0, opacity: disabled ? 0.5 : undefined }}
+          >
+            {summarySection}
+            {filtersSection}
+            {downloadSection}
+            {canvasSection}
+            {linksSection}
+            {saveSection}
+            {shareSection}
+          </div>
         </div>
         {shareDialog}
       </div>
@@ -724,6 +745,10 @@ export function SearchSidebar({
       gap: 24,
     }}>
       {querySection}
+      <div
+        inert={disabled}
+        style={{ display: 'flex', flexDirection: 'column', gap: 24, opacity: disabled ? 0.5 : undefined }}
+      >
       {scoreSection}
       {foundBlock}
       {summarySection}
@@ -735,11 +760,13 @@ export function SearchSidebar({
           {filterModeSection}
           {tissueSection}
           {downloadSection}
+          {canvasSection}
           {linksSection}
           {saveSection}
           {shareSection}
         </div>
       )}
+      </div>
       {shareDialog}
     </aside>
   )

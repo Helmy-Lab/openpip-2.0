@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchStore } from '../searchStore'
+import { useSearchStore, selectHasResult } from '../searchStore'
 import { filterProteinsAndInteractions } from '../filterInteractions'
 import { InteractionsTable } from './InteractionsTable'
 import { InteractorsTable } from './InteractorsTable'
@@ -83,6 +83,7 @@ export function ResultTablePanel({ selectedProtein }: Props) {
   // it was saved on (captureViewState already records activeTableTab).
   const activeTab = useSearchStore((s) => s.activeTableTab) as Tab
   const setActiveTab = useSearchStore((s) => s.setTableTab)
+  const hasResult = useSearchStore(selectHasResult)
   const { data: settings } = useSettings()
   const [prevProtein, setPrevProtein] = useState(selectedProtein)
   const t = useText()
@@ -131,7 +132,10 @@ export function ResultTablePanel({ selectedProtein }: Props) {
   const summaryGene = summaryProtein?.protein_gene_name || summaryProtein?.protein_uniprot_id
 
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+    <div
+      inert={!hasResult}
+      style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', opacity: hasResult ? undefined : 0.5 }}
+    >
       <div style={{
         flexShrink: 0,
         display: 'flex',
@@ -149,6 +153,7 @@ export function ResultTablePanel({ selectedProtein }: Props) {
               key={tab.id}
               type="button"
               aria-pressed={isActive}
+              disabled={!hasResult}
               onClick={() => setActiveTab(tab.id)}
               style={TAB_BTN(isActive)}
             >

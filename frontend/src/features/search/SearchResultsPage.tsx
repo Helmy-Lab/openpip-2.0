@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSearch } from '../../api/search'
 import { useSettings } from '../../api/settings'
-import { useSearchStore, type ViewState } from './searchStore'
+import { useSearchStore, selectHasResult, type ViewState } from './searchStore'
 import { filterProteinsAndInteractions } from './filterInteractions'
 import { CytoscapeNetwork } from './network/CytoscapeNetwork'
 import { ResultTablePanel } from './tables/ResultTablePanel'
@@ -132,6 +132,7 @@ export function SearchResultsPage({ term: termProp, viewState, banner, result }:
     applyViewState,
     clearSearchData,
   } = useSearchStore()
+  const hasResult = useSearchStore(selectHasResult)
 
   // Back on a bare /search, the last term's results must not linger in the
   // tables under the blank canvas.
@@ -431,6 +432,7 @@ const { proteins: filteredProteins, interactions: filteredInteractions } = filte
         visibleInteractionIds={visibleInteractionIds}
         visibleProteinIds={proteins.map((p) => p.protein_id)}
         variant={ribbon ? 'ribbon' : 'sidebar'}
+        disabled={!hasResult}
       />
 
       {/* Main - scrolls vertically */}

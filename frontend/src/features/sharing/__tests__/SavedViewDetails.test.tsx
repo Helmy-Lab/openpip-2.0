@@ -58,6 +58,23 @@ describe('SavedViewDetails', () => {
     expect(screen.getByText('Liver cluster looks off')).toBeInTheDocument()
   })
 
+  it('shows the save time, then marks the note as edited, and keeps it as text', async () => {
+    await openDetails()
+    const saved = `Saved ${new Date('2026-08-27T00:00:00Z').toLocaleString()}`
+    expect(screen.getByText(saved)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
+    const box = screen.getByLabelText('Notes on MAPK cluster')
+    expect(box).toHaveAttribute('maxLength', '2000')
+    fireEvent.change(box, { target: { value: '<b>not bold</b>' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
+
+    expect(await screen.findByText(/· edited /)).toHaveTextContent(saved)
+    // Rendered as text: the tags show, no <b> element is made.
+    expect(screen.getByText('<b>not bold</b>')).toBeInTheDocument()
+    expect(document.querySelector('b')).toBeNull()
+  })
+
   it('creates a public link and turns it off again', async () => {
     await openDetails()
     fireEvent.click(screen.getByRole('button', { name: 'Create public link' }))

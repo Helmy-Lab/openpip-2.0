@@ -77,6 +77,73 @@ def test_patch_settings_stores_canvas_background_color(auth_client):
 
 
 @pytest.mark.django_db
+def test_protein_link_defaults_to_ncbi(api_client):
+    AdminSettings.objects.create(pk=1)
+    data = api_client.get("/api/settings").json()
+    assert data["proteinLinkTarget"] == "ncbi"
+    assert data["proteinLinkTemplate"] is None
+
+
+@pytest.mark.django_db
+def test_patch_settings_stores_custom_protein_link(auth_client):
+    AdminSettings.objects.create(pk=1)
+    template = "https://example.org/gene/{gene}?u={uniprot}"
+    response = auth_client.patch(
+        "/api/settings",
+        {"proteinLinkTarget": "custom", "proteinLinkTemplate": template},
+        format="json",
+    )
+    assert response.status_code == 200
+    settings = AdminSettings.objects.get(pk=1)
+    assert settings.protein_link_target == "custom"
+    assert settings.protein_link_template == template
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "template",
+    [
+        "javascript:alert(1)//{gene}",
+        "JavaScript:alert(1)",
+        "data:text/html,<script>alert(1)</script>",
+        "//example.org/{gene}",
+        "/proteins/{gene}",
+        "ftp://example.org/{gene}",
+        "https://",
+    ],
+)
+def test_patch_settings_rejects_unsafe_protein_link_template(auth_client, template):
+    AdminSettings.objects.create(pk=1)
+    response = auth_client.patch(
+        "/api/settings",
+        {"proteinLinkTarget": "custom", "proteinLinkTemplate": template},
+        format="json",
+    )
+    assert response.status_code == 400
+    assert "proteinLinkTemplate" in response.json()
+    assert AdminSettings.objects.get(pk=1).protein_link_template is None
+
+
+@pytest.mark.django_db
+def test_patch_settings_custom_protein_link_requires_template(auth_client):
+    AdminSettings.objects.create(pk=1)
+    response = auth_client.patch(
+        "/api/settings", {"proteinLinkTarget": "custom"}, format="json"
+    )
+    assert response.status_code == 400
+    assert "proteinLinkTemplate" in response.json()
+
+
+@pytest.mark.django_db
+def test_patch_settings_rejects_unknown_protein_link_target(auth_client):
+    AdminSettings.objects.create(pk=1)
+    response = auth_client.patch(
+        "/api/settings", {"proteinLinkTarget": "elsewhere"}, format="json"
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
 def test_get_announcements_returns_home_page_announcements(api_client):
     Announcement.objects.create(title="Shown", text="Hello", show_on_home_page=True)
     Announcement.objects.create(title="Hidden", text="World", show_on_home_page=False)

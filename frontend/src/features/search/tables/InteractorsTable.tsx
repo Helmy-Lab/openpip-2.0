@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-table'
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import type { Protein } from '../../../types/api'
-import { ncbiGeneUrl } from './ncbi'
+import { GeneLink } from './GeneLink'
 
 interface InteractorsTableProps {
   proteins: Protein[]
@@ -28,15 +28,12 @@ function buildColumns(queryProteinIds: number[]): ColumnDef<Protein>[] {
       cell: ({ row, getValue }) => {
         const name = getValue<string>()
         if (!name) return '—'
+        const p = row.original
         return (
-          <a
-            href={ncbiGeneUrl(row.original.protein_entrez_id, name)}
-            target="_blank"
-            rel="noreferrer"
-            style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 500 }}
-          >
-            {name}
-          </a>
+          <GeneLink
+            ids={{ gene: name, uniprot: p.protein_uniprot_id, entrez: p.protein_entrez_id, ensembl: p.protein_ensembl_id }}
+            style={{ fontWeight: 500 }}
+          />
         )
       },
     },

@@ -54,6 +54,10 @@ export interface AdminSettings {
   horizontalFilterBar: boolean
   /** Network canvas background; null follows the light/dark theme. */
   canvasBackgroundColor?: string | null
+  /** Where result-table gene names link: NCBI Gene, our protein page, or a template. */
+  proteinLinkTarget?: 'ncbi' | 'protein_page' | 'custom'
+  /** For `custom`: an http(s) URL with {gene}, {uniprot}, {entrez}, {ensembl}. */
+  proteinLinkTemplate?: string | null
   showDownloads: boolean
   showDownloadAll: boolean
   example1: string

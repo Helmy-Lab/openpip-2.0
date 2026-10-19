@@ -3,10 +3,12 @@ import {
   publicViewUrl,
   usePublicLink,
   useUpdateSavedViewNote,
+  NOTE_MAX,
   type SavedView,
 } from '../../api/sharing'
 
 const SMALL_BTN = { fontSize: 11, padding: '5px 10px' }
+
 
 interface SavedViewDetailsProps {
   view: SavedView
@@ -54,6 +56,7 @@ export function SavedViewDetails({ view }: SavedViewDetailsProps) {
             aria-label={`Notes on ${view.name}`}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            maxLength={NOTE_MAX}
             rows={3}
             style={{
               width: '100%',

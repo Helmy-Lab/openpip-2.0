@@ -117,6 +117,12 @@ export const searchGroup: TextGroup = {
       default: 'Download',
     },
     {
+      key: 'search.sidebar.canvas',
+      label: 'Canvas colour section',
+      section: 'Sidebar',
+      default: 'Canvas colour',
+    },
+    {
       key: 'search.sidebar.externalLinks',
       label: 'External links section',
       section: 'Sidebar',

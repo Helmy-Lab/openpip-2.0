@@ -174,6 +174,12 @@ export const useSearchStore = create<SearchState>()((set) => ({
   reset: () => set(initialState),
 }))
 
+/**
+ * Whether a search has loaded anything. Until it has, the page offers only the
+ * query box and its examples; every other control is inert.
+ */
+export const selectHasResult = (s: SearchState) => s.allProteins.length > 0
+
 /** The current filters and layout, ready to save or share. */
 export function captureViewState(): ViewState {
   const {

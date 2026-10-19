@@ -34,8 +34,12 @@ interface CytoscapeNetworkProps {
   queryProteinIds: number[]
   layout: LayoutName
   height?: number
-  /** Off for the homepage preview, which is a picture, not a workspace. */
-  showControls?: boolean
+  /**
+   * The homepage example: a picture, not a workspace. No legend or controls,
+   * and none of the search page's canvas state (background, tissue sizing,
+   * enrichment highlight) reaches it.
+   */
+  preview?: boolean
   /** Filter and Confidence buttons; off under the ribbon, which carries them. */
   showFilters?: boolean
   onNodeClick?: (protein: Protein) => void
@@ -52,6 +56,7 @@ interface TooltipState {
 // Both are baked into element data by buildElements() so they update automatically
 // when the palette changes, with no stylesheet hot-swap needed.
 const STYLESHEET = buildStylesheet()
+const NO_TISSUES: string[] = []
 
 export function CytoscapeNetwork({
   proteins,
@@ -59,7 +64,7 @@ export function CytoscapeNetwork({
   queryProteinIds,
   layout,
   height = 500,
-  showControls = true,
+  preview = false,
   showFilters = true,
   onNodeClick,
   onEdgeClick,
@@ -72,11 +77,16 @@ export function CytoscapeNetwork({
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
   const { data: settings } = useSettings()
   const setModal = useSearchStore((s) => s.setModal)
-  const highlight = useSearchStore((s) => s.highlight)
-  const tissues = useSearchStore((s) => s.tissueFilter)
-  const tissueNodeSize = useSearchStore((s) => s.tissueNodeSize)
-  const tissueNodeColor = useSearchStore((s) => s.tissueNodeColor)
-  const background = useCanvasBackground() ?? 'var(--bg)'
+  const storeHighlight = useSearchStore((s) => s.highlight)
+  const storeTissues = useSearchStore((s) => s.tissueFilter)
+  const storeTissueNodeSize = useSearchStore((s) => s.tissueNodeSize)
+  const storeTissueNodeColor = useSearchStore((s) => s.tissueNodeColor)
+  const canvasBackground = useCanvasBackground()
+  const highlight = preview ? null : storeHighlight
+  const tissues = preview ? NO_TISSUES : storeTissues
+  const tissueNodeSize = preview ? false : storeTissueNodeSize
+  const tissueNodeColor = preview ? false : storeTissueNodeColor
+  const background = (preview ? null : canvasBackground) ?? 'var(--bg)'
   const t = useText()
 
   const palette = useMemo(() => ({
@@ -212,11 +222,12 @@ export function CytoscapeNetwork({
         cy={(cy) => {
           if (cyRef.current === cy) return
           cyRef.current = cy
-          useSearchStore.getState().setNetworkCy(cy)
+          if (!preview) useSearchStore.getState().setNetworkCy(cy)
         }}
       />
 
       {/* Floating legend */}
+      {!preview && (
       <div style={{
         position: 'absolute',
         top: 12,
@@ -275,11 +286,12 @@ export function CytoscapeNetwork({
           </div>
         )}
       </div>
+      )}
 
       {/* Network controls, bottom right — out of the legend's way and away
           from the info panels, which anchor top left. Off on the homepage
           preview, which is a picture rather than a workspace. */}
-      {showControls && (
+      {!preview && (
       <div style={{
         position: 'absolute',
         bottom: 12,

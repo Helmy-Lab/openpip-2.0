@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   useSavedViews,
   useDeleteSavedView,
+  savedViewTimes,
   type SavedView,
 } from '../../api/sharing'
 import { useSavedNetworks, useDeleteNetwork } from '../../api/networks'
@@ -112,6 +113,13 @@ export function ProfileSharingSections() {
                         {row.live ? 'Live view' : 'Snapshot'} · {row.detail}
                       </span>
                     </div>
+                    {(row.view || row.when) && (
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                        {row.view
+                          ? savedViewTimes(row.view)
+                          : `Saved ${new Date(row.when!).toLocaleString()}`}
+                      </div>
+                    )}
                   </div>
                   <button
                     className="op-btn"

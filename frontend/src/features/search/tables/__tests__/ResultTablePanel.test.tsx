@@ -41,3 +41,21 @@ describe('ResultTablePanel tab', () => {
     expect(useSearchStore.getState().activeTableTab).toBe('interactions')
   })
 })
+
+describe('ResultTablePanel with nothing searched', () => {
+  it('disables the tabs until a result is loaded', async () => {
+    const { screen } = await import('@testing-library/react')
+    const tabs = () =>
+      [/^interactions/i, /^interactors/i, /Molecular Function/i, /protein info/i].map((name) =>
+        screen.getByRole('button', { name, hidden: true })
+      )
+    useSearchStore.getState().reset()
+    const { unmount } = renderWithProviders(<ResultTablePanel />)
+    for (const tab of tabs()) expect(tab).toBeDisabled()
+    unmount()
+
+    useSearchStore.getState().setSearchData(searchFixture)
+    renderWithProviders(<ResultTablePanel />)
+    for (const tab of tabs()) expect(tab).toBeEnabled()
+  })
+})

@@ -76,6 +76,7 @@ export const sharingHandlers = [
     const view = views.find((v) => v.id === Number(params.id))
     if (!view) return HttpResponse.json({ detail: 'Not found.' }, { status: 404 })
     Object.assign(view, (await request.json()) as Partial<SavedView>)
+    view.updated_at = new Date().toISOString()
     return HttpResponse.json(view)
   }),
 

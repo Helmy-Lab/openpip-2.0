@@ -49,6 +49,8 @@ From the reference portal (long values shortened):
 | `queryNodeColor`, `interactorNodeColor` | Network colours for the proteins searched for and for their partners. |
 | `publishedEdgeColor`, `validatedEdgeColor`, `verifiedEdgeColor`, `literatureEdgeColor` | Network edge colours. Each edge takes the colour for its highest [interaction category](#interaction-categories) `order`: 1, 2, 3 and 4 use these four in turn, whatever the categories are called. Any other order is drawn grey (`#cccccc`). |
 | `canvasBackgroundColor` | Network canvas background, or `null` for the default. |
+| `proteinLinkTarget` | Where gene names in the search result tables link: `ncbi` (NCBI Gene, the default), `protein_page` (this portal's protein page) or `custom`. |
+| `proteinLinkTemplate` | For `custom`: an `http://` or `https://` URL in which `{gene}`, `{uniprot}`, `{entrez}` and `{ensembl}` are replaced by the protein's URL-encoded identifiers. Other schemes are rejected with 400, as is `custom` without a template. |
 | `horizontalFilterBar` | `true` puts the search page's filters in a ribbon above the network instead of a side panel. |
 | `showTissueExpression`, `showSubcellularLocation` | Turn off for portals whose organism has no such annotations. |
 | `showDownloads`, `showDownloadAll` | Show the dataset table and the supplementary files section of the Downloads page ("Show Dataset Downloads" and "Show Supplementary Files" in the admin panel). They hide links only, as in the original openPIP: the download endpoints stay available. |

@@ -92,6 +92,11 @@ export const navGroup: TextGroup = {
       hint: 'Read aloud by screen readers to identify the navigation region.',
     },
     {
+      key: 'nav.menu',
+      label: 'Menu button (small screens)',
+      default: 'Menu',
+    },
+    {
       key: 'nav.themeToLight',
       label: 'Theme toggle: to light',
       default: 'Switch to light mode',

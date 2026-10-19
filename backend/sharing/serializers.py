@@ -29,6 +29,8 @@ class SavedViewSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "public_token", "created_at", "updated_at"]
+        # Capped here, not on the column: a free-text note, not a document.
+        extra_kwargs = {"note": {"max_length": 2000}}
 
 
 class PublicViewSerializer(serializers.ModelSerializer):

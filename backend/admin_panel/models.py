@@ -27,6 +27,11 @@ class AdminSettings(models.Model):
     # Network canvas background. Null follows the light/dark theme; viewers
     # can still override it for themselves in the browser.
     canvas_background_color = models.CharField(max_length=20, null=True, blank=True)
+    # Where a gene name in the search result tables links to: "ncbi",
+    # "protein_page" (this portal's protein page) or "custom", which fills
+    # protein_link_template's {gene}/{uniprot}/{entrez}/{ensembl} placeholders.
+    protein_link_target = models.CharField(max_length=20, default="ncbi")
+    protein_link_template = models.TextField(null=True, blank=True)
     footer = models.TextField(null=True)
     main_color_scheme = models.CharField(max_length=10, null=True)
     header_color_scheme = models.CharField(max_length=10, null=True)

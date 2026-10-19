@@ -85,6 +85,38 @@ const LAYOUT_OPTIONS: { value: LayoutName; textKey: string }[] = [
   { value: 'grid', textKey: 'search.layout.grid' },
 ]
 
+/**
+ * The viewer's own canvas colour, kept in this browser. Anyone can set it;
+ * the admin colour in Settings → Search is only the default it starts from.
+ */
+export function CanvasBackgroundPicker() {
+  const t = useText()
+  const background = useCanvasBackground()
+  const override = useCanvasBackgroundStore((s) => s.override)
+  const setOverride = useCanvasBackgroundStore((s) => s.setOverride)
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <input
+        type="color"
+        aria-label={t('search.layout.background')}
+        // With no color set the canvas follows the theme; show its --bg.
+        value={background ?? (getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff')}
+        onChange={(e) => setOverride(e.target.value)}
+        style={{ width: 32, height: 24, padding: 0, border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer' }}
+      />
+      <button
+        type="button"
+        className="op-btn"
+        disabled={!override}
+        onClick={() => setOverride(null)}
+        style={{ fontSize: 12, height: 24, padding: '0 8px' }}
+      >
+        {t('search.layout.backgroundReset')}
+      </button>
+    </div>
+  )
+}
+
 export function LayoutDropdown() {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -94,9 +126,6 @@ export function LayoutDropdown() {
 
   const selectedLayout = useSearchStore((s) => s.selectedLayout)
   const setLayout = useSearchStore((s) => s.setLayout)
-  const background = useCanvasBackground()
-  const override = useCanvasBackgroundStore((s) => s.override)
-  const setOverride = useCanvasBackgroundStore((s) => s.setOverride)
 
   useEffect(() => {
     if (!open) return
@@ -171,25 +200,7 @@ export function LayoutDropdown() {
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '12px 0 8px' }}>
             {t('search.layout.background')}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input
-              type="color"
-              aria-label={t('search.layout.background')}
-              // With no color set the canvas follows the theme; show its --bg.
-              value={background ?? (getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff')}
-              onChange={(e) => setOverride(e.target.value)}
-              style={{ width: 32, height: 24, padding: 0, border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer' }}
-            />
-            <button
-              type="button"
-              className="op-btn"
-              disabled={!override}
-              onClick={() => setOverride(null)}
-              style={{ fontSize: 12, height: 24, padding: '0 8px' }}
-            >
-              {t('search.layout.backgroundReset')}
-            </button>
-          </div>
+          <CanvasBackgroundPicker />
         </div>
       )}
     </div>
