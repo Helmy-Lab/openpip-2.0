@@ -65,7 +65,7 @@ describe('SearchSidebar ribbon variant', () => {
     expect(screen.getByRole('button', { name: /download/i })).toBeInTheDocument()
   })
 
-  it('opens a section on hover, without a press', async () => {
+  it('opens a section on hover and keeps it open until a click elsewhere', async () => {
     const user = userEvent.setup()
     render(<SearchSidebar term="BAD" visibleInteractionIds={[]} variant="ribbon" />, { wrapper })
 
@@ -73,7 +73,32 @@ describe('SearchSidebar ribbon variant', () => {
     expect(screen.getByPlaceholderText(/Gene symbol or UniProt ID/i)).toBeInTheDocument()
 
     await user.unhover(screen.getByRole('button', { name: /^Query$/i }))
+    expect(screen.getByPlaceholderText(/Gene symbol or UniProt ID/i)).toBeInTheDocument()
+
+    await user.click(document.body)
     expect(screen.queryByPlaceholderText(/Gene symbol or UniProt ID/i)).toBeNull()
+
+    await user.hover(screen.getByRole('button', { name: /^Query$/i }))
+    await user.keyboard('{Escape}')
+    expect(screen.queryByPlaceholderText(/Gene symbol or UniProt ID/i)).toBeNull()
+  })
+
+  it('keeps only one section open at a time', async () => {
+    const user = userEvent.setup()
+    render(<SearchSidebar term="BAD" visibleInteractionIds={[]} variant="ribbon" />, { wrapper })
+
+    await user.hover(screen.getByRole('button', { name: /^Query$/i }))
+    await user.hover(screen.getByRole('button', { name: /^Filter$/i }))
+    expect(screen.getByText(/filter mode/i)).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText(/Gene symbol or UniProt ID/i)).toBeNull()
+  })
+
+  it('opens a section on a tap', async () => {
+    const user = userEvent.setup()
+    render(<SearchSidebar term="BAD" visibleInteractionIds={[]} variant="ribbon" />, { wrapper })
+
+    await user.pointer({ keys: '[TouchA]', target: screen.getByRole('button', { name: /^Query$/i }) })
+    expect(screen.getByPlaceholderText(/Gene symbol or UniProt ID/i)).toBeInTheDocument()
   })
 
   it('keeps every filter behind the one Filters heading, filter mode first', async () => {

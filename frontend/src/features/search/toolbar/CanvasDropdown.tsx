@@ -1,6 +1,9 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { CONTROL_BG, CONTROL_HEIGHT } from './LayoutDropdown'
 import { PANEL_LEFT, useKeepOnScreen } from './panelPosition'
+
+// The one dropdown open right now, so opening another closes it.
+let closeOpenDropdown: (() => void) | null = null
 
 /**
  * The bare themed heading the ribbon uses instead of a button: no chrome, the
@@ -51,7 +54,9 @@ export function RibbonHeading({ label, active = false, onClick, ...rest }: {
  * at the top edge and the panel has the whole page to drop into, and `plain`
  * drops the button chrome there for a bare themed heading — a row of bordered
  * grey buttons reads as a toolbar, which the ribbon is not. A plain heading
- * opens on hover; the click stays for touch and keyboard, which have none.
+ * opens on hover but stays open after the mouse leaves, until a click
+ * elsewhere, Escape, or another dropdown opening; the click stays for touch and
+ * keyboard, which have no hover.
  */
 export function CanvasDropdown({ label, width = 232, up = true, plain = false, children }: {
   label: string
@@ -68,31 +73,48 @@ export function CanvasDropdown({ label, width = 232, up = true, plain = false, c
 
   useEffect(() => {
     if (!open) return
+    const close = () => setOpen(false)
+    if (closeOpenDropdown !== close) closeOpenDropdown?.()
+    closeOpenDropdown = close
+    return () => {
+      if (closeOpenDropdown === close) closeOpenDropdown = null
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false)
       }
     }
+    // On the document, not the container: a panel opened by hover has no focus.
+    function handleKeyDown(e: globalThis.KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [open])
 
-  function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    if (e.key === 'Escape') setOpen(false)
-  }
-
-  // Hovering the heading opens it, and the panel counts as inside the heading
-  // for as long as it is a DOM child — so it sits flush underneath, with no gap
-  // to cross that would read as a mouse-out.
+  // A mouse hovering the heading opens it; leaving does not close it. Only a
+  // real mouse counts — a tap fires a synthetic hover before its click, which
+  // would open the panel only for the click to toggle it shut again.
   const hover = plain
-    ? { onMouseEnter: () => setOpen(true), onMouseLeave: () => setOpen(false) }
+    ? {
+        onPointerEnter: (e: React.PointerEvent) => {
+          if (e.pointerType === 'mouse') setOpen(true)
+        },
+      }
     : {}
 
   return (
     <div
       ref={containerRef}
       style={{ position: 'relative', display: 'inline-block' }}
-      onKeyDown={handleKeyDown}
       {...hover}
     >
       {plain ? (
