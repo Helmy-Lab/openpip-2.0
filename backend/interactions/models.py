@@ -165,6 +165,9 @@ class InteractionNetwork(models.Model):
     tissue_expression_array = models.CharField(max_length=100, null=True)
     query = models.CharField(max_length=100, null=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
+    # Not in legacy: the owner's own notes, and when they last changed.
+    note = models.TextField(blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True, null=True)
 
     class Meta:
         db_table = "interaction_network"

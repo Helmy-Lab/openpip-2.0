@@ -210,3 +210,56 @@ def test_delete_network_403_for_non_owner(user_auth_client, admin_user):
 
     resp = user_auth_client.delete(f"/api/networks/{network.id}")
     assert resp.status_code == 403
+
+
+# ── Note (POST note, PATCH /networks/<pk>) ───────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_note_saved_listed_and_edited(user_auth_client):
+    p1 = _make_protein("TP53")
+    p2 = _make_protein("MDM2")
+    ix = InteractionFactory(interactor_A=p1, interactor_B=p2, removed="0")
+    network_id = user_auth_client.post(
+        "/api/networks",
+        {"name": "N", "query": "TP53", "interaction_ids": [ix.id], "note": "first"},
+        format="json",
+    ).json()["id"]
+    listed = user_auth_client.get("/api/networks").json()[0]
+    assert listed["note"] == "first"
+    assert listed["created_at"] and listed["updated_at"]
+
+    resp = user_auth_client.patch(
+        f"/api/networks/{network_id}", {"note": "second"}, format="json"
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated_at"] > listed["updated_at"]
+    assert user_auth_client.get(f"/api/networks/{network_id}").json()["note"] == (
+        "second"
+    )
+
+
+@pytest.mark.django_db
+def test_note_is_capped(user_auth_client, regular_user):
+    network = InteractionNetwork.objects.create(name="N", query="TP53")
+    UserInteractionNetwork.objects.create(
+        user=regular_user, interaction_network=network
+    )
+    url = f"/api/networks/{network.id}"
+    ok = user_auth_client.patch(url, {"note": "x" * 2000}, format="json")
+    assert ok.status_code == 200
+    resp = user_auth_client.patch(url, {"note": "x" * 2001}, format="json")
+    assert resp.status_code == 400
+
+
+@pytest.mark.django_db
+def test_note_403_for_non_owner(user_auth_client, admin_user):
+    network = InteractionNetwork.objects.create(name="N", query="TP53", note="mine")
+    UserInteractionNetwork.objects.create(user=admin_user, interaction_network=network)
+
+    resp = user_auth_client.patch(
+        f"/api/networks/{network.id}", {"note": "theirs"}, format="json"
+    )
+    assert resp.status_code == 403
+    network.refresh_from_db()
+    assert network.note == "mine"

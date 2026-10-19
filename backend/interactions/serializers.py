@@ -15,6 +15,11 @@ class SaveNetworkInputSerializer(serializers.Serializer):
     interaction_ids = serializers.ListField(
         child=serializers.IntegerField(), allow_empty=False
     )
+    note = serializers.CharField(max_length=2000, allow_blank=True, default="")
+
+
+class NetworkNoteSerializer(serializers.Serializer):
+    note = serializers.CharField(max_length=2000, allow_blank=True)
 
 
 class SavedNetworkListSerializer(serializers.ModelSerializer):
@@ -29,4 +34,12 @@ class SavedNetworkListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InteractionNetwork
-        fields = ["id", "name", "query", "interaction_count", "created_at"]
+        fields = [
+            "id",
+            "name",
+            "query",
+            "interaction_count",
+            "note",
+            "created_at",
+            "updated_at",
+        ]

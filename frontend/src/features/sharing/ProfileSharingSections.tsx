@@ -6,7 +6,9 @@ import {
   savedViewTimes,
   type SavedView,
 } from '../../api/sharing'
-import { useSavedNetworks, useDeleteNetwork } from '../../api/networks'
+import { useSavedNetworks, useDeleteNetwork, useUpdateNetworkNote } from '../../api/networks'
+import type { SavedNetwork } from '../../types/api'
+import { NoteEditor } from './NoteEditor'
 import { ShareDialog } from './ShareDialog'
 import { ShareList } from './ShareList'
 import { SavedViewDetails } from './SavedViewDetails'
@@ -43,6 +45,7 @@ interface Row {
   live: boolean
   detail: string
   view?: SavedView
+  network?: SavedNetwork
 }
 
 /**
@@ -57,6 +60,7 @@ export function ProfileSharingSections() {
   const { data: networks = [], isLoading: networksLoading } = useSavedNetworks()
   const deleteView = useDeleteSavedView()
   const deleteNetwork = useDeleteNetwork()
+  const updateNetworkNote = useUpdateNetworkNote()
   const [sharing, setSharing] = useState<SavedView | null>(null)
   const [openKey, setOpenKey] = useState<string | null>(null)
 
@@ -79,6 +83,7 @@ export function ProfileSharingSections() {
       when: net.created_at,
       live: false,
       detail: `${net.interaction_count} interactions, as they were`,
+      network: net,
     })),
   ].sort((a, b) => (b.when ?? '').localeCompare(a.when ?? ''))
 
@@ -117,7 +122,9 @@ export function ProfileSharingSections() {
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
                         {row.view
                           ? savedViewTimes(row.view)
-                          : `Saved ${new Date(row.when!).toLocaleString()}`}
+                          : row.network?.updated_at
+                            ? savedViewTimes({ created_at: row.when!, updated_at: row.network.updated_at })
+                            : `Saved ${new Date(row.when!).toLocaleString()}`}
                       </div>
                     )}
                   </div>
@@ -132,7 +139,7 @@ export function ProfileSharingSections() {
                   >
                     Open
                   </button>
-                  {row.view && (
+                  {(row.view || row.network) && (
                     <button
                       className="op-btn"
                       style={SMALL_BTN}
@@ -180,6 +187,17 @@ export function ProfileSharingSections() {
                   </button>
                 </div>
                 {row.view && openKey === row.key && <SavedViewDetails view={row.view} />}
+                {row.network && openKey === row.key && (
+                  <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                    <NoteEditor
+                      name={row.name}
+                      note={row.network.note ?? ''}
+                      onSave={(note) => updateNetworkNote.mutateAsync({ id: row.id, note })}
+                      isPending={updateNetworkNote.isPending}
+                      isError={updateNetworkNote.isError}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>

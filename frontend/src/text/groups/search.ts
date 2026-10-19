@@ -521,6 +521,11 @@ export const searchGroup: TextGroup = {
       default: 'Network name',
     },
     {
+      key: 'search.save.notePlaceholder',
+      label: 'Save network: note placeholder',
+      default: 'Note (optional, only you see it)',
+    },
+    {
       key: 'search.save.nameRequired',
       label: 'Save network: name required',
       default: 'Name is required',

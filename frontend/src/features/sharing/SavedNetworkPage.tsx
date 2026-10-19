@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { SearchResultsPage } from '../search/SearchResultsPage'
 import { useSavedNetwork } from '../../api/networks'
+import { savedViewTimes } from '../../api/sharing'
 import { snapshotViewState } from './snapshotViewState'
 
 /**
@@ -34,7 +35,17 @@ export function SavedNetworkPage() {
       banner={
         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '8px 16px' }}>
           Snapshot <strong style={{ color: 'var(--text)' }}>{network.name}</strong>: the{' '}
-          {network.all_interactions.length} interactions as they were saved.
+          {network.all_interactions.length} interactions as they were saved
+          {network.created_at &&
+            ` (${network.updated_at
+              ? savedViewTimes({ created_at: network.created_at, updated_at: network.updated_at })
+              : `Saved ${new Date(network.created_at).toLocaleString()}`})`}
+          .
+          {network.note && (
+            <span style={{ display: 'block', marginTop: 4, whiteSpace: 'pre-wrap', color: 'var(--text)' }}>
+              {network.note}
+            </span>
+          )}
         </p>
       }
     />

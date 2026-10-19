@@ -12,7 +12,11 @@ from .models import (
     InteractionInteractionNetworks,
 )
 from .search_service import execute_search, build_result_from_interaction_ids
-from .serializers import SaveNetworkInputSerializer, SavedNetworkListSerializer
+from .serializers import (
+    NetworkNoteSerializer,
+    SaveNetworkInputSerializer,
+    SavedNetworkListSerializer,
+)
 
 
 class InteractionCategoryListView(APIView):
@@ -139,6 +143,7 @@ class SavedNetworkListView(APIView):
             score_parameter=data["score_parameter"],
             category_array=data["category_array"],
             tissue_expression_array=data.get("tissue_expression_array", ""),
+            note=data["note"],
         )
         InteractionInteractionNetworks.objects.bulk_create(
             [
@@ -192,9 +197,21 @@ class SavedNetworkDetailView(APIView):
                 "score_parameter": network.score_parameter,
                 "category_array": network.category_array,
                 "tissue_expression_array": network.tissue_expression_array or "",
+                "note": network.note,
+                "created_at": network.created_at,
+                "updated_at": network.updated_at,
                 **result,
             }
         )
+
+    def patch(self, request, pk: int):
+        """Change the note; nothing else about a snapshot is editable."""
+        network = self._get_owned_network(request, pk)
+        serializer = NetworkNoteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        network.note = serializer.validated_data["note"]
+        network.save(update_fields=["note", "updated_at"])
+        return Response(SavedNetworkListSerializer(network).data)
 
     def delete(self, request, pk: int):
         network = self._get_owned_network(request, pk)

@@ -3,7 +3,10 @@ export interface SavedNetwork {
   name: string
   query: string
   interaction_count: number
+  note: string
   created_at: string | null
+  /** Null on networks saved before notes existed. */
+  updated_at: string | null
 }
 
 export interface AdminSettings {

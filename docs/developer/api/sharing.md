@@ -213,8 +213,11 @@ Your saved networks, newest first.
 
 ```json
 [{"id": 41, "name": "TP53 neighbourhood", "query": "TP53",
-  "interaction_count": 238, "created_at": "2026-09-01T16:20:00Z"}]
+  "interaction_count": 238, "note": "Check the BAX edges",
+  "created_at": "2026-09-01T16:20:00Z", "updated_at": "2026-09-02T09:05:00Z"}]
 ```
+
+`updated_at` is `null` for networks saved before notes existed.
 
 ### POST /api/networks
 
@@ -228,6 +231,7 @@ Save the interactions currently shown.
 | `score_parameter` | Score threshold in use, as text. Default `"0.00"`. |
 | `category_array` | Categories in use, as text, up to 100 characters. |
 | `tissue_expression_array` | Tissue filter in use, comma-separated, up to 100 characters. |
+| `note` | Optional plain text, up to 2,000 characters. Only you see it. |
 
 ```json
 {"id": 41, "name": "TP53 neighbourhood", "interaction_count": 238}
@@ -236,12 +240,25 @@ Save the interactions currently shown.
 ### GET /api/networks/{pk}
 
 The saved network: its `id`, `name`, `query`, `score_parameter`,
-`category_array` and `tissue_expression_array`, plus the same keys as a
+`category_array`, `tissue_expression_array`, `note`, `created_at` and
+`updated_at`, plus the same keys as a
 [search result](proteins-and-search.md#get-apisearch), built from the saved
 interactions.
 
 | Status | Body |
 |---|---|
+| 403 | The network belongs to another account. |
+| 404 | No such network. |
+
+### PATCH /api/networks/{pk}
+
+Change the note, the only editable part of a snapshot: `{"note": "..."}`,
+plain text up to 2,000 characters (empty clears it). Returns the network as
+listed by `GET /api/networks`, with `updated_at` moved on.
+
+| Status | Body |
+|---|---|
+| 400 | The note is longer than 2,000 characters. |
 | 403 | The network belongs to another account. |
 | 404 | No such network. |
 

@@ -8,6 +8,7 @@ import { ShareDialog } from '../sharing/ShareDialog'
 import { useAuthStore } from '../../store/authStore'
 import { useSettings } from '../../api/settings'
 import { useSaveNetwork } from '../../api/networks'
+import { NOTE_MAX } from '../../api/sharing'
 import { useText } from '../../text'
 import { tissueLabel, tissuesThatFit } from '../../lib/tissues'
 import { tissuesWithData } from './filterInteractions'
@@ -180,6 +181,7 @@ export function SearchSidebar({
   const { mutateAsync: saveNetwork, isPending: isSaving } = useSaveNetwork()
   const [saveOpen, setSaveOpen] = useState(false)
   const [saveName, setSaveName] = useState(term.slice(0, NAME_MAX))
+  const [saveNote, setSaveNote] = useState('')
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
   // Sharing is its own action: it never touches the saved networks above, and
@@ -207,11 +209,13 @@ export function SearchSidebar({
         // stored exactly either way.
         tissue_expression_array: tissuesThatFit(tissueFilter),
         interaction_ids: visibleInteractionIds,
+        note: saveNote.trim(),
       })
       setSaveSuccess(true)
       setTimeout(() => {
         setSaveOpen(false)
         setSaveName(term.slice(0, NAME_MAX))
+        setSaveNote('')
         setSaveSuccess(false)
       }, 1500)
     } catch {
@@ -573,6 +577,16 @@ export function SearchSidebar({
         placeholder={t('search.save.placeholder')}
         style={{ fontSize: 12 }}
         autoFocus
+      />
+      <textarea
+        className="op-input"
+        aria-label={t('search.save.notePlaceholder')}
+        value={saveNote}
+        maxLength={NOTE_MAX}
+        onChange={(e) => setSaveNote(e.target.value)}
+        placeholder={t('search.save.notePlaceholder')}
+        rows={2}
+        style={{ fontSize: 12, resize: 'vertical' }}
       />
       {saveError && (
         <div style={{ fontSize: 11, color: 'var(--warn)' }}>{saveError}</div>
