@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 import { buildLinks, LINK_ICON_STYLE } from './externalLinks'
 import { CanvasDropdown, RibbonHeading } from './toolbar/CanvasDropdown'
+import { CanvasBackgroundPicker } from './toolbar/LayoutDropdown'
 import { QueryPanel } from './QueryPanel'
 import { useSearchStore, captureViewState } from './searchStore'
 import { ShareDialog } from '../sharing/ShareDialog'
@@ -518,6 +519,12 @@ export function SearchSidebar({
     </Section>
   )
 
+  const canvasSection = term && (
+    <Section variant={variant} label={t('search.sidebar.canvas')} collapsible defaultOpen={false}>
+      <CanvasBackgroundPicker />
+    </Section>
+  )
+
   const linksSection = term && (
     <Section variant={variant} label={t('search.sidebar.externalLinks')} collapsible defaultOpen={false}>
             {allProteins.length === 0 ? (
@@ -714,6 +721,7 @@ export function SearchSidebar({
             {summarySection}
             {filtersSection}
             {downloadSection}
+            {canvasSection}
             {linksSection}
             {saveSection}
             {shareSection}
@@ -752,6 +760,7 @@ export function SearchSidebar({
           {filterModeSection}
           {tissueSection}
           {downloadSection}
+          {canvasSection}
           {linksSection}
           {saveSection}
           {shareSection}

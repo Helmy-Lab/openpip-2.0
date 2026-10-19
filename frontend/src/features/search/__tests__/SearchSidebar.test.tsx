@@ -7,6 +7,7 @@ import { SearchSidebar } from '../SearchSidebar'
 import { useAuthStore } from '../../../store/authStore'
 import { resetSharingStore } from '../../../mocks/handlers/sharing'
 import { useSearchStore } from '../searchStore'
+import { useCanvasBackgroundStore } from '../network/canvasBackground'
 
 const navigate = vi.fn()
 vi.mock('react-router-dom', async () => ({
@@ -146,6 +147,20 @@ describe('SearchSidebar ribbon variant', () => {
   it('leaves the sidebar showing its sections without a press', () => {
     render(<SearchSidebar term="BAD" visibleInteractionIds={[]} />, { wrapper })
     expect(screen.getByPlaceholderText(/Gene symbol or UniProt ID/i)).toBeInTheDocument()
+  })
+})
+
+describe('SearchSidebar canvas colour', () => {
+  it('lets a signed-out viewer change the canvas colour from the ribbon', async () => {
+    useAuthStore.setState({ isLoggedIn: false, isAdmin: false, token: null })
+    const user = userEvent.setup()
+    render(<SearchSidebar term="BAD" visibleInteractionIds={[]} variant="ribbon" />, { wrapper })
+
+    await user.hover(screen.getByRole('button', { name: /^Canvas colour$/i }))
+    fireEvent.change(screen.getByLabelText('Background'), { target: { value: '#123456' } })
+    expect(useCanvasBackgroundStore.getState().override).toBe('#123456')
+    expect(localStorage.getItem('openpip_canvas_background')).toBe('#123456')
+    useCanvasBackgroundStore.getState().setOverride(null)
   })
 })
 
