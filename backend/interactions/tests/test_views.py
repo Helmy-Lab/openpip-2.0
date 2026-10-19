@@ -267,6 +267,38 @@ def test_home_network_empty_db_returns_empty_result(api_client):
     assert data["all_interactions"] == []
 
 
+def _make_hub(gene_name, uniprot_id, degree):
+    hub = _make_protein_with_identifier(gene_name, uniprot_id)
+    hub.number_of_interactions_in_database = degree
+    hub.save()
+    for _ in range(degree):
+        InteractionFactory(interactor_A=hub, interactor_B=ProteinFactory(), removed="0")
+    return hub
+
+
+@pytest.mark.django_db
+def test_home_network_caps_large_neighbourhood_at_20_nodes(api_client):
+    hub = _make_hub("HUB", "P99999", 30)
+    data = api_client.get("/api/home/network").json()
+    ids = {p["protein_id"] for p in data["all_proteins"]}
+    assert len(ids) == 20
+    assert hub.id in ids
+    for ix in data["all_interactions"]:
+        assert ix["interactor_A"]["protein_id"] in ids
+        assert ix["interactor_B"]["protein_id"] in ids
+
+
+@pytest.mark.django_db
+def test_home_network_prefers_neighbourhood_of_5_to_20_nodes(api_client):
+    _make_hub("TINY", "P99997", 2)
+    _make_hub("HUGE", "P99998", 30)
+    mid = _make_hub("MID", "P99999", 7)
+    for _ in range(5):
+        data = api_client.get("/api/home/network").json()
+        assert data["query_protein_id_array"] == [mid.id]
+        assert len(data["all_proteins"]) == 8
+
+
 @pytest.mark.django_db
 def test_categories_sort_by_number_not_text(api_client):
     for name, order in [("Ten", "10"), ("Two", "2"), ("Blank", None), ("One", "1")]:

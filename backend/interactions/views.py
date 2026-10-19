@@ -1,5 +1,3 @@
-import random
-
 from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -55,20 +53,49 @@ class SearchInteractorsView(APIView):
         return Response(result)
 
 
+HOME_NETWORK_MIN_NODES = 5
+HOME_NETWORK_MAX_NODES = 20
+
+
+def _cap_network(result: dict, limit: int = HOME_NETWORK_MAX_NODES) -> dict:
+    """Keep the query protein(s) plus interactors up to ``limit`` nodes."""
+    query_ids = set(result["query_protein_id_array"])
+    proteins = sorted(
+        result["all_proteins"], key=lambda p: p["protein_id"] not in query_ids
+    )[:limit]
+    kept = {p["protein_id"] for p in proteins}
+    interactions = [
+        ix
+        for ix in result["all_interactions"]
+        if ix["interactor_A"]["protein_id"] in kept
+        and ix["interactor_B"]["protein_id"] in kept
+    ]
+    return {**result, "all_proteins": proteins, "all_interactions": interactions}
+
+
 class HomeNetworkView(APIView):
-    """Return a random protein's interaction network for the home page preview."""
+    """Return a random protein's interaction network for the home page preview.
+
+    The example stays small: a neighbourhood of 5-20 proteins (query included).
+    """
 
     permission_classes = [AllowAny]
 
     def get(self, request):
-        # Sample 50 candidates, pick one at random — mirrors legacy getrandomprotein()
-        candidates = list(
+        named = (
             Protein.objects.filter(number_of_interactions_in_database__gt=0)
-            .values_list("gene_name", flat=True)
             .exclude(gene_name__isnull=True)
             .exclude(gene_name="")
-            .order_by("?")[:50]
         )
+        # Prefer proteins whose recorded degree already fits; the stored count
+        # can drift from the live network, so each result is still checked.
+        in_range = named.filter(
+            number_of_interactions_in_database__gte=HOME_NETWORK_MIN_NODES - 1,
+            number_of_interactions_in_database__lte=HOME_NETWORK_MAX_NODES - 1,
+        )
+        candidates = list(
+            in_range.values_list("gene_name", flat=True).order_by("?")[:10]
+        ) or list(named.values_list("gene_name", flat=True).order_by("?")[:10])
         if not candidates:
             return Response(
                 {
@@ -78,9 +105,15 @@ class HomeNetworkView(APIView):
                 }
             )
 
-        gene = random.choice(candidates)
-        result = execute_search(q=gene, filter_parameter="None")
-        return Response(result)
+        fallback = None
+        for gene in candidates:
+            result = execute_search(q=gene, filter_parameter="None")
+            size = len(result["all_proteins"])
+            if HOME_NETWORK_MIN_NODES <= size <= HOME_NETWORK_MAX_NODES:
+                return Response(result)
+            if fallback is None or size > len(fallback["all_proteins"]):
+                fallback = result
+        return Response(_cap_network(fallback))
 
 
 class SavedNetworkListView(APIView):

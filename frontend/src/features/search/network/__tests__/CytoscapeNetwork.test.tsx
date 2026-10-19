@@ -162,6 +162,23 @@ describe('CytoscapeNetwork', () => {
     expect(screen.getByTestId('cytoscape-mock')).toBeInTheDocument()
   })
 
+  it('preview shows no legend and ignores search-page canvas state', () => {
+    useSearchStore.setState({ tissueFilter: ['liver'], tissueNodeSize: true })
+    const { container } = render(
+      <CytoscapeNetwork
+        proteins={proteins}
+        interactions={interactions}
+        queryProteinIds={[1]}
+        layout="cola"
+        preview
+      />
+    )
+    expect(screen.queryByText('Query node')).toBeNull()
+    expect(screen.queryByText(/Node size: expression/)).toBeNull()
+    expect((container.firstChild as HTMLElement).style.background).toBe('var(--bg)')
+    useSearchStore.setState({ tissueFilter: [], tissueNodeSize: false })
+  })
+
   it('does not crash with empty proteins and interactions', () => {
     render(
       <CytoscapeNetwork
