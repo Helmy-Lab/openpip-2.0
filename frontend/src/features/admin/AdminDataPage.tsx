@@ -12,6 +12,8 @@ import type { PublicationStatus } from '../../types/api'
 import { apiClient } from '../../api/client'
 import { startAsyncImport, pollImportStatus } from '../../api/asyncImport'
 import type { AsyncImportStatus } from '../../api/asyncImport'
+import { convertTableToMitab, splitTable } from '../../lib/convertTable'
+import type { ColumnTarget } from '../../lib/convertTable'
 
 // ─────────────────────────────────────────────────────────
 // Stat card
@@ -462,7 +464,14 @@ interface ValidationResult {
   valid: boolean
   errors: string[]
   detectedFormat: 'psimi' | 'csv'
+  // Set for a tab file in some other layout (e.g. FlyBI's fbgn1/gene1/...):
+  // the first line's cells, offered as column choices for conversion.
+  convertColumns?: string[]
 }
+
+// Two columns is a bare A/B list and 15 is TAB 2.5's width; anything between
+// is someone's own table, and reading its columns 1-2 as A and B loads nonsense.
+const MIN_PSIMI_COLS = 15
 
 async function validateUploadedFile(file: File): Promise<ValidationResult> {
   const snippet = await file.slice(0, 16384).text()
@@ -488,6 +497,15 @@ async function validateUploadedFile(file: File): Promise<ValidationResult> {
     errors.push('File has no data rows (all lines are comments or blank).')
     return { valid: false, errors, detectedFormat: 'psimi' }
   }
+  const width = dataLines[0].split('\t').length
+  if (width > 2 && width < MIN_PSIMI_COLS) {
+    errors.push(
+      `This file has ${width} columns, so it is not PSI-MI TAB (${MIN_PSIMI_COLS} or more). ` +
+        'Map its columns below to convert it.',
+    )
+    const convertColumns = lines[0].replace(/^#/, '').split('\t').map((c) => c.trim())
+    return { valid: false, errors, detectedFormat: 'psimi', convertColumns }
+  }
   const badRows = dataLines.slice(0, 10).filter((l) => {
     const cols = l.split('\t')
     return cols.length < 2 || !cols[0]?.trim() || !cols[1]?.trim()
@@ -495,6 +513,109 @@ async function validateUploadedFile(file: File): Promise<ValidationResult> {
   if (badRows.length > 0)
     errors.push('Some rows are missing Protein A or Protein B values (columns 1 and 2).')
   return { valid: errors.length === 0, errors, detectedFormat: 'psimi' }
+}
+
+const TARGET_OPTIONS: { value: ColumnTarget; label: string; single: boolean }[] = [
+  { value: 'annotation', label: 'Keep as annotation', single: false },
+  { value: 'a', label: 'Protein A identifier', single: true },
+  { value: 'b', label: 'Protein B identifier', single: true },
+  { value: 'alias_a', label: 'Protein A gene name', single: true },
+  { value: 'alias_b', label: 'Protein B gene name', single: true },
+  { value: 'taxon_a', label: 'Protein A taxon (taxid:N)', single: true },
+  { value: 'taxon_b', label: 'Protein B taxon (taxid:N)', single: true },
+  { value: 'score', label: 'Confidence score', single: true },
+]
+
+interface ConvertPanelProps {
+  file: File
+  columns: string[]
+  onConverted: (file: File) => void
+}
+
+function ConvertPanel({ file, columns, onConverted }: ConvertPanelProps) {
+  const [targets, setTargets] = useState<ColumnTarget[]>(() => columns.map(() => 'annotation'))
+  const [hasHeader, setHasHeader] = useState(true)
+  const [sample, setSample] = useState<string[]>([])
+
+  useEffect(() => {
+    file.slice(0, 16384).text().then((t) => setSample(splitTable(t)[1] ?? []))
+  }, [file])
+
+  const used = (t: ColumnTarget) => targets.filter((x) => x === t).length
+  const clash = TARGET_OPTIONS.find((o) => o.single && used(o.value) > 1)
+  const ready = used('a') === 1 && used('b') === 1 && !clash
+
+  const convert = async () => {
+    const header = PSIMI_COLS_SPEC.map((c) => c.name)
+    const mitab = convertTableToMitab(await file.text(), targets, hasHeader, header)
+    onConverted(new File([mitab], file.name, { type: 'text/tab-separated-values' }))
+  }
+
+  const th = { padding: '6px 10px', textAlign: 'left' as const, color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)' }
+  const td = { padding: '5px 10px', borderBottom: '1px solid var(--border)' }
+
+  return (
+    <div style={{ padding: '14px 16px', border: '1px solid var(--border)', borderRadius: 8, marginBottom: 20 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+        Convert to PSI-MI TAB
+      </div>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 12px' }}>
+        Choose the columns that identify Protein A and Protein B (UniProt accessions or gene names). Every other
+        column is kept: map it to a PSI-MI field, or leave it as an annotation, stored on each interaction as{' '}
+        <code style={{ fontFamily: 'var(--mono)' }}>column name:value</code>.
+      </p>
+      <div style={{ overflowX: 'auto', borderRadius: 6, border: '1px solid var(--border)', marginBottom: 12 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead style={{ background: 'var(--surface-2)' }}>
+            <tr>
+              <th style={th}>Column</th>
+              <th style={th}>First value</th>
+              <th style={th}>Import as</th>
+            </tr>
+          </thead>
+          <tbody>
+            {columns.map((c, i) => {
+              const name = hasHeader && c ? c : `Column ${i + 1}`
+              return (
+                <tr key={i}>
+                  <td style={{ ...td, color: 'var(--text)', fontWeight: 600 }}>{name}</td>
+                  <td style={{ ...td, color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>
+                    {(hasHeader ? sample[i] : c) || '-'}
+                  </td>
+                  <td style={td}>
+                    <select
+                      aria-label={`Import ${name} as`}
+                      className="op-input"
+                      value={targets[i]}
+                      onChange={(e) =>
+                        setTargets((ts) => ts.map((t, j) => (j === i ? (e.target.value as ColumnTarget) : t)))
+                      }
+                    >
+                      {TARGET_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text)', marginBottom: 12 }}>
+        <input type="checkbox" checked={hasHeader} onChange={(e) => setHasHeader(e.target.checked)} />
+        First row is column names
+      </label>
+      {clash && (
+        <div style={{ fontSize: 11, color: 'var(--warn)', marginBottom: 8 }}>
+          Only one column can be imported as {clash.label}.
+        </div>
+      )}
+      <button className="op-btn primary" onClick={convert} disabled={!ready}>
+        Convert file
+      </button>
+    </div>
+  )
 }
 
 interface Step1Props {
@@ -507,6 +628,7 @@ function Step1({ file, onChange, onNext }: Step1Props) {
   const [dragging, setDragging] = useState(false)
   const [validation, setValidation] = useState<ValidationResult | null>(null)
   const [validating, setValidating] = useState(false)
+  const [snippet, setSnippet] = useState<FileSnippet | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFile = useCallback(
@@ -514,6 +636,8 @@ function Step1({ file, onChange, onNext }: Step1Props) {
       onChange(f)
       setValidation(null)
       setValidating(true)
+      setSnippet(null)
+      parseFileSnippet(f).then(setSnippet)
       validateUploadedFile(f).then((result) => {
         setValidation(result)
         setValidating(false)
@@ -691,6 +815,12 @@ function Step1({ file, onChange, onNext }: Step1Props) {
             </>
           )}
         </div>
+      )}
+
+      {file && snippet && <FilePreview snippet={snippet} fileName={file.name} />}
+
+      {file && validation?.convertColumns && (
+        <ConvertPanel key={file.name} file={file} columns={validation.convertColumns} onConverted={handleFile} />
       )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -992,40 +1122,82 @@ function CitationFields({
 // Step 3 - dry-run preview
 // ─────────────────────────────────────────────────────────
 
-const PSIMI_COLS = [
-  { idx: 0,  label: 'Protein A' },
-  { idx: 1,  label: 'Protein B' },
-  { idx: 6,  label: 'Method' },
-  { idx: 8,  label: 'PubMed' },
-  { idx: 9,  label: 'Taxon A' },
-  { idx: 14, label: 'Score' },
-]
-
-const CSV_COLS = [
-  { idx: 0, label: 'Protein A' },
-  { idx: 1, label: 'Protein B' },
-  { idx: 2, label: 'Score' },
-  { idx: 3, label: 'PubMed' },
-]
-
 function isCsvFile(file: File): boolean {
   return file.name.toLowerCase().endsWith('.csv')
 }
 
-interface FileSnippet { rows: string[][]; totalRows: number; isCsv: boolean }
+const PREVIEW_ROWS = 5
 
+interface FileSnippet { header: string[]; rows: string[][]; totalRows: number }
+
+// Every column of the file, named from its own header where it has one. A tab
+// file's first row counts as a header when it is commented out (MITAB) or when
+// the file is some other table (3-14 columns, see MIN_PSIMI_COLS).
 function parseFileSnippet(file: File): Promise<FileSnippet> {
-  const csv = isCsvFile(file)
   return file.text().then((text) => {
-    if (csv) {
-      const lines = text.split('\n').filter((l) => l.trim())
-      // lines[0] is the header - skip it for data rows
-      const dataLines = lines.slice(1)
-      return { rows: dataLines.slice(0, 5).map((l) => l.split(',')), totalRows: dataLines.length, isCsv: true }
+    const lines = text.split(/\r?\n/).filter((l) => l.trim())
+    if (isCsvFile(file)) {
+      const data = lines.slice(1)
+      return { header: (lines[0] ?? '').split(','), rows: data.slice(0, PREVIEW_ROWS).map((l) => l.split(',')), totalRows: data.length }
     }
-    const dataLines = text.split('\n').filter((l) => l.trim() && !l.startsWith('#'))
-    return { rows: dataLines.slice(0, 5).map((l) => l.split('\t')), totalRows: dataLines.length, isCsv: false }
+    let data = lines.filter((l) => !l.startsWith('#')).map((l) => l.split('\t'))
+    const width = data[0]?.length ?? 0
+    let header: string[] = []
+    if (lines[0]?.startsWith('#')) header = lines[0].slice(1).split('\t')
+    else if (width > 2 && width < MIN_PSIMI_COLS) [header, data] = [data[0], data.slice(1)]
+    // Unnamed columns of a MITAB-wide file take their PSI-MI names.
+    if (width >= MIN_PSIMI_COLS || width <= 2)
+      header = Array.from({ length: width }, (_, i) => header[i]?.trim() || PSIMI_COLS_SPEC[i]?.name || '')
+    return { header, rows: data.slice(0, PREVIEW_ROWS), totalRows: data.length }
   })
+}
+
+function FilePreview({ snippet, fileName }: { snippet: FileSnippet; fileName: string }) {
+  const width = Math.max(snippet.header.length, ...snippet.rows.map((r) => r.length))
+  const filled = (i: number) => snippet.rows.some((r) => r[i]?.trim() && r[i].trim() !== '-')
+  // An all-dash column carries nothing, and MITAB files are mostly those.
+  let cols = Array.from({ length: width }, (_, i) => i).filter(filled)
+  if (cols.length === 0) cols = Array.from({ length: width }, (_, i) => i)
+  const hidden = width - cols.length
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8, display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+        File contents
+        <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
+          {snippet.totalRows.toLocaleString()} data rows · {width} columns
+          {hidden > 0 && ` (${hidden} empty hidden)`} · {fileName}
+        </span>
+      </div>
+      <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid var(--border)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'var(--mono)' }}>
+          <thead>
+            <tr style={{ background: 'var(--surface-2)' }}>
+              {cols.map((i) => (
+                <th key={i} style={{ padding: '7px 12px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>
+                  {snippet.header[i]?.trim() || `Column ${i + 1}`}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {snippet.rows.map((row, ri) => (
+              <tr key={ri} style={{ borderBottom: ri < snippet.rows.length - 1 ? '1px solid var(--border)' : undefined }}>
+                {cols.map((i) => {
+                  const val = row[i]?.trim() || '-'
+                  return (
+                    <td key={i} title={val} style={{ padding: '6px 12px', color: 'var(--text)', whiteSpace: 'nowrap' }}>
+                      {val.length > 40 ? val.slice(0, 40) + '…' : val}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
 }
 
 const BATCH = 500
@@ -1126,43 +1298,7 @@ function Step3({ state, onBack, onNext }: Step3Props) {
   return (
     <div>
       {/* File snippet - shown immediately from local parse */}
-      {snippet && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8, display: 'flex', gap: 10, alignItems: 'baseline' }}>
-            File contents
-            <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
-              {snippet.totalRows.toLocaleString()} data rows · {state.file?.name}
-            </span>
-          </div>
-          <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid var(--border)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'var(--mono)' }}>
-              <thead>
-                <tr style={{ background: 'var(--surface-2)' }}>
-                  {(snippet.isCsv ? CSV_COLS : PSIMI_COLS).map((c) => (
-                    <th key={c.idx} style={{ padding: '7px 12px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>
-                      {c.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {snippet.rows.map((row, ri) => (
-                  <tr key={ri} style={{ borderBottom: ri < snippet.rows.length - 1 ? '1px solid var(--border)' : undefined }}>
-                    {(snippet.isCsv ? CSV_COLS : PSIMI_COLS).map((c) => {
-                      const val = row[c.idx] ?? '-'
-                      return (
-                        <td key={c.idx} title={val} style={{ padding: '6px 12px', color: 'var(--text)', whiteSpace: 'nowrap' }}>
-                          {val.length > 30 ? val.slice(0, 30) + '…' : val || '-'}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {snippet && <FilePreview snippet={snippet} fileName={state.file?.name ?? ''} />}
 
       {/* Progress bar - real batched progress */}
       <div style={{ marginBottom: 16 }}>
