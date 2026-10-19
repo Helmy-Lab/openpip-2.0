@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { SearchResultsPage } from '../search/SearchResultsPage'
-import { useShare, useCreateSavedView } from '../../api/sharing'
+import { useShare, useCreateSavedView, NOTE_MAX } from '../../api/sharing'
 import { useProfile } from '../../api/auth'
 import { ShareComments } from './ShareComments'
 import { Modal } from '../search/modals/Modal'
@@ -46,6 +46,7 @@ function ShareBanner({ shareId, share }: { shareId: number; share: ReturnType<ty
   const [showComments, setShowComments] = useState(false)
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [copyName, setCopyName] = useState('')
+  const [copyNote, setCopyNote] = useState('')
   const [saved, setSaved] = useState(false)
   const [failed, setFailed] = useState(false)
   const createView = useCreateSavedView()
@@ -62,6 +63,7 @@ function ShareBanner({ shareId, share }: { shareId: number; share: ReturnType<ty
       // has likely been adjusting them since opening this view.
       await createView.mutateAsync({
         name: copyName.trim() || share!.saved_view.name,
+        note: copyNote.trim(),
         query: share!.saved_view.query,
         state: captureViewState(),
       })
@@ -104,6 +106,7 @@ function ShareBanner({ shareId, share }: { shareId: number; share: ReturnType<ty
             className="op-btn"
             onClick={() => {
               setCopyName(share.saved_view.name)
+              setCopyNote('')
               setSaved(false)
               setFailed(false)
               setShowSaveModal(true)
@@ -139,6 +142,26 @@ function ShareBanner({ shareId, share }: { shareId: number; share: ReturnType<ty
               color: 'var(--text)',
               border: '1px solid var(--border)',
               borderRadius: 6,
+            }}
+          />
+          <label htmlFor="copy-view-note" style={{ fontSize: 13, color: 'var(--text-soft)' }}>
+            Note (optional, only you see it)
+          </label>
+          <textarea
+            id="copy-view-note"
+            value={copyNote}
+            onChange={(e) => setCopyNote(e.target.value)}
+            maxLength={NOTE_MAX}
+            rows={3}
+            style={{
+              width: '100%',
+              marginTop: 4,
+              padding: '6px 8px',
+              background: 'var(--bg)',
+              color: 'var(--text)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              resize: 'vertical',
             }}
           />
           {failed && (

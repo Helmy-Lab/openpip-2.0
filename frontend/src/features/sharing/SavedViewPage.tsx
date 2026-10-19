@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { SearchResultsPage } from '../search/SearchResultsPage'
-import { useSavedViews } from '../../api/sharing'
+import { useSavedViews, savedViewTimes } from '../../api/sharing'
 
 /**
  * One of your own saved views, opened with the filters and layout it was
@@ -26,5 +26,20 @@ export function SavedViewPage() {
     )
   }
 
-  return <SearchResultsPage term={view.query} viewState={view.state} />
+  const banner = (
+    <div
+      style={{
+        padding: '10px 16px',
+        borderBottom: '1px solid var(--border)',
+        fontSize: 13,
+        color: 'var(--text)',
+      }}
+    >
+      <strong>{view.name}</strong>
+      <span style={{ color: 'var(--text-muted)' }}> · {savedViewTimes(view)}</span>
+      {view.note && <p style={{ margin: '6px 0 0', whiteSpace: 'pre-wrap' }}>{view.note}</p>}
+    </div>
+  )
+
+  return <SearchResultsPage term={view.query} viewState={view.state} banner={banner} />
 }

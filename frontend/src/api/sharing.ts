@@ -17,6 +17,23 @@ export interface SavedView {
   updated_at: string
 }
 
+/** The server's cap on a saved view's note. */
+export const NOTE_MAX = 2000
+
+/**
+ * "Saved <when>", plus "edited <when>" once the view changed after saving —
+ * in practice its note, the only thing the site edits. The two timestamps are
+ * stamped microseconds apart on create, so a second's slack separates them.
+ */
+export function savedViewTimes(view: Pick<SavedView, 'created_at' | 'updated_at'>): string {
+  const created = new Date(view.created_at)
+  const updated = new Date(view.updated_at)
+  const saved = `Saved ${created.toLocaleString()}`
+  return updated.getTime() - created.getTime() > 1000
+    ? `${saved} · edited ${updated.toLocaleString()}`
+    : saved
+}
+
 /** What a no-login visitor gets from a public link. */
 export interface PublicView {
   name: string
@@ -61,7 +78,7 @@ export function useSavedViews() {
 export function useCreateSavedView() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: { name: string; query: string; state: Partial<ViewState> }) =>
+    mutationFn: (body: { name: string; query: string; state: Partial<ViewState>; note?: string }) =>
       apiClient.post('/saved-views/', body).then((r) => r.data as SavedView),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['savedViews'] }),
   })
