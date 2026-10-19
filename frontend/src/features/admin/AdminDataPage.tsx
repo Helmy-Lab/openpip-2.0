@@ -12,7 +12,7 @@ import type { PublicationStatus } from '../../types/api'
 import { apiClient } from '../../api/client'
 import { startAsyncImport, pollImportStatus } from '../../api/asyncImport'
 import type { AsyncImportStatus } from '../../api/asyncImport'
-import { convertTableToMitab, splitTable } from '../../lib/convertTable'
+import { candidatePairs, convertTableToMitab, nameRank, splitTable } from '../../lib/convertTable'
 import type { ColumnTarget } from '../../lib/convertTable'
 
 // ─────────────────────────────────────────────────────────
@@ -536,10 +536,42 @@ function ConvertPanel({ file, columns, onConverted }: ConvertPanelProps) {
   const [targets, setTargets] = useState<ColumnTarget[]>(() => columns.map(() => 'annotation'))
   const [hasHeader, setHasHeader] = useState(true)
   const [sample, setSample] = useState<string[]>([])
+  const [guess, setGuess] = useState<string | null>(null)
+  const touched = useRef(false)
 
   useEffect(() => {
-    file.slice(0, 16384).text().then((t) => setSample(splitTable(t)[1] ?? []))
-  }, [file])
+    let cancelled = false
+    file.slice(0, 65536).text().then(async (t) => {
+      const rows = splitTable(t).slice(1, 51)
+      if (cancelled) return
+      setSample(rows[0] ?? [])
+      const pairs = candidatePairs(columns)
+      if (pairs.length === 0) return
+      // Prefer the pair whose sample values the database already knows; with no
+      // matches (a new organism) fall back to what the column names suggest.
+      const scored = await Promise.all(
+        pairs.map(async ([a, b]) => {
+          const ids = [...new Set(rows.flatMap((r) => [r[a], r[b]]).filter((v) => v && v !== '-'))]
+          const known = await apiClient
+            .post<{ existing: number }>('/datasets/check-proteins', { identifiers: ids })
+            .then((r) => r.data.existing, () => 0)
+          return { a, b, known, rank: nameRank(columns[a]) }
+        }),
+      )
+      scored.sort((x, y) => y.known - x.known || x.rank - y.rank)
+      const best = scored[0]
+      if (cancelled || touched.current) return
+      setTargets(columns.map((_, i) => (i === best.a ? 'a' : i === best.b ? 'b' : 'annotation')))
+      setGuess(
+        `Guessed ${columns[best.a]} and ${columns[best.b]} as Protein A and B` +
+          (best.known ? ` (${best.known} of their sample values are already in openPIP)` : ' from the column names') +
+          '. Check before converting.',
+      )
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [file, columns])
 
   const used = (t: ColumnTarget) => targets.filter((x) => x === t).length
   const clash = TARGET_OPTIONS.find((o) => o.single && used(o.value) > 1)
@@ -587,9 +619,10 @@ function ConvertPanel({ file, columns, onConverted }: ConvertPanelProps) {
                       aria-label={`Import ${name} as`}
                       className="op-input"
                       value={targets[i]}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        touched.current = true
                         setTargets((ts) => ts.map((t, j) => (j === i ? (e.target.value as ColumnTarget) : t)))
-                      }
+                      }}
                     >
                       {TARGET_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
@@ -602,6 +635,11 @@ function ConvertPanel({ file, columns, onConverted }: ConvertPanelProps) {
           </tbody>
         </table>
       </div>
+      {guess && (
+        <div role="status" style={{ fontSize: 12, color: 'var(--primary)', marginBottom: 12 }}>
+          {guess}
+        </div>
+      )}
       <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text)', marginBottom: 12 }}>
         <input type="checkbox" checked={hasHeader} onChange={(e) => setHasHeader(e.target.checked)} />
         First row is column names
