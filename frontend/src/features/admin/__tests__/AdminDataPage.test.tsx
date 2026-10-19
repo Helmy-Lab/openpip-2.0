@@ -115,6 +115,30 @@ describe('AdminDataPage', () => {
     await waitFor(() => expect(screen.getByText('huri-2024.tab')).toBeInTheDocument())
   })
 
+  it('previews every column, then converts a non-PSI-MI table to PSI-MI TAB', async () => {
+    render(<AdminDataPage />, { wrapper })
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const flybi =
+      'fbgn1\tgene1\tfbgn2\tgene2\tdirection\tscreens\tassays\n' +
+      'FBgn0020238\t14-3-3epsilon\tFBgn0033925\tCG8617\tad->db\tScreen_1\tassay version 1\n'
+    fireEvent.change(input, { target: { files: [new File([flybi], 'flybi_2023.tsv')] } })
+
+    await waitFor(() => expect(screen.getByText(/has 7 columns/)).toBeInTheDocument())
+    // The preview shows all seven columns, not a fixed few.
+    expect(screen.getByRole('columnheader', { name: 'assays' })).toBeInTheDocument()
+    expect(screen.getByText(/1 data rows · 7 columns/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /next →/i })).toBeDisabled()
+
+    fireEvent.change(screen.getByLabelText('Import gene1 as'), { target: { value: 'a' } })
+    fireEvent.change(screen.getByLabelText('Import gene2 as'), { target: { value: 'b' } })
+    fireEvent.click(screen.getByRole('button', { name: /convert file/i }))
+
+    await waitFor(() => expect(screen.getByText(/Detected format: PSI-MI TAB/)).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: /next →/i })).not.toBeDisabled()
+    // Unmapped columns survive as annotations in column 28.
+    expect(screen.getByText(/fbgn1:FBgn0020238\|fbgn2:FBgn0033925/)).toBeInTheDocument()
+  })
+
   // ── Step 2 ───────────────────────────────────────────────
 
   async function goToStep2() {
