@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { ProfileSharingSections } from '../ProfileSharingSections'
@@ -36,7 +36,9 @@ const NETWORK = {
   name: 'BAD neighbours',
   query: 'BAD',
   interaction_count: 12,
+  note: '',
   created_at: '2026-08-20T00:00:00Z',
+  updated_at: '2026-08-20T00:00:00Z',
 }
 
 describe('ProfileSharingSections', () => {
@@ -60,6 +62,23 @@ describe('ProfileSharingSections', () => {
 
     // Only the live view can be shared; a snapshot has nothing to re-run.
     expect(screen.getAllByRole('button', { name: 'Share' })).toHaveLength(1)
+  })
+
+  it('lets the owner add a note to a saved network and marks it edited', async () => {
+    render(<ProfileSharingSections />, { wrapper: Wrapper })
+    await screen.findByText('BAD neighbours')
+
+    const [, networkDetails] = screen.getAllByRole('button', { name: 'Details' })
+    fireEvent.click(networkDetails)
+    fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
+    fireEvent.change(screen.getByLabelText('Notes on BAD neighbours'), {
+      target: { value: '<b>check BAX</b>' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
+
+    // Plain text, never markup.
+    await waitFor(() => expect(screen.getByText('<b>check BAX</b>')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getAllByText(/edited/)).toHaveLength(1))
   })
 
   it('opens a view by its own route, so its filters come back', async () => {

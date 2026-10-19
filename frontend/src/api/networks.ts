@@ -31,6 +31,9 @@ interface SavedNetworkDetail {
   score_parameter: string
   category_array: string
   tissue_expression_array: string
+  note: string
+  created_at: string | null
+  updated_at: string | null
 }
 
 export function useSaveNetwork() {
@@ -43,7 +46,20 @@ export function useSaveNetwork() {
       category_array: string
       tissue_expression_array: string
       interaction_ids: number[]
+      note?: string
     }) => apiClient.post('/networks', body).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['networks'] })
+    },
+  })
+}
+
+/** Change a saved network's note. Owner only. */
+export function useUpdateNetworkNote() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, note }: { id: number; note: string }) =>
+      apiClient.patch(`/networks/${id}`, { note }).then((r) => r.data as SavedNetwork),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['networks'] })
     },

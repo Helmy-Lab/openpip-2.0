@@ -27,19 +27,33 @@ export const networksHandlers = [
       name: string
       query: string
       interaction_ids: number[]
+      note?: string
     }
+    const now = new Date().toISOString()
     const network: SavedNetwork = {
       id: nextId++,
       name: body.name,
       query: body.query,
       interaction_count: body.interaction_ids.length,
-      created_at: new Date().toISOString(),
+      note: body.note ?? '',
+      created_at: now,
+      updated_at: now,
     }
     store.push(network)
     return HttpResponse.json(
       { id: network.id, name: network.name, interaction_count: network.interaction_count },
       { status: 201 },
     )
+  }),
+
+  http.patch('/api/networks/:id', async ({ params, request }) => {
+    const auth = request.headers.get('Authorization')
+    if (!auth) return HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 })
+    const network = store.find((n) => n.id === Number(params.id))
+    if (!network) return HttpResponse.json({ detail: 'Not found' }, { status: 404 })
+    const { note } = (await request.json()) as { note: string }
+    Object.assign(network, { note, updated_at: new Date(Date.now() + 5000).toISOString() })
+    return HttpResponse.json(network)
   }),
 
   http.delete('/api/networks/:id', ({ params, request }) => {
