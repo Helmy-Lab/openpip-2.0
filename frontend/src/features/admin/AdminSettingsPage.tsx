@@ -172,6 +172,7 @@ const TAB_CONFIG: Record<TabId, TabConfig> = {
       'example1Type', 'example2Type', 'example3Type',
       'showTissueExpression', 'showSubcellularLocation',
       'horizontalFilterBar', 'canvasBackgroundColor',
+      'proteinLinkTarget', 'proteinLinkTemplate',
     ],
     // The phrase examples live beside the gene ones they sit next to on the
     // page, rather than on Home where the rest of the hero copy is edited.
@@ -1644,6 +1645,36 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             >
               Follow theme
             </button>
+          </div>
+        </Section>
+
+        <Section title="Gene links in result tables">
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 14px', maxWidth: '62ch' }}>
+            Where a gene name in the interaction and interactor tables leads.
+            A custom URL fills in <code>{'{gene}'}</code>, <code>{'{uniprot}'}</code>,{' '}
+            <code>{'{entrez}'}</code> and <code>{'{ensembl}'}</code>.
+          </p>
+          <div style={{ maxWidth: 520 }}>
+            <FieldLabel changed={changedFields.includes('proteinLinkTarget')} onRevert={() => revertField('proteinLinkTarget')}>Link to</FieldLabel>
+            <select
+              value={form.proteinLinkTarget ?? 'ncbi'}
+              onChange={(e) => set('proteinLinkTarget', e.target.value as AdminSettings['proteinLinkTarget'])}
+              style={SELECT_STYLE}
+            >
+              <option value="ncbi">NCBI Gene</option>
+              <option value="protein_page">This portal's protein page</option>
+              <option value="custom">Custom URL</option>
+            </select>
+            {form.proteinLinkTarget === 'custom' && (
+              <div style={{ marginTop: 12 }}>
+                <FieldLabel changed={changedFields.includes('proteinLinkTemplate')} onRevert={() => revertField('proteinLinkTemplate')}>URL template</FieldLabel>
+                <TextInput
+                  value={form.proteinLinkTemplate ?? ''}
+                  onChange={(v) => set('proteinLinkTemplate', v)}
+                  placeholder="https://example.org/gene/{gene}"
+                />
+              </div>
+            )}
           </div>
         </Section>
 

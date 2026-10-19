@@ -1,3 +1,5 @@
+from urllib.parse import urlsplit
+
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import AdminSettings, Announcement, SiteText
@@ -112,6 +114,17 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
         allow_blank=True,
         required=False,
     )
+    proteinLinkTarget = serializers.ChoiceField(
+        source="protein_link_target",
+        choices=["ncbi", "protein_page", "custom"],
+        required=False,
+    )
+    proteinLinkTemplate = serializers.CharField(
+        source="protein_link_template",
+        allow_null=True,
+        allow_blank=True,
+        required=False,
+    )
     showDownloads = serializers.BooleanField(source="show_downloads", required=False)
     showDownloadAll = serializers.BooleanField(
         source="show_download_all", required=False
@@ -171,6 +184,8 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
             "showSubcellularLocation",
             "horizontalFilterBar",
             "canvasBackgroundColor",
+            "proteinLinkTarget",
+            "proteinLinkTemplate",
             "showDownloads",
             "showDownloadAll",
             "example1",
@@ -198,6 +213,34 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
                 ).values_list("key", "value")
             )
         return self._home_prose
+
+    def validate_proteinLinkTemplate(self, value: str | None) -> str | None:
+        """Only absolute http(s) URLs: the template becomes a link's href, so a
+        javascript: or data: URL would run in visitors' browsers."""
+        if not value:
+            return value
+        value = value.strip()
+        parts = urlsplit(value)
+        if parts.scheme.lower() not in ("http", "https") or not parts.netloc:
+            raise serializers.ValidationError(
+                "Must be an http:// or https:// URL, e.g. "
+                "https://example.org/gene/{gene}."
+            )
+        return value
+
+    def validate(self, attrs: dict) -> dict:
+        target = attrs.get(
+            "protein_link_target", getattr(self.instance, "protein_link_target", None)
+        )
+        template = attrs.get(
+            "protein_link_template",
+            getattr(self.instance, "protein_link_template", None),
+        )
+        if target == "custom" and not template:
+            raise serializers.ValidationError(
+                {"proteinLinkTemplate": "A custom link needs a URL template."}
+            )
+        return attrs
 
     def get_logoUrl(self, obj):
         if not obj.logo:

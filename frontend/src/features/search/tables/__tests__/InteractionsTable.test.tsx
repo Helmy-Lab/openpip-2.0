@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
+import { renderWithProviders } from '../../../../test/renderWithProviders'
 import { InteractionsTable } from '../InteractionsTable'
 import { searchFixture } from '../../../../mocks/fixtures/search'
 
@@ -7,7 +8,7 @@ const { all_proteins: proteins, all_interactions: interactions } = searchFixture
 
 describe('InteractionsTable', () => {
   it('renders column headers', () => {
-    render(<InteractionsTable interactions={interactions} proteins={proteins} />)
+    renderWithProviders(<InteractionsTable interactions={interactions} proteins={proteins} />)
     expect(screen.getByText('Interactor A')).toBeInTheDocument()
     expect(screen.getByText('Interactor B')).toBeInTheDocument()
     expect(screen.getByText('Score')).toBeInTheDocument()
@@ -16,7 +17,7 @@ describe('InteractionsTable', () => {
   })
 
   it('renders rows with gene names from all three interactions', () => {
-    render(<InteractionsTable interactions={interactions} proteins={proteins} />)
+    renderWithProviders(<InteractionsTable interactions={interactions} proteins={proteins} />)
     // BAD appears as interactor A in interactions 1 and 3
     const badCells = screen.getAllByText('BAD')
     expect(badCells.length).toBeGreaterThanOrEqual(1)
@@ -29,14 +30,14 @@ describe('InteractionsTable', () => {
   })
 
   it('renders category badge with correct text', () => {
-    render(<InteractionsTable interactions={interactions} proteins={proteins} />)
+    renderWithProviders(<InteractionsTable interactions={interactions} proteins={proteins} />)
     expect(screen.getByText('Published')).toBeInTheDocument()
     expect(screen.getByText('Validated')).toBeInTheDocument()
     expect(screen.getByText('Literature')).toBeInTheDocument()
   })
 
   it('formats score to 2 decimal places', () => {
-    render(<InteractionsTable interactions={interactions} proteins={proteins} />)
+    renderWithProviders(<InteractionsTable interactions={interactions} proteins={proteins} />)
     // interaction 1 has score 0.82
     expect(screen.getByText('0.82')).toBeInTheDocument()
     // interaction 2 has score 0.65

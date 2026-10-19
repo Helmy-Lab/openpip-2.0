@@ -1,25 +1,21 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { screen } from '@testing-library/react'
+import { renderWithProviders } from '../../../../test/renderWithProviders'
 import { InteractorsTable } from '../InteractorsTable'
 import { searchFixture } from '../../../../mocks/fixtures/search'
 
 const { all_proteins: proteins, query_protein_id_array: queryProteinIds } = searchFixture
 
-function wrapper({ children }: { children: React.ReactNode }) {
-  return <MemoryRouter>{children}</MemoryRouter>
-}
-
 describe('InteractorsTable', () => {
   it('renders protein gene names', () => {
-    render(<InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />, { wrapper })
+    renderWithProviders(<InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />)
     expect(screen.getByText('BAD')).toBeInTheDocument()
     expect(screen.getByText('BCL2L1')).toBeInTheDocument()
     expect(screen.getByText('BAK1')).toBeInTheDocument()
   })
 
   it('shows "Query" for proteins in queryProteinIds and "Interactor" for others', () => {
-    render(<InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />, { wrapper })
+    renderWithProviders(<InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />)
     // queryProteinIds = [1, 2] → BAD (id=1) and BCL2L1 (id=2) are Query
     // BAK1 (id=3) is Interactor
     const queryBadges = screen.getAllByText('Query')
@@ -29,15 +25,16 @@ describe('InteractorsTable', () => {
   })
 
   it('links gene names out to NCBI Gene via the Entrez ID', () => {
-    render(<InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />, { wrapper })
+    renderWithProviders(<InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />)
     // BAD → Entrez 572
     const badLink = screen.getByRole('link', { name: 'BAD' })
     expect(badLink).toHaveAttribute('href', 'https://www.ncbi.nlm.nih.gov/gene/572')
     expect(badLink).toHaveAttribute('target', '_blank')
+    expect(badLink).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
   it('renders UniProt links for each protein', () => {
-    render(<InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />, { wrapper })
+    renderWithProviders(<InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />)
     // BAD → Q92934
     const badLink = screen.getByRole('link', { name: 'Q92934' })
     expect(badLink).toHaveAttribute('href', 'https://www.uniprot.org/uniprot/Q92934')

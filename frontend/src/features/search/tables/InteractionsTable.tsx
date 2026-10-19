@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-table'
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import type { Interaction, Protein } from '../../../types/api'
-import { ncbiGeneUrl } from './ncbi'
+import { GeneLink } from './GeneLink'
 
 interface InteractionsTableProps {
   interactions: Interaction[]
@@ -49,7 +49,7 @@ function SortIcon({ isSorted }: { isSorted: false | 'asc' | 'desc' }) {
 
 type Interactor = Interaction['interactor_A']
 
-function GeneLink({
+function InteractorLink({
   interactor,
   entrezById,
 }: {
@@ -59,14 +59,14 @@ function GeneLink({
   const name = interactor.protein_gene_name
   if (!name) return <>—</>
   return (
-    <a
-      href={ncbiGeneUrl(entrezById.get(interactor.protein_id), name)}
-      target="_blank"
-      rel="noreferrer"
-      style={{ color: 'var(--accent)', textDecoration: 'underline' }}
-    >
-      {name}
-    </a>
+    <GeneLink
+      ids={{
+        gene: name,
+        uniprot: interactor.protein_uniprot_id,
+        entrez: entrezById.get(interactor.protein_id),
+        ensembl: interactor.protein_ensembl_id,
+      }}
+    />
   )
 }
 
@@ -77,7 +77,7 @@ function buildColumns(entrezById: Map<number, string>): ColumnDef<Interaction>[]
       id: 'interactorA',
       header: 'Interactor A',
       cell: ({ row }) => (
-        <GeneLink interactor={row.original.interactor_A} entrezById={entrezById} />
+        <InteractorLink interactor={row.original.interactor_A} entrezById={entrezById} />
       ),
     },
     {
@@ -85,7 +85,7 @@ function buildColumns(entrezById: Map<number, string>): ColumnDef<Interaction>[]
       id: 'interactorB',
       header: 'Interactor B',
       cell: ({ row }) => (
-        <GeneLink interactor={row.original.interactor_B} entrezById={entrezById} />
+        <InteractorLink interactor={row.original.interactor_B} entrezById={entrezById} />
       ),
     },
     {
