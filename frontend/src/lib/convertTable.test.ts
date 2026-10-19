@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { convertTableToMitab, MITAB_OUT_WIDTH } from './convertTable'
+import { candidatePairs, convertTableToMitab, MITAB_OUT_WIDTH, nameRank } from './convertTable'
 
 const HEADER = Array.from({ length: 46 }, (_, i) => `c${i + 1}`)
 
@@ -24,5 +24,22 @@ describe('convertTableToMitab', () => {
   it('writes gene name aliases in the form the parser reads', () => {
     const out = convertTableToMitab('P1\tP2\tTP53\n', ['a', 'b', 'alias_a'], false, HEADER)
     expect(out.trim().split('\n')[1].split('\t')[4]).toBe('TP53(gene name)')
+  })
+})
+
+describe('candidatePairs', () => {
+  it('finds 1/2, a/b and bait/prey pairs with the A side first', () => {
+    const flybi = ['fbgn1 r645', 'gene1 r645', 'fbgn2 r645', 'gene2 r645', 'direction', 'screens', 'assays']
+    expect(candidatePairs(flybi)).toEqual([
+      [0, 2],
+      [1, 3],
+    ])
+    expect(candidatePairs(['Protein_B', 'score', 'Protein_A'])).toEqual([[2, 0]])
+    expect(candidatePairs(['bait_id', 'prey_id'])).toEqual([[0, 1]])
+    expect(candidatePairs(['direction', 'screens'])).toEqual([])
+  })
+
+  it('ranks gene symbols above other identifier columns', () => {
+    expect(nameRank('gene1 r645')).toBeLessThan(nameRank('fbgn1 r645'))
   })
 })

@@ -58,3 +58,39 @@ export function convertTableToMitab(
   }
   return out.join('\n') + '\n'
 }
+
+// Column pairs that look like the two sides of an interaction: names that
+// differ only by 1/2 or a/b in one place (gene1/gene2, protein_a/protein_b,
+// "ID interactor A"/"ID interactor B"), or by bait/prey. A side comes first.
+export function candidatePairs(header: string[]): [number, number][] {
+  const names = header.map((h) => h.toLowerCase().replace(/^#/, '').trim())
+  const sides = (x: string, y: string) => {
+    if (x.length !== y.length || x === y) return 0
+    const diff = [...x].map((c, k) => (c === y[k] ? null : c + y[k])).filter(Boolean)
+    if (diff.length !== 1) return 0
+    if (diff[0] === '12' || diff[0] === 'ab') return 1
+    if (diff[0] === '21' || diff[0] === 'ba') return -1
+    return 0
+  }
+  const pairs: [number, number][] = []
+  names.forEach((x, i) =>
+    names.forEach((y, j) => {
+      if (j <= i) return
+      const s =
+        sides(x, y) || (x.replace('bait', 'prey') === y ? 1 : y.replace('bait', 'prey') === x ? -1 : 0)
+      if (s === 1) pairs.push([i, j])
+      if (s === -1) pairs.push([j, i])
+    }),
+  )
+  return pairs
+}
+
+// Tie-break between pairs no database match tells apart: identifier kinds the
+// importer understands come first, so FBgn-style IDs lose to gene symbols.
+export function nameRank(name: string): number {
+  const n = name.toLowerCase()
+  if (/uniprot|accession/.test(n)) return 0
+  if (/gene|symbol|name/.test(n)) return 1
+  if (/ensembl|entrez/.test(n)) return 2
+  return 3
+}

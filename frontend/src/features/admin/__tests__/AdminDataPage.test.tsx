@@ -129,8 +129,10 @@ describe('AdminDataPage', () => {
     expect(screen.getByText(/1 data rows · 7 columns/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /next →/i })).toBeDisabled()
 
-    fireEvent.change(screen.getByLabelText('Import gene1 as'), { target: { value: 'a' } })
-    fireEvent.change(screen.getByLabelText('Import gene2 as'), { target: { value: 'b' } })
+    // The A/B pair is guessed: gene symbols win over FBgn IDs on a tie.
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Guessed gene1 and gene2 as Protein A and B/))
+    expect(screen.getByLabelText('Import gene1 as')).toHaveValue('a')
+    expect(screen.getByLabelText('Import gene2 as')).toHaveValue('b')
     fireEvent.click(screen.getByRole('button', { name: /convert file/i }))
 
     await waitFor(() => expect(screen.getByText(/Detected format: PSI-MI TAB/)).toBeInTheDocument())
