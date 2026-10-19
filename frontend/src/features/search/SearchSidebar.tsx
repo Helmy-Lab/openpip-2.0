@@ -409,7 +409,7 @@ export function SearchSidebar({
       : t('search.sidebar.tissue')
 
   const tissueBody = (
-            <div role="group" aria-label={t('search.sidebar.tissue')}>
+            <div role="group" aria-label={t('search.sidebar.tissue')} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             {tissueOptions.length === 0 ? (
               <p style={{ fontSize: 12, color: 'var(--text-soft)', margin: '4px 0 0' }}>
                 {t('search.sidebar.noTissueData')}
@@ -435,7 +435,12 @@ export function SearchSidebar({
                     {t(textKey)}
                   </label>
                 ))}
-                <div style={{ maxHeight: 168, overflowY: 'auto', paddingRight: 4, marginTop: 6, borderTop: '1px solid var(--border)', paddingTop: 4 }}>
+                {/* In the ribbon the list fills its column down to the panel's
+                    bottom; `contain: size` keeps it from growing the panel. */}
+                <div style={{
+                  ...(variant === 'ribbon' ? { flex: 1, minHeight: 168, contain: 'size' } : { maxHeight: 168 }),
+                  overflowY: 'auto', paddingRight: 4, marginTop: 6, borderTop: '1px solid var(--border)', paddingTop: 4,
+                }}>
                   {tissueOptions.map((key) => (
                     <label
                       key={key}
@@ -637,7 +642,7 @@ export function SearchSidebar({
   const ribbonTissue = term && showTissue && tissueOptions.length > 0
   const filtersSection = (
     <Section variant={variant} label={t('search.filter')} width={ribbonTissue ? 520 : 300}>
-      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'stretch' }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {term && (
             <div>
@@ -657,7 +662,7 @@ export function SearchSidebar({
           )}
         </div>
         {ribbonTissue && (
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
             <span style={subLabel}>{tissueLabelText}</span>
             {tissueBody}
           </div>
