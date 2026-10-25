@@ -537,6 +537,8 @@ function ConvertPanel({ file, columns, onConverted }: ConvertPanelProps) {
   const [hasHeader, setHasHeader] = useState(true)
   const [sample, setSample] = useState<string[]>([])
   const [guess, setGuess] = useState<string | null>(null)
+  const [taxid, setTaxid] = useState('')
+  const [organism, setOrganism] = useState('')
   const touched = useRef(false)
 
   useEffect(() => {
@@ -576,10 +578,13 @@ function ConvertPanel({ file, columns, onConverted }: ConvertPanelProps) {
   const used = (t: ColumnTarget) => targets.filter((x) => x === t).length
   const clash = TARGET_OPTIONS.find((o) => o.single && used(o.value) > 1)
   const ready = used('a') === 1 && used('b') === 1 && !clash
+  const noTaxon = used('taxon_a') === 0 && used('taxon_b') === 0
 
   const convert = async () => {
     const header = PSIMI_COLS_SPEC.map((c) => c.name)
-    const mitab = convertTableToMitab(await file.text(), targets, hasHeader, header)
+    const name = organism.replace(/[()|]/g, ' ').trim() || taxid
+    const taxon = taxid ? `taxid:${taxid}(${name})` : undefined
+    const mitab = convertTableToMitab(await file.text(), targets, hasHeader, header, taxon)
     onConverted(new File([mitab], file.name, { type: 'text/tab-separated-values' }))
   }
 
@@ -644,6 +649,34 @@ function ConvertPanel({ file, columns, onConverted }: ConvertPanelProps) {
         <input type="checkbox" checked={hasHeader} onChange={(e) => setHasHeader(e.target.checked)} />
         First row is column names
       </label>
+      {noTaxon && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: 'var(--text)', marginBottom: 6 }}>
+            Organism for every row (no column holds one)
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input
+              aria-label="NCBI taxonomy ID"
+              className="op-input"
+              inputMode="numeric"
+              placeholder="Taxonomy ID, e.g. 7227"
+              value={taxid}
+              onChange={(e) => setTaxid(e.target.value.replace(/\D/g, ''))}
+            />
+            <input
+              aria-label="Organism name"
+              className="op-input"
+              placeholder="Name, e.g. fruit fly"
+              value={organism}
+              onChange={(e) => setOrganism(e.target.value)}
+            />
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+            Needed to look up gene names in UniProt. Without it, proteins named only by gene get no name,
+            description or sequence.
+          </div>
+        </div>
+      )}
       {clash && (
         <div style={{ fontSize: 11, color: 'var(--warn)', marginBottom: 8 }}>
           Only one column can be imported as {clash.label}.

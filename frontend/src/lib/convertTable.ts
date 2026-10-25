@@ -35,6 +35,9 @@ export function convertTableToMitab(
   targets: ColumnTarget[],
   hasHeader: boolean,
   mitabHeader: string[],
+  // "taxid:7227(fruit fly)" for files with no organism column; without one,
+  // gene names cannot be looked up in UniProt (symbols repeat across species).
+  taxon?: string,
 ): string {
   const rows = splitTable(text)
   const header = hasHeader ? rows[0].map((c) => c.replace(/^#/, '')) : []
@@ -53,6 +56,10 @@ export function convertTableToMitab(
       else row[TARGET_COL[target]] = value
     })
     if (row[0] === '-' || row[1] === '-') continue
+    if (taxon) {
+      if (row[TARGET_COL.taxon_a] === '-') row[TARGET_COL.taxon_a] = taxon
+      if (row[TARGET_COL.taxon_b] === '-') row[TARGET_COL.taxon_b] = taxon
+    }
     if (annotations.length) row[ANNOTATION_COL] = annotations.join('|')
     out.push(row.join('\t'))
   }

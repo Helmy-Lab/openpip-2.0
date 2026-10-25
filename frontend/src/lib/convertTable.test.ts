@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { candidatePairs, convertTableToMitab, MITAB_OUT_WIDTH, nameRank } from './convertTable'
+import type { ColumnTarget } from './convertTable'
 
 const HEADER = Array.from({ length: 46 }, (_, i) => `c${i + 1}`)
 
@@ -24,6 +25,15 @@ describe('convertTableToMitab', () => {
   it('writes gene name aliases in the form the parser reads', () => {
     const out = convertTableToMitab('P1\tP2\tTP53\n', ['a', 'b', 'alias_a'], false, HEADER)
     expect(out.trim().split('\n')[1].split('\t')[4]).toBe('TP53(gene name)')
+  })
+
+  it('fills a file-wide organism where no column gives one', () => {
+    const text = 'Act42A\tSC35\t-\ttaxid:9606(human)\n'
+    const targets: ColumnTarget[] = ['a', 'b', 'taxon_a', 'taxon_b']
+    const out = convertTableToMitab(text, targets, false, HEADER, 'taxid:7227(fruit fly)')
+    const cols = out.trim().split('\n')[1].split('\t')
+    expect(cols[9]).toBe('taxid:7227(fruit fly)')
+    expect(cols[10]).toBe('taxid:9606(human)')
   })
 })
 
