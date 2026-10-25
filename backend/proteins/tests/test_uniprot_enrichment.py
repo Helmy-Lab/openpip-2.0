@@ -88,3 +88,73 @@ def test_enrichment_is_idempotent(monkeypatch):
     assert ProteinIdentifier.objects.filter(protein=protein).count() == 2
     assert Identifier.objects.filter(naming_convention="pdb").count() == 1
     assert protein.protein_organisms.count() == 1
+
+
+def _fly_entry(accession, name, synonyms=(), reviewed=True):
+    kind = "reviewed (Swiss-Prot)" if reviewed else "unreviewed (TrEMBL)"
+    return {
+        "primaryAccession": accession,
+        "entryType": f"UniProtKB {kind}",
+        "genes": [
+            {
+                "geneName": {"value": name},
+                "synonyms": [{"value": s} for s in synonyms],
+            }
+        ],
+    }
+
+
+def test_resolve_by_gene_prefers_primary_name_then_reviewed(monkeypatch):
+    from proteins import uniprot
+
+    results = [
+        _fly_entry("Q_SYN", "Other", synonyms=["Act42A"]),
+        _fly_entry("Q_TREMBL", "Act42A", reviewed=False),
+        _fly_entry("P_SPROT", "Act42A"),
+        _fly_entry("Q_ALIAS", "Hsp70", synonyms=["to"]),
+    ]
+
+    class Resp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"results": results}
+
+    calls = []
+    monkeypatch.setattr(
+        uniprot.requests,
+        "get",
+        lambda url, params, timeout: calls.append(params) or Resp(),
+    )
+    found = uniprot.resolve_accessions_by_gene(["Act42A", "to", "CR4575"], "7227")
+
+    assert found == {"Act42A": "P_SPROT", "to": "Q_ALIAS"}
+    assert "organism_id:7227" in calls[0]["query"]
+
+
+@pytest.mark.django_db
+def test_gene_name_only_protein_is_enriched_when_its_organism_is_known(monkeypatch):
+    # FlyBI: bare gene symbols + taxid:7227 previously got no UniProt data at all.
+    from proteins.models import ProteinOrganism
+
+    fly = Organism.objects.create(name="fly", taxonomy_id="7227")
+    protein = Protein.objects.create(gene_name="Act42A")
+    ProteinOrganism.objects.create(protein=protein, organism=fly)
+    orphan = Protein.objects.create(gene_name="Act42A")  # no organism: ambiguous
+
+    monkeypatch.setattr(
+        "proteins.uniprot.resolve_accessions_by_gene",
+        lambda names, taxid: {"Act42A": "P10987"} if taxid == "7227" else {},
+    )
+    entry = {**_entry("P10987"), "sequence": {"value": "MCDEEV"}}
+    monkeypatch.setattr(
+        "proteins.uniprot.fetch_uniprot_data", lambda a: {"P10987": entry}
+    )
+    enrich_proteins_from_uniprot([protein.id, orphan.id])
+
+    protein.refresh_from_db()
+    orphan.refresh_from_db()
+    assert protein.uniprot_id == "P10987"
+    assert protein.sequence == "MCDEEV"
+    assert not orphan.uniprot_id

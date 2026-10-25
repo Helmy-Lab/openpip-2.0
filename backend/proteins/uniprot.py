@@ -4,6 +4,7 @@ import logging
 import re
 
 import requests
+from django.db.models import Q
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,86 @@ def fetch_uniprot_data(accessions: list[str]) -> dict[str, dict]:
             if "primaryAccession" in entry:
                 entries[entry["primaryAccession"]] = entry
     return entries
+
+
+GENE_BATCH_SIZE = 20
+
+
+def _entry_gene_names(entry: dict) -> tuple[set[str], set[str]]:
+    """Return (primary gene names, every other name) from an entry, lowercased."""
+    primary, other = set(), set()
+    for gene in entry.get("genes", []):
+        if gene.get("geneName", {}).get("value"):
+            primary.add(gene["geneName"]["value"].lower())
+        for key in ("synonyms", "orfNames", "orderedLocusNames"):
+            other.update(n["value"].lower() for n in gene.get(key, []) if "value" in n)
+    return primary, other
+
+
+def resolve_accessions_by_gene(names: list[str], taxonomy_id: str) -> dict[str, str]:
+    """Map gene symbols to UniProt accessions within one organism.
+
+    The organism is required: gene symbols collide across species. A symbol
+    that is one entry's primary gene name beats one that is only a synonym,
+    and a reviewed (Swiss-Prot) entry beats an unreviewed one. Returns
+    {symbol as given: accession}; symbols UniProt does not know are absent.
+    """
+    wanted = sorted({n for n in names if n})
+    best: dict[str, tuple[tuple[bool, bool], str]] = {}
+    for start in range(0, len(wanted), GENE_BATCH_SIZE):
+        batch = wanted[start : start + GENE_BATCH_SIZE]
+        genes = " OR ".join(f'gene_exact:"{n}"' for n in batch)
+        params = {
+            "query": f"({genes}) AND organism_id:{taxonomy_id}",
+            "format": "json",
+            "fields": "accession,gene_names",
+            # ponytail: one page; 20 symbols rarely return 500 entries.
+            "size": 500,
+        }
+        resp = requests.get(UNIPROT_SEARCH, params=params, timeout=TIMEOUT)
+        resp.raise_for_status()
+        for entry in resp.json().get("results", []):
+            primary, other = _entry_gene_names(entry)
+            reviewed = "unreviewed" not in entry.get("entryType", "")
+            for name in batch:
+                key = name.lower()
+                if key not in primary and key not in other:
+                    continue
+                rank = (key in primary, reviewed)
+                if name not in best or rank > best[name][0]:
+                    best[name] = (rank, entry["primaryAccession"])
+    return {name: acc for name, (_, acc) in best.items()}
+
+
+def _resolve_gene_only_proteins(protein_ids: list[int]) -> None:
+    """Give gene-name-only proteins a uniprot_id, so enrichment can find them.
+
+    Uploads with bare gene symbols (no uniprotkb: prefix) create proteins with
+    only gene_name set. Only proteins linked to exactly one organism are
+    resolved — the taxon from the file's columns 10/11 — since a symbol alone
+    is ambiguous across species.
+    """
+    from proteins.models import Protein
+
+    by_taxon: dict[str, list] = {}
+    proteins = (
+        Protein.objects.filter(id__in=protein_ids)
+        .filter(Q(uniprot_id__isnull=True) | Q(uniprot_id=""))
+        .exclude(gene_name__isnull=True)
+        .exclude(gene_name="")
+        .prefetch_related("protein_organisms__organism")
+    )
+    for protein in proteins:
+        links = list(protein.protein_organisms.all())
+        if len(links) == 1 and links[0].organism.taxonomy_id:
+            by_taxon.setdefault(links[0].organism.taxonomy_id, []).append(protein)
+
+    for taxonomy_id, group in by_taxon.items():
+        found = resolve_accessions_by_gene([p.gene_name for p in group], taxonomy_id)
+        for protein in group:
+            if protein.gene_name in found:
+                protein.uniprot_id = found[protein.gene_name]
+                protein.save(update_fields=["uniprot_id"])
 
 
 def _extract_protein_name(entry: dict) -> str:
@@ -210,9 +291,16 @@ def enrich_proteins_from_uniprot(protein_ids: list[int]) -> tuple[int, bool]:
     """
     Fetch UniProt metadata for proteins with a known uniprot_id and fill in
     any fields that are currently null/empty.  Only fills — never overwrites.
-    Returns (count_updated, had_error).
+    Proteins known only by gene name are first given a uniprot_id when their
+    organism is known. Returns (count_updated, had_error).
     """
     from proteins.models import Protein
+
+    try:
+        _resolve_gene_only_proteins(protein_ids)
+    except Exception:
+        logger.warning("UniProt gene-name lookup failed — skipping", exc_info=True)
+        return 0, True
 
     proteins = list(
         Protein.objects.filter(id__in=protein_ids)

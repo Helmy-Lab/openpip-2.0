@@ -42,8 +42,13 @@ is a new protein created:
 After the interactions are stored, new proteins with a UniProt accession are
 filled in from UniProt: name, gene name, sequence, description, Ensembl and
 Entrez IDs, organism, and PDB and InterPro cross-references. Only empty fields
-are filled. New proteins identified only by an Ensembl or Entrez ID are not
-looked up, so prefer UniProt accessions (or gene names) in column 1 and 2.
+are filled. New proteins identified only by a gene name are first matched to a
+UniProt accession by searching that gene name within the protein's organism.
+The organism comes from columns 10/11. Without a taxid there, a gene name is
+not looked up, because gene symbols repeat across species. Gene names UniProt
+does not know, such as most non-coding RNAs, stay unfilled. New proteins
+identified only by an Ensembl or Entrez ID are not looked up, so prefer UniProt
+accessions, or gene names with a taxid, in columns 1 and 2.
 
 Isoform suffixes are kept. `Q00987-11` and `Q00987` are different identifiers.
 
