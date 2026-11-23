@@ -7,10 +7,10 @@ import type { Protein, Interaction } from '../../../types/api'
 import { buildElements, getEdgeColorByOrder, specificityRamp } from './cytoscapeElements'
 import { tissueLabel } from '../../../lib/tissues'
 import { buildStylesheet } from './cytoscapeStyles'
-import { useCanvasBackground } from './canvasBackground'
+import { useCanvasBackground, useCanvasStyleStore, type CanvasStyle } from './canvasBackground'
 import { useSettings } from '../../../api/settings'
 import { useSearchStore } from '../searchStore'
-import { LayoutDropdown } from '../toolbar/LayoutDropdown'
+import { SettingsDropdown } from '../toolbar/SettingsDropdown'
 import { FilterDropdown } from '../toolbar/FilterDropdown'
 import { ConfidenceDropdown } from '../toolbar/ConfidenceDropdown'
 import { useText } from '../../../text'
@@ -57,6 +57,7 @@ interface TooltipState {
 // when the palette changes, with no stylesheet hot-swap needed.
 const STYLESHEET = buildStylesheet()
 const NO_TISSUES: string[] = []
+const NO_STYLE: CanvasStyle = {}
 
 export function CytoscapeNetwork({
   proteins,
@@ -75,6 +76,7 @@ export function CytoscapeNetwork({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cyRef = useRef<any>(null)
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+  const [hoverId, setHoverId] = useState<string | null>(null)
   const { data: settings } = useSettings()
   const setModal = useSearchStore((s) => s.setModal)
   const storeHighlight = useSearchStore((s) => s.highlight)
@@ -82,6 +84,8 @@ export function CytoscapeNetwork({
   const storeTissueNodeSize = useSearchStore((s) => s.tissueNodeSize)
   const storeTissueNodeColor = useSearchStore((s) => s.tissueNodeColor)
   const canvasBackground = useCanvasBackground()
+  const storeStyle = useCanvasStyleStore((s) => s.style)
+  const userStyle = preview ? NO_STYLE : storeStyle
   const highlight = preview ? null : storeHighlight
   const tissues = preview ? NO_TISSUES : storeTissues
   const tissueNodeSize = preview ? false : storeTissueNodeSize
@@ -89,14 +93,16 @@ export function CytoscapeNetwork({
   const background = (preview ? null : canvasBackground) ?? 'var(--bg)'
   const t = useText()
 
+  // The viewer's colours win over the admin's, which win over the built-ins.
   const palette = useMemo(() => ({
-    queryNode:    settings?.queryNodeColor      ?? '#e11d48',
-    interactorNode: settings?.interactorNodeColor ?? '#2563eb',
-    published:    settings?.publishedEdgeColor  ?? '#38761d',
-    validated:    settings?.validatedEdgeColor  ?? '#1155cc',
-    verified:     settings?.verifiedEdgeColor   ?? '#cc0000',
-    literature:   settings?.literatureEdgeColor ?? '#0ea5e9',
+    queryNode:    userStyle.queryNode      ?? settings?.queryNodeColor      ?? '#e11d48',
+    interactorNode: userStyle.interactorNode ?? settings?.interactorNodeColor ?? '#2563eb',
+    published:    userStyle.published      ?? settings?.publishedEdgeColor  ?? '#38761d',
+    validated:    userStyle.validated      ?? settings?.validatedEdgeColor  ?? '#1155cc',
+    verified:     userStyle.verified       ?? settings?.verifiedEdgeColor   ?? '#cc0000',
+    literature:   userStyle.literature     ?? settings?.literatureEdgeColor ?? '#0ea5e9',
   }), [
+    userStyle,
     settings?.queryNodeColor,
     settings?.interactorNodeColor,
     settings?.publishedEdgeColor,
@@ -129,39 +135,63 @@ export function CytoscapeNetwork({
     const cy = cyRef.current
     if (!cy) return
 
+    // Edge ids are "i<interaction_id>", node ids "p<protein_id>".
+    const edgeIds = (edges: cytoscape.EdgeCollection) =>
+      edges.map((edge) => parseInt(edge.id().slice(1), 10))
+
+    // A tap lights what it touched: a node and its neighbours, or an edge and
+    // its two ends. The homepage preview is a picture and lights nothing.
     const onNodeTap = (e: cytoscape.EventObject) => {
-      const id = e.target.data('id') as string // e.g. "p1"
+      const id = e.target.data('id') as string
       const proteinId = parseInt(id.slice(1), 10)
       const protein = proteins.find((p) => p.protein_id === proteinId)
       if (protein) onNodeClick?.(protein)
+      if (!preview) {
+        useSearchStore.getState().setHighlight({
+          term: id,
+          genes: [],
+          interactionIds: edgeIds(e.target.connectedEdges()),
+        })
+      }
     }
 
     const onEdgeTap = (e: cytoscape.EventObject) => {
-      const id = e.target.data('id') as string // e.g. "i1"
+      const id = e.target.data('id') as string
       const intId = parseInt(id.slice(1), 10)
       const interaction = interactions.find((i) => i.interaction_id === intId)
       if (interaction) onEdgeClick?.(interaction)
+      if (!preview) {
+        useSearchStore.getState().setHighlight({ term: id, genes: [], interactionIds: [intId] })
+      }
+    }
+
+    // A tap on empty canvas lets everything back up.
+    const onBackgroundTap = (e: cytoscape.EventObject) => {
+      if (e.target === cy && !preview) useSearchStore.getState().setHighlight(null)
     }
 
     const onNodeMouseover = (e: cytoscape.EventObject) => {
       const label = e.target.data('label') as string
       const { clientX, clientY } = e.originalEvent as MouseEvent
       setTooltip({ x: clientX, y: clientY, label })
+      if (!preview) setHoverId(e.target.data('id') as string)
     }
 
     const onNodeMouseout = () => {
       setTooltip(null)
+      setHoverId(null)
     }
 
     cy.on('tap', 'node', onNodeTap)
     cy.on('tap', 'edge', onEdgeTap)
+    cy.on('tap', onBackgroundTap)
     cy.on('mouseover', 'node', onNodeMouseover)
     cy.on('mouseout', 'node', onNodeMouseout)
 
     return () => {
       cy.removeAllListeners()
     }
-  }, [proteins, interactions, onNodeClick, onEdgeClick])
+  }, [proteins, interactions, onNodeClick, onEdgeClick, preview])
 
   // Selecting an enrichment term dims the network and lights that term's
   // proteins plus the edges between them — legacy's setEnrichmentRowClickEvent.
@@ -170,16 +200,30 @@ export function CytoscapeNetwork({
   useEffect(() => {
     const cy = cyRef.current
     if (!cy) return
+    // Hovering a node lights it and its neighbours for as long as the mouse
+    // stays; leaving falls back to whatever is selected.
+    const hovered = hoverId ? cy.getElementById(hoverId) : null
+    if (hovered?.nonempty()) {
+      cy.elements().style({ opacity: 0.2 })
+      hovered.closedNeighborhood().style({ opacity: 1 })
+      return
+    }
     if (!highlight) {
       cy.elements().style({ opacity: 1 })
       return
     }
     const genes = new Set(highlight.genes)
-    const lit = cy.nodes().filter((n: { data: (k: string) => string }) => genes.has(n.data('label')))
+    let lit = cy.nodes().filter((n: { data: (k: string) => string }) => genes.has(n.data('label')))
+    let litEdges = lit.edgesWith(lit)
+    if (highlight.interactionIds) {
+      const ids = new Set(highlight.interactionIds.map((id) => `i${id}`))
+      litEdges = cy.edges().filter((edge: { id: () => string }) => ids.has(edge.id()))
+      lit = lit.union(litEdges.connectedNodes())
+    }
     cy.elements().style({ opacity: 0.2 })
     lit.style({ opacity: 1 })
-    lit.edgesWith(lit).style({ opacity: 1 })
-  }, [highlight, elements])
+    litEdges.style({ opacity: 1 })
+  }, [highlight, hoverId, elements])
 
   // Build edge legend from actual category names in the current data so labels
   // match whatever the dataset calls them (e.g. "HI-Union" instead of "Verified").
@@ -304,7 +348,7 @@ export function CytoscapeNetwork({
 
         {showFilters && <ConfidenceDropdown />}
 
-        <LayoutDropdown />
+        <SettingsDropdown />
 
         {/* Hand the network to a desktop Cytoscape over CyREST. Icon-only
             beside the layout button, matched to its height; the name is on

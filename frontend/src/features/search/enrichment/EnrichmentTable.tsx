@@ -1,7 +1,10 @@
 import { useEnrichment, type EnrichmentSource } from '../../../api/enrichment'
 import { EnrichmentSourceNote } from './SourceNote'
 import { enrichmentDatasetName } from './sources'
+import { useState } from 'react'
 import { HighlightRow } from './HighlightRow'
+import { TableSearch } from '../tables/TableSearch'
+import { matchRows, suggestionsFrom } from '../tables/tableFilter'
 
 interface EnrichmentTableProps {
   geneNames: string[]
@@ -13,13 +16,13 @@ const TH: React.CSSProperties = {
   position: 'sticky',
   top: 0,
   zIndex: 1,
-  padding: '10px 16px',
-  textAlign: 'left',
+  padding: '8px 12px',
+  textAlign: 'center',
   fontSize: 11,
-  fontWeight: 600,
+  fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '.07em',
-  color: 'var(--text-muted)',
+  color: 'var(--text)',
   background: 'var(--surface-2)',
   borderBottom: '1px solid var(--border)',
   whiteSpace: 'nowrap',
@@ -41,6 +44,7 @@ function termUrl(term_id: string, source: EnrichmentSource): string {
 
 export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
   const { data, isLoading, isError } = useEnrichment(geneNames)
+  const [query, setQuery] = useState('')
 
   if (isLoading) {
     return (
@@ -74,10 +78,17 @@ export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
     )
   }
 
+  const shown = matchRows(rows, query, (r) => [r.term_id, r.name, ...r.genes])
+
   return (
     <div>
-      <div style={{ background: 'var(--bg)' }}>
-      <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
+      <TableSearch
+        value={query}
+        onChange={setQuery}
+        suggestions={suggestionsFrom(rows.flatMap((r) => [r.name, ...r.genes]))}
+        fields={['Term ID', 'Name', 'Protein']}
+      >
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
         <thead>
           <tr>
             <th style={TH}>Term ID</th>
@@ -87,30 +98,37 @@ export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
           </tr>
         </thead>
         <tbody style={{ background: 'var(--bg)' }}>
-          {rows.map((term) => (
+          {shown.length === 0 && (
+            <tr>
+              <td colSpan={4} style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                No rows match.
+              </td>
+            </tr>
+          )}
+          {shown.map((term) => (
             <HighlightRow key={term.term_id} term={term.term_id} genes={term.genes}>
-              <td style={{ padding: '8px 16px' }}>
+              <td style={{ padding: '6px 12px', textAlign: 'center' }}>
                 <a
                   href={termUrl(term.term_id, source)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: 'var(--accent)' }}
+                  style={{ color: 'var(--table-link)' }}
                 >
                   {term.term_id}
                 </a>
               </td>
-              <td style={{ padding: '8px 16px', color: 'var(--text)' }}>{term.name}</td>
-              <td style={{ padding: '8px 16px', color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
+              <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text)' }}>{term.name}</td>
+              <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
                 {enrichmentDatasetName(source)}
               </td>
-              <td style={{ padding: '8px 16px', fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-muted)' }}>
+              <td style={{ padding: '6px 12px', textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-muted)' }}>
                 {term.p_value.toExponential(2)}
               </td>
             </HighlightRow>
           ))}
         </tbody>
       </table>
-      </div>
+      </TableSearch>
       <EnrichmentSourceNote source={source} />
     </div>
   )

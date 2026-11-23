@@ -1,7 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { buildLinks, LINK_ICON_STYLE } from './externalLinks'
 import { CanvasDropdown, RibbonHeading } from './toolbar/CanvasDropdown'
-import { CanvasBackgroundPicker } from './toolbar/LayoutDropdown'
 import { QueryPanel } from './QueryPanel'
 import { useSearchStore, captureViewState } from './searchStore'
 import { ShareDialog } from '../sharing/ShareDialog'
@@ -41,6 +40,33 @@ const FILTER_MODE_OPTIONS: { textKey: string; value: 'None' | 'query_query' | 'q
   { textKey: 'search.filterMode.queryInteractor', value: 'query_interactor' },
 ]
 
+/** Minimal line icons for the download menu, one per kind of file. */
+function DownloadIcon({ kind }: { kind: 'document' | 'image' | 'archive' }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+      {kind === 'document' && (
+        <>
+          <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+          <path d="M14 3v6h6M8 13h8M8 17h5" />
+        </>
+      )}
+      {kind === 'image' && (
+        <>
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <circle cx="9" cy="9" r="2" />
+          <path d="m21 15-5-5L5 21" />
+        </>
+      )}
+      {kind === 'archive' && (
+        <>
+          <rect x="3" y="4" width="18" height="5" rx="1" />
+          <path d="M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4" />
+        </>
+      )}
+    </svg>
+  )
+}
+
 type Variant = 'sidebar' | 'ribbon'
 
 interface SearchSidebarProps {
@@ -64,8 +90,6 @@ const sectionLabelStyle: CSSProperties = {
   fontSize: 12,
   fontWeight: 700,
   color: 'var(--primary)',
-  textTransform: 'uppercase',
-  letterSpacing: '.08em',
   display: 'block',
   marginBottom: 8,
 }
@@ -252,17 +276,35 @@ export function SearchSidebar({
       shownProteinIds.has(i.interactor_B.protein_id)
   )
 
-  const downloadActions: { label: string; onClick: () => void }[] = [
-    { label: t('search.download.sif'), onClick: () => handleDownload(formatSIF(shownInteractions, shownProteins), 'SIF', 'sif') },
-    // Query ids tell each row which side was searched for; without them every
-    // interaction was labelled non_query.
-    { label: t('search.download.interactionsCsv'), onClick: () => handleDownload(formatInteractionsCSV(shownInteractions, shownProteins, new Set(queryProteinIds)), 'Interactions', 'csv') },
-    { label: t('search.download.interactorsCsv'), onClick: () => handleDownload(formatInteractorsCSV(shownProteins), 'Interactors', 'csv') },
-    { label: t('search.download.fasta'), onClick: () => handleDownload(formatFASTA(shownProteins), 'FASTA', 'fasta') },
-    { label: t('search.download.psimi'), onClick: () => handleDownload(formatPSIMI(shownInteractions, shownProteins), 'PSIMI', 'tsv') },
-    { label: t('search.download.png'), onClick: () => networkCy && downloadImageFile(networkCy, 'png', canvasBackground) },
-    { label: t('search.download.jpg'), onClick: () => networkCy && downloadImageFile(networkCy, 'jpg', canvasBackground) },
-    { label: t('search.download.direct'), onClick: () => setModal('directDownload') },
+  // Grouped by what comes out: files of data, pictures of the network, and
+  // the whole database.
+  const downloadGroups: { heading: string; icon: React.ReactNode; items: { label: string; onClick: () => void }[] }[] = [
+    {
+      heading: t('search.download.group.documents'),
+      icon: <DownloadIcon kind="document" />,
+      items: [
+        { label: t('search.download.sif'), onClick: () => handleDownload(formatSIF(shownInteractions, shownProteins), 'SIF', 'sif') },
+        // Query ids tell each row which side was searched for; without them every
+        // interaction was labelled non_query.
+        { label: t('search.download.interactionsCsv'), onClick: () => handleDownload(formatInteractionsCSV(shownInteractions, shownProteins, new Set(queryProteinIds)), 'Interactions', 'csv') },
+        { label: t('search.download.interactorsCsv'), onClick: () => handleDownload(formatInteractorsCSV(shownProteins), 'Interactors', 'csv') },
+        { label: t('search.download.fasta'), onClick: () => handleDownload(formatFASTA(shownProteins), 'FASTA', 'fasta') },
+        { label: t('search.download.psimi'), onClick: () => handleDownload(formatPSIMI(shownInteractions, shownProteins), 'PSIMI', 'tsv') },
+      ],
+    },
+    {
+      heading: t('search.download.group.images'),
+      icon: <DownloadIcon kind="image" />,
+      items: [
+        { label: t('search.download.png'), onClick: () => networkCy && downloadImageFile(networkCy, 'png', canvasBackground) },
+        { label: t('search.download.jpg'), onClick: () => networkCy && downloadImageFile(networkCy, 'jpg', canvasBackground) },
+      ],
+    },
+    {
+      heading: t('search.download.group.archive'),
+      icon: <DownloadIcon kind="archive" />,
+      items: [{ label: t('search.download.direct'), onClick: () => setModal('directDownload') }],
+    },
   ]
 
   const querySection = (
@@ -497,13 +539,20 @@ export function SearchSidebar({
 
   const downloadSection = term && (
     <Section variant={variant} label={t('search.sidebar.download')} collapsible defaultOpen={false}>
-            {downloadActions.map(({ label, onClick }) => (
+            {downloadGroups.map(({ heading, icon, items }) => (
+              <div key={heading} style={{ marginBottom: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', padding: '6px 4px 2px' }}>
+                  {heading}
+                </div>
+                {items.map(({ label, onClick }) => (
               <button
                 key={label}
                 type="button"
                 onClick={onClick}
                 style={{
-                  display: 'block',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
                   width: '100%',
                   textAlign: 'left',
                   background: 'none',
@@ -517,17 +566,15 @@ export function SearchSidebar({
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
               >
+                {icon}
                 {label}
               </button>
+                ))}
+              </div>
             ))}
     </Section>
   )
 
-  const canvasSection = term && (
-    <Section variant={variant} label={t('search.sidebar.canvas')} collapsible defaultOpen={false}>
-      <CanvasBackgroundPicker />
-    </Section>
-  )
 
   const linksSection = term && (
     <Section variant={variant} label={t('search.sidebar.externalLinks')} collapsible defaultOpen={false}>
@@ -735,7 +782,6 @@ export function SearchSidebar({
             {summarySection}
             {filtersSection}
             {downloadSection}
-            {canvasSection}
             {linksSection}
             {saveSection}
             {shareSection}
@@ -774,7 +820,6 @@ export function SearchSidebar({
           {filterModeSection}
           {tissueSection}
           {downloadSection}
-          {canvasSection}
           {linksSection}
           {saveSection}
           {shareSection}

@@ -7,7 +7,7 @@ import { proteinLink, type ProteinIds } from './ncbi'
 export function GeneLink({ ids, style }: { ids: ProteinIds; style?: CSSProperties }) {
   const { data: settings } = useSettings()
   const { href, internal } = proteinLink(ids, settings)
-  const linkStyle = { color: 'var(--accent)', textDecoration: 'underline', ...style }
+  const linkStyle = { color: 'var(--table-link)', textDecoration: 'underline', ...style }
   if (internal) {
     return <Link to={href} style={linkStyle}>{ids.gene}</Link>
   }

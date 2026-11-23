@@ -12,8 +12,6 @@ const SECTION: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 600,
   color: 'var(--text-soft)',
-  textTransform: 'uppercase',
-  letterSpacing: '.07em',
   marginBottom: 8,
 }
 

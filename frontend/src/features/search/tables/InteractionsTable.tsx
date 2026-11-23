@@ -3,12 +3,15 @@ import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
+  getFilteredRowModel,
   getPaginationRowModel,
   flexRender,
 } from '@tanstack/react-table'
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import type { Interaction, Protein } from '../../../types/api'
 import { GeneLink } from './GeneLink'
+import { TableSearch } from './TableSearch'
+import { useSearchStore } from '../searchStore'
 
 interface InteractionsTableProps {
   interactions: Interaction[]
@@ -91,11 +94,10 @@ function buildColumns(entrezById: Map<number, string>): ColumnDef<Interaction>[]
     {
       accessorKey: 'score',
       header: 'Score',
-      // Left-aligned to match the gene columns and the (left-aligned) header.
-      cell: ({ getValue }) => {
+            cell: ({ getValue }) => {
         const val = getValue<number | null>()
         return (
-          <span style={{ display: 'block', textAlign: 'left', fontFamily: 'var(--mono)', fontSize: 12 }}>
+          <span style={{ display: 'block', textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 12 }}>
             {val?.toFixed(2) ?? '—'}
           </span>
         )
@@ -120,13 +122,13 @@ const TH_BASE: React.CSSProperties = {
   position: 'sticky',
   top: 0,
   zIndex: 1,
-  padding: '10px 16px',
-  textAlign: 'left',
+  padding: '8px 12px',
+  textAlign: 'center',
   fontSize: 11,
-  fontWeight: 600,
+  fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '.07em',
-  color: 'var(--text-muted)',
+  color: 'var(--text)',
   userSelect: 'none',
   background: 'var(--surface-2)',
   borderBottom: '1px solid var(--border)',
@@ -135,6 +137,7 @@ const TH_BASE: React.CSSProperties = {
 
 export function InteractionsTable({ interactions, proteins }: InteractionsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
+  const [globalFilter, setGlobalFilter] = useState('')
 
   const entrezById = useMemo(
     () => new Map(proteins.map((p) => [p.protein_id, p.protein_entrez_id])),
@@ -145,23 +148,43 @@ export function InteractionsTable({ interactions, proteins }: InteractionsTableP
   const table = useReactTable({
     data: interactions,
     columns,
-    state: { sorting },
+    state: { sorting, globalFilter },
     onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getFilteredRowModel: getFilteredRowModel(),
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: { pagination: { pageSize: 25 } },
   })
 
+  // Every distinct text in the table, for the search box to suggest.
+  const suggestions = [
+    ...new Set(
+      table
+        .getCoreRowModel()
+        .rows.flatMap((row) => row.getAllCells().map((cell) => cell.getValue()))
+        .flatMap((v) => (typeof v === 'string' ? v.split(', ') : []))
+        .filter(Boolean)
+    ),
+  ].sort()
+
   const { pageIndex, pageSize } = table.getState().pagination
-  const totalRows = interactions.length
+  const totalRows = table.getFilteredRowModel().rows.length
+  const highlight = useSearchStore((s) => s.highlight)
+  const setHighlight = useSearchStore((s) => s.setHighlight)
   const pageCount = table.getPageCount()
   const currentPage = pageIndex + 1
 
   return (
     <div style={{ background: 'var(--bg)' }}>
-      <div style={{ background: 'var(--bg)' }}>
-        <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
+      <TableSearch
+        value={globalFilter}
+        onChange={setGlobalFilter}
+        suggestions={suggestions}
+        fields={columns.map((c) => String(c.header))}
+      >
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
@@ -191,24 +214,45 @@ export function InteractionsTable({ interactions, proteins }: InteractionsTableP
                 </td>
               </tr>
             ) : (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row) => {
+                // A row lights its two proteins and their edge in the network;
+                // a second click lets go. Same store highlight as the
+                // enrichment rows, so only one thing is ever lit.
+                const term = `i${row.original.interaction_id}`
+                const selected = highlight?.term === term
+                return (
                 <tr
                   key={row.id}
-                  style={{ borderBottom: '1px solid var(--border)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                  aria-pressed={selected}
+                  onClick={() => {
+                    // A drag to copy the row's text ends in a click; don't treat it as one.
+                    if (!window.getSelection()?.isCollapsed) return
+                    setHighlight(
+                      selected
+                        ? null
+                        : { term, genes: [], interactionIds: [row.original.interaction_id] }
+                    )
+                  }}
+                  style={{
+                    borderBottom: '1px solid var(--border)',
+                    cursor: 'pointer',
+                    background: selected ? 'var(--primary-soft)' : '',
+                  }}
+                  onMouseEnter={(e) => { if (!selected) e.currentTarget.style.background = 'var(--surface-2)' }}
+                  onMouseLeave={(e) => { if (!selected) e.currentTarget.style.background = '' }}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} style={{ padding: '8px 16px', color: 'var(--text)' }}>
+                    <td key={cell.id} style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text)' }}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
                 </tr>
-              ))
+                )
+              })
             )}
           </tbody>
         </table>
-      </div>
+      </TableSearch>
 
       {pageCount > 1 && (
         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-muted)' }}>

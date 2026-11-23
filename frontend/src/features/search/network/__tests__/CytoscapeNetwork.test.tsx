@@ -48,18 +48,26 @@ const mockNodes: MockNode[] = [
 ]
 const styled: { target: string; opacity: number }[] = []
 
-function collection(target: string, nodes: MockNode[] = []) {
+const mockEdges = [{ id: () => 'i42' }, { id: () => 'i43' }] as unknown as MockNode[]
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function collection(target: string, nodes: MockNode[] = []): any {
   return {
     style: vi.fn(({ opacity }: { opacity: number }) => styled.push({ target, opacity })),
-    filter: (fn: (n: MockNode) => boolean) => collection('lit', nodes.filter(fn)),
+    filter: (fn: (n: MockNode) => boolean) =>
+      collection(target === 'edges' ? 'litEdges' : 'lit', nodes.filter(fn)),
     edgesWith: () => collection('litEdges'),
+    connectedNodes: () => collection('ends'),
+    union: () => collection('lit', nodes),
     length: nodes.length,
     nodes,
   }
 }
 
 const mockCy = {
-  on: vi.fn((event: string, selector: string, cb: HandlerFn) => {
+  on: vi.fn((event: string, selector: string | HandlerFn, cb?: HandlerFn) => {
+    // cy.on(event, handler) has no selector: file it under "event:".
+    if (typeof selector === 'function') [selector, cb] = ['', selector]
     const key = `${event}:${selector}`
     handlers[key] = handlers[key] ?? []
     handlers[key].push(cb)
@@ -68,6 +76,7 @@ const mockCy = {
   layout: vi.fn(() => ({ run: vi.fn() })),
   elements: vi.fn(() => collection('all')),
   nodes: vi.fn(() => collection('nodes', mockNodes)),
+  edges: vi.fn(() => collection('edges', mockEdges)),
 }
 
 // ------------------------------------------------------------------
@@ -148,6 +157,7 @@ describe('CytoscapeNetwork', () => {
     mockCy.on.mockClear()
     mockCy.removeAllListeners.mockClear()
     mockCy.layout.mockClear()
+    useSearchStore.setState({ highlight: null })
   })
 
   it('renders the cytoscape container placeholder', () => {
@@ -261,11 +271,20 @@ describe('CytoscapeNetwork', () => {
 
     await act(async () => {
       handlers['tap:node']?.[0]?.({
-        target: { data: (k: string) => (k === 'id' ? 'p1' : '') },
+        target: {
+          data: (k: string) => (k === 'id' ? 'p1' : ''),
+          connectedEdges: () => [{ id: () => 'i42' }],
+        },
       })
     })
 
     expect(onNodeClick).toHaveBeenCalledWith(proteins[0])
+    // The node and its neighbours light up, by the edges that join them.
+    expect(useSearchStore.getState().highlight).toEqual({
+      term: 'p1',
+      genes: [],
+      interactionIds: [42],
+    })
   })
 
   it('calls onEdgeClick with the matching interaction when an edge is tapped', async () => {
@@ -287,6 +306,33 @@ describe('CytoscapeNetwork', () => {
     })
 
     expect(onEdgeClick).toHaveBeenCalledWith(interactions[0])
+    expect(useSearchStore.getState().highlight?.interactionIds).toEqual([42])
+  })
+
+  it('lights only the chosen interactions and clears on a background tap', async () => {
+    render(
+      <CytoscapeNetwork
+        proteins={proteins}
+        interactions={interactions}
+        queryProteinIds={[1]}
+        layout="cola"
+      />
+    )
+
+    styled.length = 0
+    await act(async () => {
+      useSearchStore.getState().setHighlight({ term: 'i42', genes: [], interactionIds: [42] })
+    })
+    expect(styled).toEqual([
+      { target: 'all', opacity: 0.2 },
+      { target: 'lit', opacity: 1 },
+      { target: 'litEdges', opacity: 1 },
+    ])
+
+    await act(async () => {
+      handlers['tap:']?.[0]?.({ target: mockCy })
+    })
+    expect(useSearchStore.getState().highlight).toBeNull()
   })
 
 

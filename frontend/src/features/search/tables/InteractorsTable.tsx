@@ -3,11 +3,13 @@ import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
+  getFilteredRowModel,
   flexRender,
 } from '@tanstack/react-table'
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import type { Protein } from '../../../types/api'
 import { GeneLink } from './GeneLink'
+import { TableSearch } from './TableSearch'
 
 interface InteractorsTableProps {
   proteins: Protein[]
@@ -47,7 +49,7 @@ function buildColumns(queryProteinIds: number[]): ColumnDef<Protein>[] {
             href={`https://www.uniprot.org/uniprot/${id}`}
             target="_blank"
             rel="noreferrer"
-            style={{ color: 'var(--accent)', textDecoration: 'underline' }}
+            style={{ color: 'var(--table-link)', textDecoration: 'underline' }}
           >
             {id}
           </a>
@@ -75,7 +77,7 @@ function buildColumns(queryProteinIds: number[]): ColumnDef<Protein>[] {
             fontWeight: 600,
             border: '1px solid var(--border)',
             background: isQuery ? 'var(--primary-soft)' : 'var(--surface-2)',
-            color: isQuery ? 'var(--primary-deep)' : 'var(--text-muted)',
+            color: isQuery ? 'var(--table-link)' : 'var(--text-muted)',
           }}>
             {val}
           </span>
@@ -86,7 +88,7 @@ function buildColumns(queryProteinIds: number[]): ColumnDef<Protein>[] {
       accessorKey: 'number_of_interactions_in_database',
       header: '# Interactions',
       cell: ({ getValue }) => (
-        <span style={{ display: 'block', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12 }}>
+        <span style={{ display: 'block', textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 12 }}>
           {getValue<number>()}
         </span>
       ),
@@ -99,13 +101,13 @@ const TH_BASE: React.CSSProperties = {
   position: 'sticky',
   top: 0,
   zIndex: 1,
-  padding: '10px 16px',
-  textAlign: 'left',
+  padding: '8px 12px',
+  textAlign: 'center',
   fontSize: 11,
-  fontWeight: 600,
+  fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '.07em',
-  color: 'var(--text-muted)',
+  color: 'var(--text)',
   userSelect: 'none',
   background: 'var(--surface-2)',
   borderBottom: '1px solid var(--border)',
@@ -114,21 +116,41 @@ const TH_BASE: React.CSSProperties = {
 
 export function InteractorsTable({ proteins, queryProteinIds }: InteractorsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
+  const [globalFilter, setGlobalFilter] = useState('')
 
   const columns = buildColumns(queryProteinIds)
 
   const table = useReactTable({
     data: proteins,
     columns,
-    state: { sorting },
+    state: { sorting, globalFilter },
     onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getFilteredRowModel: getFilteredRowModel(),
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   })
 
+  // Every distinct text in the table, for the search box to suggest.
+  const suggestions = [
+    ...new Set(
+      table
+        .getCoreRowModel()
+        .rows.flatMap((row) => row.getAllCells().map((cell) => cell.getValue()))
+        .flatMap((v) => (typeof v === 'string' ? v.split(', ') : []))
+        .filter(Boolean)
+    ),
+  ].sort()
+
   return (
     <div style={{ background: 'var(--bg)' }}>
-      <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
+      <TableSearch
+        value={globalFilter}
+        onChange={setGlobalFilter}
+        suggestions={suggestions}
+        fields={columns.map((c) => String(c.header))}
+      >
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
@@ -166,7 +188,7 @@ export function InteractorsTable({ proteins, queryProteinIds }: InteractorsTable
                 onMouseLeave={(e) => (e.currentTarget.style.background = '')}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} style={{ padding: '8px 16px', color: 'var(--text)' }}>
+                  <td key={cell.id} style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text)' }}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
@@ -175,6 +197,7 @@ export function InteractorsTable({ proteins, queryProteinIds }: InteractorsTable
           )}
         </tbody>
       </table>
+      </TableSearch>
     </div>
   )
 }

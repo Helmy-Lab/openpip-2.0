@@ -54,7 +54,6 @@ describe('NodeInfoPanel — 3D Structure section', () => {
       <NodeInfoPanel
         protein={baseProtein}
         networkInteractions={interactions}
-        searchTerm="BAD"
         onClose={vi.fn()}
         onRemove={vi.fn()}
       />,
@@ -68,7 +67,6 @@ describe('NodeInfoPanel — 3D Structure section', () => {
       <NodeInfoPanel
         protein={noUniprotProtein}
         networkInteractions={interactions}
-        searchTerm="BAD"
         onClose={vi.fn()}
         onRemove={vi.fn()}
       />,
@@ -82,7 +80,6 @@ describe('NodeInfoPanel — 3D Structure section', () => {
       <NodeInfoPanel
         protein={baseProtein}
         networkInteractions={interactions}
-        searchTerm="BAD"
         onClose={vi.fn()}
         onRemove={vi.fn()}
       />,
@@ -96,7 +93,6 @@ describe('NodeInfoPanel — 3D Structure section', () => {
       <NodeInfoPanel
         protein={baseProtein}
         networkInteractions={interactions}
-        searchTerm="BAD"
         onClose={vi.fn()}
         onRemove={vi.fn()}
       />,
@@ -111,7 +107,6 @@ describe('NodeInfoPanel — 3D Structure section', () => {
       <NodeInfoPanel
         protein={baseProtein}
         networkInteractions={interactions}
-        searchTerm="BAD"
         onClose={vi.fn()}
         onRemove={vi.fn()}
       />,
@@ -129,7 +124,6 @@ describe('NodeInfoPanel — 3D Structure section', () => {
       <NodeInfoPanel
         protein={baseProtein}
         networkInteractions={interactions}
-        searchTerm="BAD"
         onClose={vi.fn()}
         onRemove={vi.fn()}
       />,
@@ -145,7 +139,6 @@ describe('NodeInfoPanel — 3D Structure section', () => {
       <NodeInfoPanel
         protein={baseProtein}
         networkInteractions={interactions}
-        searchTerm="BAD"
         onClose={vi.fn()}
         onRemove={vi.fn()}
       />,

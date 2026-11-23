@@ -27,8 +27,6 @@ export function RibbonHeading({ label, active = false, onClick, ...rest }: {
         fontSize: 12,
         fontWeight: 700,
         color: 'var(--primary)',
-        textTransform: 'uppercase',
-        letterSpacing: '.08em',
         whiteSpace: 'nowrap',
         background: 'none',
         border: 'none',
@@ -58,8 +56,10 @@ export function RibbonHeading({ label, active = false, onClick, ...rest }: {
  * elsewhere, Escape, or another dropdown opening; the click stays for touch and
  * keyboard, which have no hover.
  */
-export function CanvasDropdown({ label, width = 232, up = true, plain = false, children }: {
+export function CanvasDropdown({ label, icon, width = 232, up = true, plain = false, children }: {
   label: string
+  /** Shown instead of the label, which then names the button on hover. */
+  icon?: React.ReactNode
   width?: number
   up?: boolean
   plain?: boolean
@@ -84,7 +84,7 @@ export function CanvasDropdown({ label, width = 232, up = true, plain = false, c
   useEffect(() => {
     if (!open) return
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (containerRef.current && !e.composedPath().includes(containerRef.current)) {
         setOpen(false)
       }
     }
@@ -130,14 +130,16 @@ export function CanvasDropdown({ label, width = 232, up = true, plain = false, c
           onClick={() => setOpen((v) => !v)}
           className="op-btn"
           aria-expanded={open}
+          aria-label={icon ? label : undefined}
+          title={icon ? label : undefined}
           style={{
             height: CONTROL_HEIGHT,
             fontSize: 12,
-            padding: '0 10px',
+            padding: icon ? '0 7px' : '0 10px',
             background: CONTROL_BG,
           }}
         >
-          {label}
+          {icon ?? label}
         </button>
       )}
 

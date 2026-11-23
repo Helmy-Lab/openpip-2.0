@@ -10,6 +10,17 @@ type ModalName = 'cyRest' | 'directDownload'
  * the filters and layout, not the data. A saved or shared view carries this
  * and re-runs the search, so it always shows current data.
  */
+/**
+ * What is lit up in the network. Genes light their nodes; interactionIds, when
+ * given, light exactly those edges and both their ends, rather than every edge
+ * among the lit genes.
+ */
+export interface Highlight {
+  term: string
+  genes: string[]
+  interactionIds?: number[]
+}
+
 export interface ViewState {
   scoreFilter: number
   categoryFilter: Record<string, boolean>
@@ -17,7 +28,7 @@ export interface ViewState {
   filterMode: 'None' | 'query_query' | 'query_interactor'
   tissueFilter: string[]
   selectedLayout: LayoutName
-  highlight: { term: string; genes: string[] } | null
+  highlight: Highlight | null
   activeTableTab: string
 }
 
@@ -61,8 +72,8 @@ interface SearchState {
    * genes it covers. One selection across every enrichment table, as in legacy:
    * picking a term anywhere replaces whatever was picked before.
    */
-  highlight: { term: string; genes: string[] } | null
-  setHighlight: (h: { term: string; genes: string[] } | null) => void
+  highlight: Highlight | null
+  setHighlight: (h: Highlight | null) => void
   activeModal: ModalName | null
   activeTableTab: string
   setSearchData: (result: SearchResult) => void
@@ -100,7 +111,7 @@ const initialState = {
   tissueNodeSize: false,
   tissueNodeColor: false,
   selectedLayout: 'cola' as LayoutName,
-  highlight: null as { term: string; genes: string[] } | null,
+  highlight: null as Highlight | null,
   activeModal: null as ModalName | null,
   activeTableTab: 'interactions',
 }
