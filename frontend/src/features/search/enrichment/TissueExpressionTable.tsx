@@ -1,7 +1,10 @@
 import type { Protein } from '../../../types/api'
 import { GtexSourceNote } from './SourceNote'
 import { tissueLabel } from '../../../lib/tissues'
+import { useState } from 'react'
 import { HighlightRow } from './HighlightRow'
+import { TableSearch } from '../tables/TableSearch'
+import { matchRows, suggestionsFrom } from '../tables/tableFilter'
 
 interface TissueExpressionTableProps {
   proteins: Protein[]
@@ -14,19 +17,20 @@ const TH: React.CSSProperties = {
   position: 'sticky',
   top: 0,
   zIndex: 1,
-  padding: '10px 16px',
-  textAlign: 'left',
+  padding: '8px 12px',
+  textAlign: 'center',
   fontSize: 11,
-  fontWeight: 600,
+  fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '.07em',
-  color: 'var(--text-muted)',
+  color: 'var(--text)',
   background: 'var(--surface-2)',
   borderBottom: '1px solid var(--border)',
   whiteSpace: 'nowrap',
 }
 
 export function TissueExpressionTable({ proteins }: TissueExpressionTableProps) {
+  const [query, setQuery] = useState('')
   // Group proteins by tissue; apply legacy threshold >= 5.0; strip \r from stored values
   const byTissue: Record<string, string[]> = {}
   for (const p of proteins) {
@@ -50,9 +54,17 @@ export function TissueExpressionTable({ proteins }: TissueExpressionTableProps) 
     )
   }
 
+  const shown = matchRows(tissues, query, (tissue) => [tissueLabel(tissue), ...byTissue[tissue]])
+
   return (
     <div style={{ background: 'var(--bg)' }}>
-      <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
+      <TableSearch
+        value={query}
+        onChange={setQuery}
+        suggestions={suggestionsFrom(tissues.flatMap((tissue) => [tissueLabel(tissue), ...byTissue[tissue]]))}
+        fields={['Tissue', 'Proteins']}
+      >
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
         <thead>
           <tr>
             <th style={TH}>Tissue</th>
@@ -61,21 +73,29 @@ export function TissueExpressionTable({ proteins }: TissueExpressionTableProps) 
           </tr>
         </thead>
         <tbody style={{ background: 'var(--bg)' }}>
-          {tissues.map((tissue) => (
+          {shown.length === 0 && (
+            <tr>
+              <td colSpan={3} style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                No rows match.
+              </td>
+            </tr>
+          )}
+          {shown.map((tissue) => (
             <HighlightRow key={tissue} term={tissue} genes={byTissue[tissue]}>
-              <td style={{ padding: '8px 16px', color: 'var(--text)' }}>
+              <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text)' }}>
                 {tissueLabel(tissue)}
               </td>
-              <td style={{ padding: '8px 16px', color: 'var(--text-muted)', fontSize: 12 }}>
+              <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
                 {byTissue[tissue].join(' | ')}
               </td>
-              <td style={{ padding: '8px 16px', color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
+              <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
                 GTEx v6.0
               </td>
             </HighlightRow>
           ))}
         </tbody>
       </table>
+      </TableSearch>
       <GtexSourceNote />
     </div>
   )

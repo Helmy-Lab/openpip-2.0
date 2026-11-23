@@ -4,6 +4,7 @@ import { useStructureAvailability } from './network/useStructureAvailability'
 import { StructureViewer } from './network/StructureViewer'
 import type { Protein, Interaction } from '../../types/api'
 import { useText } from '../../text'
+import { useDatasets } from '../../api/downloads'
 
 const SECTION = {
   fontSize: 11,
@@ -20,7 +21,6 @@ const EXT_LINK = { fontSize: 12, color: 'var(--accent)', textDecoration: 'none' 
 export interface NodeInfoPanelProps {
   protein: Protein
   networkInteractions: Interaction[]
-  searchTerm: string
   onClose: () => void
   onRemove: (id: number) => void
 }
@@ -28,12 +28,14 @@ export interface NodeInfoPanelProps {
 export function NodeInfoPanel({
   protein,
   networkInteractions,
-  searchTerm,
   onClose,
   onRemove,
 }: NodeInfoPanelProps) {
   const navigate = useNavigate()
   const t = useText()
+  // The search runs over every dataset this deployment hosts; name them.
+  const { data: datasets } = useDatasets()
+  const datasetNames = datasets?.map((d) => d.name).filter(Boolean).join(', ')
   const gene = protein.protein_gene_name || protein.protein_uniprot_id || '-'
 
   const [viewerOpen, setViewerOpen] = useState(false)
@@ -208,7 +210,7 @@ export function NodeInfoPanel({
             navigate(`/search/${encodeURIComponent(gene)}`)
           }}
         >
-          Search {searchTerm || 'openPIP'} for {gene}
+          Search {gene} in {datasetNames || 'openPIP'}
         </button>
         <button
           className="op-btn"

@@ -28,11 +28,12 @@ const ARROW_STYLE: React.CSSProperties = {
 
 const MIN_NETWORK_H = 150
 const MAX_NETWORK_H = window.innerHeight - 56 - 120
-const DEFAULT_NETWORK_H = 500
 /** How far the handle may move before a mouse-up counts as a drag, not a click. */
 const DRAG_SLOP = 4
 
 const clampHeight = (h: number) => Math.min(MAX_NETWORK_H, Math.max(MIN_NETWORK_H, h))
+/** Canvas and tables split the space under the navbar 85:15 to start with. */
+const DEFAULT_NETWORK_H = clampHeight(Math.round((window.innerHeight - 56) * 0.85))
 const screenFraction = (f: number) => clampHeight(Math.round(window.innerHeight * f))
 
 interface SearchResultsPageProps {
@@ -339,7 +340,6 @@ const { proteins: filteredProteins, interactions: filteredInteractions } = filte
               key={selectedProtein.protein_id}
               protein={selectedProtein}
               networkInteractions={interactions}
-              searchTerm={term}
               onClose={() => setSelectedProtein(null)}
               onRemove={handleRemoveNode}
             />

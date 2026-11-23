@@ -117,12 +117,6 @@ export const searchGroup: TextGroup = {
       default: 'Download',
     },
     {
-      key: 'search.sidebar.canvas',
-      label: 'Canvas colour section',
-      section: 'Sidebar',
-      default: 'Canvas colour',
-    },
-    {
       key: 'search.sidebar.externalLinks',
       label: 'External links section',
       section: 'Sidebar',
@@ -192,6 +186,74 @@ export const searchGroup: TextGroup = {
     },
 
     {
+      key: 'search.networkSettings',
+      label: 'Network settings button',
+      section: 'Canvas style',
+      default: 'Network settings',
+    },
+    {
+      key: 'search.style.nodes',
+      label: 'Nodes heading',
+      section: 'Canvas style',
+      default: 'Nodes',
+    },
+    {
+      key: 'search.style.queryNode',
+      label: 'Query node colour',
+      section: 'Canvas style',
+      default: 'Query protein',
+    },
+    {
+      key: 'search.style.interactorNode',
+      label: 'Interactor node colour',
+      section: 'Canvas style',
+      default: 'Interactor',
+    },
+    {
+      key: 'search.style.edges',
+      label: 'Edges heading',
+      section: 'Canvas style',
+      default: 'Edges',
+    },
+    {
+      key: 'search.style.published',
+      label: 'Published edge colour',
+      section: 'Canvas style',
+      default: 'Published',
+    },
+    {
+      key: 'search.style.validated',
+      label: 'Validated edge colour',
+      section: 'Canvas style',
+      default: 'Validated',
+    },
+    {
+      key: 'search.style.verified',
+      label: 'Verified edge colour',
+      section: 'Canvas style',
+      default: 'Verified',
+    },
+    {
+      key: 'search.style.literature',
+      label: 'Literature edge colour',
+      section: 'Canvas style',
+      default: 'Literature',
+    },
+    {
+      key: 'search.style.reset',
+      label: 'Reset canvas style',
+      section: 'Canvas style',
+      default: 'Reset all',
+    },
+    {
+      key: 'search.table.search',
+      label: 'Table search placeholder',
+      section: 'Canvas style',
+      default: 'Search by {fields}',
+      hint: 'Use {fields} to insert the columns the table can be searched by.',
+    },
+
+    {
       key: 'search.filterMode.none',
       label: 'No Filter',
       section: 'Filter modes',
@@ -210,6 +272,24 @@ export const searchGroup: TextGroup = {
       default: 'Query-Interactor',
     },
 
+    {
+      key: 'search.download.group.documents',
+      label: 'Download group: documents',
+      section: 'Download menu',
+      default: 'Documents',
+    },
+    {
+      key: 'search.download.group.images',
+      label: 'Download group: images',
+      section: 'Download menu',
+      default: 'Images',
+    },
+    {
+      key: 'search.download.group.archive',
+      label: 'Download group: archive',
+      section: 'Download menu',
+      default: 'Full database',
+    },
     {
       key: 'search.download.sif',
       label: 'SIF',
@@ -363,6 +443,42 @@ export const searchGroup: TextGroup = {
       label: 'Interactions',
       section: 'Node panel',
       default: 'Interactions',
+    },
+    {
+      key: 'search.panel.overview',
+      label: 'Overview heading',
+      section: 'Node panel',
+      default: 'Overview',
+    },
+    {
+      key: 'search.panel.organism',
+      label: 'Organism',
+      section: 'Node panel',
+      default: 'Organism',
+    },
+    {
+      key: 'search.panel.length',
+      label: 'Sequence length',
+      section: 'Node panel',
+      default: 'Length',
+    },
+    {
+      key: 'search.panel.mass',
+      label: 'Molecular mass',
+      section: 'Node panel',
+      default: 'Mass',
+    },
+    {
+      key: 'search.panel.function',
+      label: 'Function heading',
+      section: 'Node panel',
+      default: 'Function',
+    },
+    {
+      key: 'search.panel.keywords',
+      label: 'Keywords heading',
+      section: 'Node panel',
+      default: 'Keywords',
     },
     {
       key: 'search.panel.description',

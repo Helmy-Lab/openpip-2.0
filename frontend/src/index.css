@@ -349,6 +349,14 @@ button, [role='button'], .op-btn {
   }
 }
 
+/* The network settings gear turns as its panel opens and back as it closes. */
+.op-gear {
+  transition: transform 0.3s ease;
+}
+[aria-expanded="true"] > .op-gear {
+  transform: rotate(90deg);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

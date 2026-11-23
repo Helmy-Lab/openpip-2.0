@@ -11,6 +11,7 @@ import { useEnrichment, type EnrichmentSource } from '../../../api/enrichment'
 import type { Protein } from '../../../types/api'
 import { useSettings } from '../../../api/settings'
 import { useText } from '../../../text'
+import { useQueryNodeColor } from '../network/canvasBackground'
 
 type Tab = 'interactions' | 'interactors' | EnrichmentSource | 'subcellular' | 'tissue' | 'summary'
 
@@ -87,6 +88,7 @@ export function ResultTablePanel({ selectedProtein }: Props) {
   const { data: settings } = useSettings()
   const [prevProtein, setPrevProtein] = useState(selectedProtein)
   const t = useText()
+  const queryColor = useQueryNodeColor()
 
   // Auto-switch to summary tab when the selected protein changes (React render-phase pattern)
   if (selectedProtein !== prevProtein) {
@@ -186,7 +188,9 @@ export function ResultTablePanel({ selectedProtein }: Props) {
 
       {/* The one scrolling box on this page: the table headers stick to its
           top, and the network above it never moves. */}
-      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg)' }}>
+      {/* Link text in the tables takes the query node colour, so a viewer who
+          recolours the network sees the tables follow. */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg)', '--table-link': queryColor } as React.CSSProperties}>
         {currentTab === 'interactions' ? (
           <InteractionsTable interactions={interactions} proteins={proteins} />
         ) : currentTab === 'interactors' ? (

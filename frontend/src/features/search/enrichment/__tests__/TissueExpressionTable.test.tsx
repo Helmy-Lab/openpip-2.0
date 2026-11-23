@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
+import { renderWithProviders as render } from '../../../../test/renderWithProviders'
 import { TissueExpressionTable } from '../TissueExpressionTable'
 import type { Protein } from '../../../../types/api'
 
@@ -89,5 +90,22 @@ describe('TissueExpressionTable', () => {
     const proteins = [makeProtein({ tissue_expression_array: { liver: '10.18' } })]
     render(<TissueExpressionTable proteins={proteins} />)
     expect(screen.queryByText(/TPM/)).toBeNull()
+  })
+})
+
+describe('TissueExpressionTable search', () => {
+  it('narrows the rows to tissues or proteins matching the box', async () => {
+    const { fireEvent } = await import('@testing-library/react')
+    render(
+      <TissueExpressionTable
+        proteins={[
+          makeProtein({ protein_gene_name: 'AAA', tissue_expression_array: { liver: '9' } }),
+          makeProtein({ protein_id: 2, protein_gene_name: 'BBB', tissue_expression_array: { lung: '9' } }),
+        ]}
+      />
+    )
+    fireEvent.change(screen.getByRole('combobox', { name: /^Search by Tissue/ }), { target: { value: 'bbb' } })
+    expect(screen.getByText('BBB')).toBeInTheDocument()
+    expect(screen.queryByText('AAA')).not.toBeInTheDocument()
   })
 })

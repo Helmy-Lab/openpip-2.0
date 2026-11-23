@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useStructureAvailability } from '../network/useStructureAvailability'
 import { StructureViewer } from '../network/StructureViewer'
+import { useUniprotEntry } from '../network/useUniprotEntry'
 import type { Protein, Interaction } from '../../../types/api'
 import { useText } from '../../../text'
 
@@ -51,6 +52,7 @@ export function ProteinSummaryPanel({ protein, interactions, isQueryProtein }: P
   const uniprotId = protein.protein_uniprot_id
 
   const { pdbId, loading: pdbLoading, error: pdbError } = useStructureAvailability(uniprotId)
+  const { data: entry } = useUniprotEntry(uniprotId)
 
   useEffect(() => {
     if (uniprotId) import('molstar/lib/mol-plugin-ui').catch(() => {})
@@ -187,6 +189,53 @@ export function ProteinSummaryPanel({ protein, interactions, isQueryProtein }: P
               </div>
             ))}
           </div>
+
+          {/* Overview, from UniProt: what the stored record does not carry */}
+          {entry && (
+            <>
+              <div style={SECTION}>{t('search.panel.overview')}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
+                {[
+                  { label: t('search.panel.organism'), value: entry.organism },
+                  { label: t('search.panel.length'), value: entry.length && `${entry.length} aa` },
+                  { label: t('search.panel.mass'), value: entry.mass && `${(entry.mass / 1000).toFixed(1)} kDa` },
+                ].filter((x) => x.value).map(({ label, value }) => (
+                  <div key={label} style={{
+                    background: 'var(--surface)', border: '1px solid var(--border)',
+                    borderRadius: 6, padding: '8px 12px',
+                  }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>
+                      {label}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text)' }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+              {entry.function && (
+                <>
+                  <div style={SECTION}>{t('search.panel.function')}</div>
+                  <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.7, margin: 0 }}>
+                    {entry.function}
+                  </p>
+                </>
+              )}
+              {entry.keywords.length > 0 && (
+                <>
+                  <div style={SECTION}>{t('search.panel.keywords')}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {entry.keywords.map((k) => (
+                      <span key={k} style={{
+                        fontSize: 12, background: 'var(--surface-2)', color: 'var(--text)',
+                        border: '1px solid var(--border)', borderRadius: 12, padding: '2px 10px',
+                      }}>
+                        {k}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
 
           {/* Description */}
           {protein.protein_description && (

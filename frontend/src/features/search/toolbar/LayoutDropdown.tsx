@@ -1,7 +1,5 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
 import { useSearchStore } from '../searchStore'
 import { useText } from '../../../text'
-import { PANEL_LEFT, useKeepOnScreen } from './panelPosition'
 import { useCanvasBackground, useCanvasBackgroundStore } from '../network/canvasBackground'
 
 type LayoutName = 'cola' | 'cose' | 'concentric' | 'circle' | 'grid'
@@ -117,92 +115,27 @@ export function CanvasBackgroundPicker() {
   )
 }
 
-export function LayoutDropdown() {
-  const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
+/** The layout choices, as radios; lives in the network settings panel. */
+export function LayoutOptions() {
   const t = useText()
-  useKeepOnScreen(panelRef, open, true)
-
   const selectedLayout = useSearchStore((s) => s.selectedLayout)
   const setLayout = useSearchStore((s) => s.setLayout)
-
-  useEffect(() => {
-    if (!open) return
-    function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [open])
-
-  function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    if (e.key === 'Escape') setOpen(false)
-  }
-
-  function handleSelect(name: LayoutName) {
-    setLayout(name)
-    setOpen(false)
-  }
-
   return (
-    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }} onKeyDown={handleKeyDown}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="op-btn"
-        aria-expanded={open}
-        style={{
-          height: CONTROL_HEIGHT,
-          fontSize: 12,
-          padding: '0 10px',
-          background: CONTROL_BG,
-        }}
-      >
-        {t('search.sidebar.layout')}
-      </button>
-
-      {open && (
-        <div ref={panelRef} style={{
-          position: 'absolute',
-          overflowY: 'auto',
-          left: PANEL_LEFT.button,
-          // Opens upward: the button sits at the bottom edge of the canvas.
-          bottom: '100%',
-          zIndex: 50,
-          marginBottom: 4,
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 6,
-          boxShadow: 'var(--shadow-md)',
-          padding: 14,
-          width: 224,
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>
-            {t('search.sidebar.layout')}
-          </div>
-          {LAYOUT_OPTIONS.map(({ value, textKey }) => (
-            <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text)', cursor: 'pointer', marginBottom: 5 }}>
-              <input
-                type="radio"
-                name="layoutOption"
-                value={value}
-                checked={selectedLayout === value}
-                onChange={() => handleSelect(value)}
-                style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
-              />
-              <LayoutIcon value={value} />
-              {t(textKey)}
-            </label>
-          ))}
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '12px 0 8px' }}>
-            {t('search.layout.background')}
-          </div>
-          <CanvasBackgroundPicker />
-        </div>
-      )}
-    </div>
+    <>
+      {LAYOUT_OPTIONS.map(({ value, textKey }) => (
+        <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text)', cursor: 'pointer', marginBottom: 5 }}>
+          <input
+            type="radio"
+            name="layoutOption"
+            value={value}
+            checked={selectedLayout === value}
+            onChange={() => setLayout(value)}
+            style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+          />
+          <LayoutIcon value={value} />
+          {t(textKey)}
+        </label>
+      ))}
+    </>
   )
 }

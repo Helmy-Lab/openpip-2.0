@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { screen } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { renderWithProviders } from '../../../../test/renderWithProviders'
 import { InteractionsTable } from '../InteractionsTable'
 import { searchFixture } from '../../../../mocks/fixtures/search'
+import { useSearchStore } from '../../searchStore'
 
 const { all_proteins: proteins, all_interactions: interactions } = searchFixture
 
@@ -44,5 +45,36 @@ describe('InteractionsTable', () => {
     expect(screen.getByText('0.65')).toBeInTheDocument()
     // interaction 3 has score 0.45
     expect(screen.getByText('0.45')).toBeInTheDocument()
+  })
+
+  it('narrows the rows to those matching the search box', () => {
+    renderWithProviders(<InteractionsTable interactions={interactions} proteins={proteins} />)
+    fireEvent.change(screen.getByRole('combobox', { name: /^Search by/ }), { target: { value: 'literature' } })
+    expect(screen.getByText('Literature')).toBeInTheDocument()
+    expect(screen.queryByText('Published')).toBeNull()
+    expect(screen.queryByText('Validated')).toBeNull()
+  })
+
+  it('suggests values from the table as the visitor types', () => {
+    const { container } = renderWithProviders(
+      <InteractionsTable interactions={interactions} proteins={proteins} />
+    )
+    const options = [...container.querySelectorAll('datalist option')].map((o) => o.getAttribute('value'))
+    expect(options).toEqual(expect.arrayContaining(['BAD', 'BCL2L1', 'BAK1', 'Literature']))
+    expect(new Set(options).size).toBe(options.length)
+  })
+
+  it('lights a row\'s interaction in the network, and lets go on a second click', () => {
+    useSearchStore.setState({ highlight: null })
+    renderWithProviders(<InteractionsTable interactions={interactions} proteins={proteins} />)
+    const row = screen.getByText('0.82').closest('tr')!
+    fireEvent.click(row)
+    expect(useSearchStore.getState().highlight).toEqual({
+      term: `i${interactions[0].interaction_id}`,
+      genes: [],
+      interactionIds: [interactions[0].interaction_id],
+    })
+    fireEvent.click(row)
+    expect(useSearchStore.getState().highlight).toBeNull()
   })
 })
